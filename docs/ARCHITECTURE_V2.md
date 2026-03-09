@@ -2,7 +2,7 @@
 
 ## Overview
 
-ZylenCut uses a strictly layered Clean Architecture, isolating UI, domain logic, and external services.
+LumaCraft uses a strictly layered Clean Architecture, isolating UI, domain logic, and external services.
 
 ## Directory Structure
 

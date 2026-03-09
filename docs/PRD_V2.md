@@ -1,4 +1,4 @@
-# ZylenCut V2 - Product Requirements Document
+# LumaCraft V2 - Product Requirements Document
 
 ## Vision
 

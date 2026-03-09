@@ -1,6 +1,6 @@
 {
-    "name": "zylencut_mobile",
-    "short_name": "zylencut_mobile",
+    "name": "lumacraft_mobile",
+    "short_name": "lumacraft_mobile",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.zylencut" "\0"
-            VALUE "FileDescription", "zylencut_mobile" "\0"
+            VALUE "CompanyName", "com.lumacraft" "\0"
+            VALUE "FileDescription", "lumacraft_mobile" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "zylencut_mobile" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.zylencut. All rights reserved." "\0"
-            VALUE "OriginalFilename", "zylencut_mobile.exe" "\0"
-            VALUE "ProductName", "zylencut_mobile" "\0"
+            VALUE "InternalName", "lumacraft_mobile" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.lumacraft. All rights reserved." "\0"
+            VALUE "OriginalFilename", "lumacraft_mobile.exe" "\0"
+            VALUE "ProductName", "lumacraft_mobile" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
