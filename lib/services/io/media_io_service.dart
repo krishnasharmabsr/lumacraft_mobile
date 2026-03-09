@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,12 +8,16 @@ import 'package:uuid/uuid.dart';
 import 'i_media_io_service.dart';
 
 class MediaIoService implements IMediaIoService {
-  final ImagePicker _picker = ImagePicker();
-
   @override
   Future<String?> pickVideoFromGallery() async {
-    final XFile? file = await _picker.pickVideo(source: ImageSource.gallery);
-    return file?.path;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.video,
+      allowMultiple: false,
+    );
+    if (result != null && result.files.single.path != null) {
+      return result.files.single.path;
+    }
+    return null;
   }
 
   @override
@@ -35,7 +39,6 @@ class MediaIoService implements IMediaIoService {
         final videos = await Permission.videos.request();
 
         if (!storage.isGranted && !videos.isGranted) {
-          // Fallback to Gal's check
           if (!await Gal.requestAccess()) return false;
         }
       } else {

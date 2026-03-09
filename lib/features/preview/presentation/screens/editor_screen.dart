@@ -53,7 +53,6 @@ class _EditorScreenState extends State<EditorScreen> {
     });
 
     newController.play();
-
     oldController?.dispose();
   }
 
@@ -139,83 +138,144 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ctrl = _controller;
+    final isReady = ctrl != null && ctrl.value.isInitialized;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('LumaCraft Editor'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: _isProcessing ? null : _exportVideo,
-            tooltip: 'Export to Gallery',
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('LumaCraft Editor')),
       body: _isProcessing
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (_controller != null && _controller!.value.isInitialized)
-                  AspectRatio(
-                    aspectRatio: _controller!.value.aspectRatio,
-                    child: VideoPlayer(_controller!),
-                  ),
-                const SizedBox(height: 16),
-                if (_controller != null &&
-                    _controller!.value.isInitialized) ...[
-                  Text(
-                    '${_formatDuration(_controller!.value.position)} / ${_formatDuration(_controller!.value.duration)}',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      _controller!.value.isPlaying
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _controller!.value.isPlaying
-                            ? _controller!.pause()
-                            : _controller!.play();
-                      });
-                    },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: TrimControls(
-                      maxDuration: _controller!.value.duration,
-                      currentStart: _trimStart,
-                      currentEnd: _trimEnd,
-                      onStartChanged: (start) {
-                        setState(() {
-                          _trimStart = start;
-                        });
-                        _controller!.seekTo(start);
-                      },
-                      onEndChanged: (end) {
-                        setState(() {
-                          _trimEnd = end;
-                        });
-                      },
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: _previewTrim,
-                        child: const Text('Preview Trim'),
+          : SafeArea(
+              child: Column(
+                children: [
+                  // --- Video preview area (bounded) ---
+                  if (isReady)
+                    Flexible(
+                      flex: 3,
+                      child: Container(
+                        color: Colors.black,
+                        alignment: Alignment.center,
+                        child: AspectRatio(
+                          aspectRatio: ctrl.value.aspectRatio,
+                          child: VideoPlayer(ctrl),
+                        ),
                       ),
-                      const SizedBox(width: 16),
-                      ElevatedButton(
-                        onPressed: _processTrim,
-                        child: const Text('Process Trim'),
+                    )
+                  else
+                    const Expanded(
+                      flex: 3,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+
+                  // --- Controls section (scrollable) ---
+                  if (isReady)
+                    Expanded(
+                      flex: 4,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // -- Playback section --
+                            _sectionHeader('Playback'),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '${_formatDuration(ctrl.value.position)} / ${_formatDuration(ctrl.value.duration)}',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                const SizedBox(width: 16),
+                                IconButton.filled(
+                                  icon: Icon(
+                                    ctrl.value.isPlaying
+                                        ? Icons.pause
+                                        : Icons.play_arrow,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      ctrl.value.isPlaying
+                                          ? ctrl.pause()
+                                          : ctrl.play();
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+                            const Divider(),
+
+                            // -- Trim Range section --
+                            _sectionHeader('Trim Range'),
+                            const SizedBox(height: 4),
+                            TrimControls(
+                              maxDuration: ctrl.value.duration,
+                              currentStart: _trimStart,
+                              currentEnd: _trimEnd,
+                              onStartChanged: (start) {
+                                setState(() => _trimStart = start);
+                                ctrl.seekTo(start);
+                              },
+                              onEndChanged: (end) {
+                                setState(() => _trimEnd = end);
+                              },
+                            ),
+
+                            const SizedBox(height: 16),
+                            const Divider(),
+
+                            // -- Actions section --
+                            _sectionHeader('Actions'),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: _previewTrim,
+                                  icon: const Icon(Icons.preview),
+                                  label: const Text('Preview Trim'),
+                                ),
+                                FilledButton.icon(
+                                  onPressed: _processTrim,
+                                  icon: const Icon(Icons.content_cut),
+                                  label: const Text('Process Trim'),
+                                ),
+                                FilledButton.icon(
+                                  onPressed: _exportVideo,
+                                  icon: const Icon(Icons.save_alt),
+                                  label: const Text('Export'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ] else
-                  const Center(child: CircularProgressIndicator()),
-              ],
+                    ),
+                ],
+              ),
             ),
+    );
+  }
+
+  Widget _sectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: Colors.grey,
+        letterSpacing: 0.5,
+      ),
     );
   }
 }

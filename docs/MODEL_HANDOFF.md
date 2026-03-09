@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B merged.
-- **In Progress:** S002 (Core video pipeline) & S002B (Blocking Fixes) - Awaiting manual QA sign-off for Phase 1.
+- **QA_PENDING:** S002/S002B/C/D (Core video pipeline + Blocking Fixes) - Awaiting manual QA sign-off. Import migrated to `file_picker`, editor overflow fixed, UX improved.
 
 ## Environment Identity
 
