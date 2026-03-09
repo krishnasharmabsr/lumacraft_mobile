@@ -14,4 +14,4 @@
 
 ## Rename History
 
-- **2026-03-10:** Renamed from `ZylenCut` to `LumaCraft` to better reflect the lighting (Luma) and creator-focused (Craft) nature of the application, prioritizing a premium brand feel over the more aggressive sounding "cut".
+- **2026-03-10:** Renamed from `ZylenCut` to `LumaCraft` to better reflect the lighting (Luma) and creator-focused (Craft) nature of the application, prioritizing a premium brand feel over the more aggressive sounding "cut". GitHub repository and local folders renamed to `lumacraft_mobile`.

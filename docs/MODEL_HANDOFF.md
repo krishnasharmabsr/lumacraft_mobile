@@ -10,3 +10,8 @@
 
 - **Completed:** S001 + S001B merged.
 - **Next Task:** S002 (Core video pipeline: import -> preview -> trim -> export)
+
+## Environment Identity
+
+- **Local Path:** `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
+- **Remote Repo:** `https://github.com/krishnasharmabsr/lumacraft_mobile`
