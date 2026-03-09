@@ -13,6 +13,15 @@ class FFmpegProcessor implements IVideoProcessor {
     required Duration startTime,
     required Duration endTime,
   }) async {
+    if (endTime <= startTime) {
+      throw FFmpegException(
+        'Invalid trim duration: endTime must be greater than startTime',
+        '',
+        0,
+        '',
+      );
+    }
+
     // Ensure output path is clear
     final outFile = File(outputPath);
     if (await outFile.exists()) {
@@ -23,9 +32,9 @@ class FFmpegProcessor implements IVideoProcessor {
     final endSecs = endTime.inMilliseconds / 1000.0;
     final duration = endSecs - startSecs;
 
-    // Re-encode safe trim
+    // Deterministic re-encode trim
     final command =
-        '-y -ss $startSecs -t $duration -i "$inputPath" -map 0:v:0 -map 0:a? -movflags +faststart "$outputPath"';
+        '-y -ss $startSecs -t $duration -i "$inputPath" -map 0:v:0 -map 0:a? -c:v mpeg4 -q:v 3 -c:a aac -b:a 128k -movflags +faststart "$outputPath"';
 
     final session = await FFmpegKit.execute(command);
     final returnCode = await session.getReturnCode();
