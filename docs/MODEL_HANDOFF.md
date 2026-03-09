@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B merged.
-- **Next Task:** S002 (Core video pipeline: import -> preview -> trim -> export)
+- **In Progress:** S002 (Core video pipeline: import -> preview -> trim -> export)
 
 ## Environment Identity
 
