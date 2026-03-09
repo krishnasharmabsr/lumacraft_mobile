@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B merged.
-- **In Progress:** S002 (Core video pipeline: import -> preview -> trim -> export)
+- **In Progress:** S002 (Core video pipeline) & S002B (Blocking Fixes) - Awaiting manual QA sign-off for Phase 1.
 
 ## Environment Identity
 

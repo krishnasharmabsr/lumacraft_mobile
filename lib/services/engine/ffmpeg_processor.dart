@@ -23,11 +23,9 @@ class FFmpegProcessor implements IVideoProcessor {
     final endSecs = endTime.inMilliseconds / 1000.0;
     final duration = endSecs - startSecs;
 
-    // Fast seek: -ss before -i, copy video, re-encode audio if needed or copy both
-    // Using copy for both for maximum speed on mobile, accurate to keyframes
-    // -accurate_seek -ss START -t DURATION -i INPUT -c copy OUTPUT
+    // Re-encode safe trim
     final command =
-        '-y -ss $startSecs -t $duration -i "$inputPath" -c:v copy -c:a copy "$outputPath"';
+        '-y -ss $startSecs -t $duration -i "$inputPath" -map 0:v:0 -map 0:a? -movflags +faststart "$outputPath"';
 
     final session = await FFmpegKit.execute(command);
     final returnCode = await session.getReturnCode();

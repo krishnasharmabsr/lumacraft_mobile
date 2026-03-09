@@ -18,7 +18,7 @@ class EditorScreen extends StatefulWidget {
 }
 
 class _EditorScreenState extends State<EditorScreen> {
-  late VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   final FFmpegProcessor _processor = FFmpegProcessor();
   final MediaIoService _ioService = MediaIoService();
 
@@ -37,30 +37,37 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> _initializePlayer(String path) async {
     final oldController = _controller;
 
-    _controller = VideoPlayerController.file(File(path));
-    await _controller.initialize();
+    final newController = VideoPlayerController.file(File(path));
+    await newController.initialize();
 
-    setState(() {
-      _trimStart = Duration.zero;
-      _trimEnd = _controller.value.duration;
-    });
+    if (mounted) {
+      setState(() {
+        _controller = newController;
+        _trimStart = Duration.zero;
+        _trimEnd = newController.value.duration;
+      });
+    }
 
-    _controller.addListener(() {
+    newController.addListener(() {
       if (mounted) setState(() {});
     });
 
-    _controller.play();
+    newController.play();
 
-    // Dispose old controller if exists to prevent memory leaks
-    if (oldController.value.isInitialized) {
-      oldController.dispose();
-    }
+    oldController?.dispose();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
+  }
+
+  void _previewTrim() {
+    if (_controller != null) {
+      _controller!.seekTo(_trimStart);
+      _controller!.play();
+    }
   }
 
   Future<void> _processTrim() async {
@@ -147,41 +154,42 @@ class _EditorScreenState extends State<EditorScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                if (_controller.value.isInitialized)
+                if (_controller != null && _controller!.value.isInitialized)
                   AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
-                    child: VideoPlayer(_controller),
+                    aspectRatio: _controller!.value.aspectRatio,
+                    child: VideoPlayer(_controller!),
                   ),
                 const SizedBox(height: 16),
-                if (_controller.value.isInitialized) ...[
+                if (_controller != null &&
+                    _controller!.value.isInitialized) ...[
                   Text(
-                    '${_formatDuration(_controller.value.position)} / ${_formatDuration(_controller.value.duration)}',
+                    '${_formatDuration(_controller!.value.position)} / ${_formatDuration(_controller!.value.duration)}',
                   ),
                   IconButton(
                     icon: Icon(
-                      _controller.value.isPlaying
+                      _controller!.value.isPlaying
                           ? Icons.pause
                           : Icons.play_arrow,
                     ),
                     onPressed: () {
                       setState(() {
-                        _controller.value.isPlaying
-                            ? _controller.pause()
-                            : _controller.play();
+                        _controller!.value.isPlaying
+                            ? _controller!.pause()
+                            : _controller!.play();
                       });
                     },
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: TrimControls(
-                      maxDuration: _controller.value.duration,
+                      maxDuration: _controller!.value.duration,
                       currentStart: _trimStart,
                       currentEnd: _trimEnd,
                       onStartChanged: (start) {
                         setState(() {
                           _trimStart = start;
                         });
-                        _controller.seekTo(start);
+                        _controller!.seekTo(start);
                       },
                       onEndChanged: (end) {
                         setState(() {
@@ -190,9 +198,19 @@ class _EditorScreenState extends State<EditorScreen> {
                       },
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: _processTrim,
-                    child: const Text('Process Trim'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _previewTrim,
+                        child: const Text('Preview Trim'),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: _processTrim,
+                        child: const Text('Process Trim'),
+                      ),
+                    ],
                   ),
                 ] else
                   const Center(child: CircularProgressIndicator()),

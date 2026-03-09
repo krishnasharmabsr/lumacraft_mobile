@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 
 import 'i_media_io_service.dart';
@@ -29,10 +30,18 @@ class MediaIoService implements IMediaIoService {
   @override
   Future<bool> saveVideoToGallery(String filePath) async {
     try {
-      final hasAccess = await Gal.hasAccess();
-      if (!hasAccess) {
-        final granted = await Gal.requestAccess();
-        if (!granted) return false;
+      if (Platform.isAndroid) {
+        final storage = await Permission.storage.request();
+        final videos = await Permission.videos.request();
+
+        if (!storage.isGranted && !videos.isGranted) {
+          // Fallback to Gal's check
+          if (!await Gal.requestAccess()) return false;
+        }
+      } else {
+        if (!await Gal.hasAccess()) {
+          if (!await Gal.requestAccess()) return false;
+        }
       }
 
       await Gal.putVideo(filePath);
