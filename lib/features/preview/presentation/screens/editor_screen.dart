@@ -40,6 +40,11 @@ class _EditorScreenState extends State<EditorScreen> {
   Duration _videoDuration = Duration.zero;
   bool _isTimelineInvalid = false;
 
+  // --- Proxy / Seek ---
+  String? _previewProxyPath;
+  Duration _previewDuration = Duration.zero;
+  double _durationRatio = 1.0;
+
   // --- Trim state ---
   Duration _trimStart = Duration.zero;
   Duration _trimEnd = Duration.zero;
@@ -66,6 +71,9 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _showOverlay = true;
   bool _showVolumeSlider = false;
   bool _isScrubbing = false;
+  bool _seekInProgress = false;
+  Duration? _queuedSeekTarget;
+  Duration? _pendingScrubTarget;
   Timer? _overlayTimer;
 
   String _processingLabel = '';
@@ -151,7 +159,8 @@ class _EditorScreenState extends State<EditorScreen> {
         // Take the probed duration — controller may still report 0
         resolvedDuration = normResult.duration;
         winningSource = 'normalized_probe_${normResult.mode}';
-        _workingVideoPath = normResult.path;
+        _workingVideoPath = normResult.path; // Update working path!
+        path = _workingVideoPath;
         developer.log(
           'normalization_success: mode=${normResult.mode}, probed_duration=${normResult.duration.inMilliseconds}ms, controller_duration=${newController.value.duration.inMilliseconds}ms',
           name: '[DurationProbe]',
@@ -167,43 +176,104 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     developer.log(
-      'FINAL duration resolved via $winningSource: ${resolvedDuration.inMilliseconds}ms',
+      'FINAL working duration resolved via $winningSource: ${resolvedDuration.inMilliseconds}ms',
       name: '[DurationProbe]',
     );
 
-    final timelineInvalid = !_isUsableDuration(resolvedDuration);
+    // Ensure we have a strictly usable absolute length
+    if (resolvedDuration.inMilliseconds < 1000) {
+      resolvedDuration = const Duration(milliseconds: 1000);
+    }
+    _videoDuration = resolvedDuration;
+
+    // ── Pre-Generate Seek/Preview Proxy ──
+    if (mounted) {
+      setState(() {
+        _isProcessing = true;
+        _processingLabel = 'Optimizing playback...';
+        _processingProgress = -1;
+      });
+    }
+
+    await _generatePreviewProxy(_workingVideoPath);
 
     if (mounted) {
       setState(() {
-        _controller = newController;
-        _videoDuration = resolvedDuration;
+        _isProcessing = false;
+        _processingLabel = '';
+      });
+    }
+
+    VideoPlayerController activeCtrl;
+
+    if (_previewProxyPath != null && File(_previewProxyPath!).existsSync()) {
+      newController.dispose();
+      activeCtrl = VideoPlayerController.file(File(_previewProxyPath!));
+      await activeCtrl.initialize();
+      _previewDuration = activeCtrl.value.duration;
+
+      if (_previewDuration.inMilliseconds < 1000) {
+        _previewDuration = _videoDuration;
+      }
+
+      _durationRatio =
+          _videoDuration.inMilliseconds / _previewDuration.inMilliseconds;
+      developer.log(
+        'proxy_success: working=${_videoDuration.inMilliseconds}ms, preview=${_previewDuration.inMilliseconds}ms, ratio=$_durationRatio',
+        name: '[DurationProbe]',
+      );
+    } else {
+      activeCtrl = newController;
+      _previewDuration = _videoDuration;
+      _durationRatio = 1.0;
+      developer.log(
+        'proxy_failed: falling back to original source for playback',
+        name: '[DurationProbe]',
+      );
+    }
+
+    final timelineInvalid = !_isUsableDuration(_videoDuration);
+
+    if (mounted) {
+      setState(() {
+        _controller = activeCtrl;
         _isTimelineInvalid = timelineInvalid;
         _trimStart = Duration.zero;
-        _trimEnd = resolvedDuration;
+        _trimEnd = _videoDuration;
         _isPreviewingTrim = false;
         if (!keepEdits) {
           _previewSpeed = 1.0;
           _appliedSpeed = 1.0;
           _previewCanvas = ExportAspectRatio.source;
           _appliedCanvas = ExportAspectRatio.source;
+        } else {
+          if (_trimStart > _videoDuration) _trimStart = Duration.zero;
+          if (_trimEnd > _videoDuration) _trimEnd = _videoDuration;
         }
       });
     }
 
-    newController.addListener(() async {
+    activeCtrl.addListener(() async {
       if (!mounted) return;
 
-      final pos = newController.value.position;
-      final reportedDur = newController.value.duration;
+      final pos = activeCtrl.value.position;
+      final reportedDur = activeCtrl.value.duration;
 
-      // 1. Late promotion (only if new duration is usable and better than current)
-      if (!_isUsableDuration(_videoDuration) &&
+      // 1. Late promotion
+      if (!_isUsableDuration(_previewDuration) &&
           _isUsableDuration(reportedDur)) {
         developer.log(
           'video_player late update: ${reportedDur.inMilliseconds}ms',
           name: '[DurationProbe]',
         );
-        _videoDuration = reportedDur;
+        _previewDuration = reportedDur;
+        // Recalculate ratio if proxy exists, otherwise sync working duration
+        if (_previewProxyPath == null) {
+          _videoDuration = reportedDur;
+        } else {
+          _durationRatio =
+              _videoDuration.inMilliseconds / _previewDuration.inMilliseconds;
+        }
         _isTimelineInvalid = false;
         if (!_isUsableDuration(_trimEnd)) {
           _trimEnd = _videoDuration;
@@ -214,21 +284,26 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       // 2. Position-vs-duration sanity recovery
-      // If position somehow exceeds our chosen duration, it means our duration is wrong.
       if (!_durationRecoveryInProgress &&
           _isUsableDuration(pos) &&
-          _isUsableDuration(_videoDuration) &&
-          pos.inMilliseconds > _videoDuration.inMilliseconds + 500) {
+          _isUsableDuration(_previewDuration) &&
+          pos.inMilliseconds > _previewDuration.inMilliseconds + 500) {
         developer.log(
-          'sanity_recovery_triggered: pos=${pos.inMilliseconds}ms > dur=${_videoDuration.inMilliseconds}ms',
+          'sanity_recovery_triggered: pos=${pos.inMilliseconds}ms > dur=${_previewDuration.inMilliseconds}ms',
           name: '[DurationProbe]',
         );
         _durationRecoveryInProgress = true;
-        // Re-read or re-normalize asynchronously
+
         if (_isUsableDuration(reportedDur) &&
-            reportedDur.inMilliseconds > _videoDuration.inMilliseconds) {
-          _videoDuration = reportedDur;
-          _trimEnd = reportedDur;
+            reportedDur.inMilliseconds > _previewDuration.inMilliseconds) {
+          _previewDuration = reportedDur;
+          if (_previewProxyPath == null) {
+            _videoDuration = reportedDur;
+            _trimEnd = reportedDur;
+          } else {
+            _durationRatio =
+                _videoDuration.inMilliseconds / _previewDuration.inMilliseconds;
+          }
           _isTimelineInvalid = false;
           developer.log(
             'sanity_recovered_from_controller',
@@ -240,14 +315,13 @@ class _EditorScreenState extends State<EditorScreen> {
             'sanity_requires_renormalization',
             name: '[DurationProbe]',
           );
-          // Trigger a silent re-initialization if needed
           _initializePlayer(_workingVideoPath, keepEdits: true);
         }
       }
     });
 
     if (!timelineInvalid) {
-      newController.play();
+      activeCtrl.play();
     }
     oldController?.dispose();
 
@@ -261,6 +335,42 @@ class _EditorScreenState extends State<EditorScreen> {
           duration: Duration(seconds: 4),
         ),
       );
+    }
+  }
+
+  Future<void> _generatePreviewProxy(String inputPath) async {
+    final cacheDir = File(inputPath).parent;
+    final uuid = const Uuid().v4().substring(0, 8);
+    final proxyPath = '${cacheDir.path}/preview_proxy_$uuid.mp4';
+
+    try {
+      final session = await FFmpegKit.execute(
+        '-y -fflags +genpts -i "$inputPath" '
+        '-map 0:v:0 -map 0:a? '
+        '-vf "scale=-2:720,format=yuv420p" '
+        '-c:v libx264 -preset ultrafast -crf 28 '
+        '-g 1 -keyint_min 1 -sc_threshold 0 '
+        '-c:a aac -b:a 96k '
+        '-movflags +faststart "$proxyPath"',
+      );
+      final rc = await session.getReturnCode();
+      if (ReturnCode.isSuccess(rc) && File(proxyPath).existsSync()) {
+        final proxyDur = await _quickProbeDuration(proxyPath);
+        if (_isUsableDuration(proxyDur)) {
+          _previewProxyPath = proxyPath;
+          return;
+        }
+        developer.log(
+          'proxy_generated_but_invalid_duration=${proxyDur.inMilliseconds}ms',
+          name: '[DurationProbe]',
+        );
+        _previewProxyPath = null;
+      } else {
+        _previewProxyPath = null;
+      }
+    } catch (e) {
+      developer.log('proxy_error: $e', name: '[DurationProbe]');
+      _previewProxyPath = null;
     }
   }
 
@@ -558,21 +668,116 @@ class _EditorScreenState extends State<EditorScreen> {
     super.dispose();
   }
 
-  Future<void> _seekTo(Duration target, {String source = ''}) async {
+  Duration _mapWorkingToPreview(Duration working) {
+    if (_durationRatio <= 0) return working;
+    return Duration(
+      milliseconds: (working.inMilliseconds / _durationRatio).round(),
+    );
+  }
+
+  Duration _mapPreviewToWorking(Duration preview) {
+    if (_durationRatio <= 0) return preview;
+    return Duration(
+      milliseconds: (preview.inMilliseconds * _durationRatio).round(),
+    );
+  }
+
+  Future<void> _seekTo(
+    Duration targetWorking, {
+    String source = '',
+    bool settle = true,
+  }) async {
     if (_controller == null || !_controller!.value.isInitialized) return;
 
-    final before = _controller!.value.position;
-    Duration clamped = target;
-    if (clamped < Duration.zero) clamped = Duration.zero;
-    if (clamped > _videoDuration) clamped = _videoDuration;
+    Duration clampedWorking = targetWorking;
+    if (clampedWorking < Duration.zero) clampedWorking = Duration.zero;
+    if (clampedWorking > _videoDuration) clampedWorking = _videoDuration;
 
-    developer.log(
-      'source=$source, before=${before.inMilliseconds}ms, target=${target.inMilliseconds}ms, clamped=${clamped.inMilliseconds}ms',
-      name: '[SeekProbe]',
-    );
+    if (_seekInProgress) {
+      _queuedSeekTarget = clampedWorking;
+      return;
+    }
 
-    await _controller!.seekTo(clamped);
-    if (mounted) setState(() {});
+    _seekInProgress = true;
+    try {
+      Duration nextTarget = clampedWorking;
+      String nextSource = source;
+
+      while (true) {
+        if (_controller == null || !_controller!.value.isInitialized) break;
+
+        final targetPreviewRaw = _mapWorkingToPreview(nextTarget);
+        Duration targetPreview = targetPreviewRaw;
+        if (targetPreview < Duration.zero) targetPreview = Duration.zero;
+        if (_isUsableDuration(_previewDuration) &&
+            targetPreview > _previewDuration) {
+          targetPreview = _previewDuration;
+        }
+        final wasPlaying = _controller!.value.isPlaying;
+
+        developer.log(
+          'source=$nextSource, reqWorking=${nextTarget.inMilliseconds}ms, '
+          'targetPreview=${targetPreview.inMilliseconds}ms, settle=$settle',
+          name: '[SeekProbe]',
+        );
+
+        if (settle && wasPlaying) {
+          await _controller!.pause();
+        }
+
+        await _controller!.seekTo(targetPreview);
+
+        bool settledOk = true;
+        if (settle) {
+          settledOk = false;
+          for (int i = 0; i < 10; i++) {
+            await Future.delayed(const Duration(milliseconds: 50));
+            if (!mounted || _controller == null) break;
+            final currentPreview = _controller!.value.position;
+            final diff =
+                (currentPreview.inMilliseconds - targetPreview.inMilliseconds)
+                    .abs();
+            if (diff < 200) {
+              settledOk = true;
+              break;
+            }
+          }
+
+          if (!settledOk && mounted && _controller != null) {
+            final fallbackPreview =
+                targetPreview > const Duration(milliseconds: 250)
+                ? targetPreview - const Duration(milliseconds: 250)
+                : Duration.zero;
+            await _controller!.seekTo(fallbackPreview);
+          }
+        }
+
+        if (mounted && _controller != null) {
+          final finalPreview = _controller!.value.position;
+          final finalWorking = _mapPreviewToWorking(finalPreview);
+          final delta =
+              finalWorking.inMilliseconds - nextTarget.inMilliseconds;
+          developer.log(
+            'seek_result: source=$nextSource, actualWorking=${finalWorking.inMilliseconds}ms, '
+            'delta=${delta}ms, settled=$settledOk',
+            name: '[SeekProbe]',
+          );
+
+          if (settle && wasPlaying) {
+            await _controller!.play();
+          }
+          setState(() {});
+        }
+
+        final queued = _queuedSeekTarget;
+        _queuedSeekTarget = null;
+        if (queued == null) break;
+        nextTarget = queued;
+        nextSource = 'queued_seek';
+      }
+    } finally {
+      _seekInProgress = false;
+    }
   }
 
   void _resetOverlayTimer() {
@@ -646,14 +851,15 @@ class _EditorScreenState extends State<EditorScreen> {
     if (ctrl == null || _isTimelineInvalid) return;
 
     _removePreviewListener();
-    ctrl.seekTo(_trimStart);
+    ctrl.seekTo(_mapWorkingToPreview(_trimStart));
     ctrl.setPlaybackSpeed(_previewSpeed);
     ctrl.play();
     _isPreviewingTrim = true;
 
     _previewListener = () {
       if (!mounted || !_isPreviewingTrim) return;
-      if (ctrl.value.position >= _trimEnd) {
+      final posWork = _mapPreviewToWorking(ctrl.value.position);
+      if (posWork >= _trimEnd) {
         ctrl.pause();
         _removePreviewListener();
         if (mounted) setState(() {});
@@ -903,15 +1109,17 @@ class _EditorScreenState extends State<EditorScreen> {
                                                     ),
                                                     iconSize: 36,
                                                     color: Colors.white,
-                                                    onPressed: () {
+                                                    onPressed: () async {
                                                       _removePreviewListener();
-                                                      final pos =
-                                                          ctrl.value.position -
-                                                          const Duration(
-                                                            seconds: 10,
+                                                      final posWork =
+                                                          _mapPreviewToWorking(
+                                                            ctrl.value.position,
                                                           );
-                                                      _seekTo(
-                                                        pos,
+                                                      await _seekTo(
+                                                        posWork -
+                                                            const Duration(
+                                                              seconds: 10,
+                                                            ),
                                                         source: 'btn_seek_back',
                                                       );
                                                       _resetOverlayTimer();
@@ -951,15 +1159,17 @@ class _EditorScreenState extends State<EditorScreen> {
                                                     ),
                                                     iconSize: 36,
                                                     color: Colors.white,
-                                                    onPressed: () {
+                                                    onPressed: () async {
                                                       _removePreviewListener();
-                                                      final pos =
-                                                          ctrl.value.position +
-                                                          const Duration(
-                                                            seconds: 10,
+                                                      final posWork =
+                                                          _mapPreviewToWorking(
+                                                            ctrl.value.position,
                                                           );
-                                                      _seekTo(
-                                                        pos,
+                                                      await _seekTo(
+                                                        posWork +
+                                                            const Duration(
+                                                              seconds: 10,
+                                                            ),
                                                         source:
                                                             'btn_seek_forward',
                                                       );
@@ -1041,7 +1251,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                                               width: 8,
                                                             ),
                                                             Text(
-                                                              '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
+                                                              '${_formatDuration(_mapPreviewToWorking(ctrl.value.position))} / ${_formatDuration(_videoDuration)}',
                                                               style: const TextStyle(
                                                                 color: Colors
                                                                     .white,
@@ -1058,7 +1268,12 @@ class _EditorScreenState extends State<EditorScreen> {
                                                           height: 8,
                                                         ),
                                                         PlaybackTimeline(
-                                                          controller: ctrl,
+                                                          currentPosition:
+                                                              _mapPreviewToWorking(
+                                                                ctrl
+                                                                    .value
+                                                                    .position,
+                                                              ),
                                                           duration:
                                                               _videoDuration,
                                                           trimStart: _trimStart,
@@ -1069,22 +1284,36 @@ class _EditorScreenState extends State<EditorScreen> {
                                                                   _isScrubbing =
                                                                       true,
                                                             );
+                                                            _pendingScrubTarget =
+                                                                null;
                                                             _overlayTimer
                                                                 ?.cancel();
                                                           },
                                                           onScrubUpdate: (target) {
+                                                            _pendingScrubTarget =
+                                                                target;
                                                             _seekTo(
                                                               target,
                                                               source:
                                                                   'slider_scrub',
+                                                              settle: false,
                                                             );
                                                           },
                                                           onScrubEnd: () {
+                                                            final target =
+                                                                _pendingScrubTarget;
                                                             setState(
                                                               () =>
                                                                   _isScrubbing =
                                                                       false,
                                                             );
+                                                            if (target != null) {
+                                                              _seekTo(
+                                                                target,
+                                                                source:
+                                                                    'slider_scrub_commit',
+                                                              );
+                                                            }
                                                             _resetOverlayTimer();
                                                           },
                                                         ),
@@ -1709,7 +1938,7 @@ class _ToolIconButton extends StatelessWidget {
 //  UI COMPONENT: PLAYBACK TIMELINE WITH TRIM HIGHLIGHT
 // ────────────────────────────────────────────────────────────
 class PlaybackTimeline extends StatelessWidget {
-  final VideoPlayerController controller;
+  final Duration currentPosition;
   final Duration duration;
   final Duration trimStart;
   final Duration trimEnd;
@@ -1719,7 +1948,7 @@ class PlaybackTimeline extends StatelessWidget {
 
   const PlaybackTimeline({
     super.key,
-    required this.controller,
+    required this.currentPosition,
     required this.duration,
     required this.trimStart,
     required this.trimEnd,
@@ -1742,7 +1971,7 @@ class PlaybackTimeline extends StatelessWidget {
             ? trimEnd.inMilliseconds / totalMillis
             : 1.0;
         final positionRatio = totalMillis > 0
-            ? controller.value.position.inMilliseconds / totalMillis
+            ? currentPosition.inMilliseconds / totalMillis
             : 0.0;
 
         return GestureDetector(
