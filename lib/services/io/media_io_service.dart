@@ -1,22 +1,19 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 
 import 'i_media_io_service.dart';
+import 'native_video_picker.dart';
 
 class MediaIoService implements IMediaIoService {
   @override
   Future<String?> pickVideoFromGallery() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.video,
-      allowMultiple: false,
-    );
-    if (result != null && result.files.single.path != null) {
-      return result.files.single.path;
+    if (Platform.isAndroid) {
+      return NativeVideoPicker.pickVideo();
     }
+    // Non-Android: unsupported for now
     return null;
   }
 

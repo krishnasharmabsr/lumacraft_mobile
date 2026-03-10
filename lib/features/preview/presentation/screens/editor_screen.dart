@@ -26,6 +26,8 @@ class _EditorScreenState extends State<EditorScreen> {
   Duration _trimStart = Duration.zero;
   Duration _trimEnd = Duration.zero;
   bool _isProcessing = false;
+  bool _isPreviewingTrim = false;
+  VoidCallback? _previewListener;
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class _EditorScreenState extends State<EditorScreen> {
         _controller = newController;
         _trimStart = Duration.zero;
         _trimEnd = newController.value.duration;
+        _isPreviewingTrim = false;
       });
     }
 
@@ -58,18 +61,58 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   void dispose() {
+    _removePreviewListener();
     _controller?.dispose();
     super.dispose();
   }
 
-  void _previewTrim() {
-    if (_controller != null) {
-      _controller!.seekTo(_trimStart);
-      _controller!.play();
+  void _removePreviewListener() {
+    if (_previewListener != null && _controller != null) {
+      _controller!.removeListener(_previewListener!);
+      _previewListener = null;
     }
+    _isPreviewingTrim = false;
+  }
+
+  void _previewTrim() {
+    final ctrl = _controller;
+    if (ctrl == null) return;
+
+    // Clean up any existing preview listener
+    _removePreviewListener();
+
+    // Seek to trim start and play
+    ctrl.seekTo(_trimStart);
+    ctrl.play();
+    _isPreviewingTrim = true;
+
+    // Create a listener that pauses at _trimEnd
+    _previewListener = () {
+      if (!mounted || !_isPreviewingTrim) return;
+      if (ctrl.value.position >= _trimEnd) {
+        ctrl.pause();
+        _removePreviewListener();
+        if (mounted) setState(() {});
+      }
+    };
+    ctrl.addListener(_previewListener!);
+    setState(() {});
   }
 
   Future<void> _processTrim() async {
+    // Validate: end must be greater than start
+    if (_trimEnd <= _trimStart) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid trim: end must be after start'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {
@@ -199,6 +242,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                         : Icons.play_arrow,
                                   ),
                                   onPressed: () {
+                                    _removePreviewListener();
                                     setState(() {
                                       ctrl.value.isPlaying
                                           ? ctrl.pause()
@@ -242,7 +286,11 @@ class _EditorScreenState extends State<EditorScreen> {
                                 OutlinedButton.icon(
                                   onPressed: _previewTrim,
                                   icon: const Icon(Icons.preview),
-                                  label: const Text('Preview Trim'),
+                                  label: Text(
+                                    _isPreviewingTrim
+                                        ? 'Previewing...'
+                                        : 'Preview Trim',
+                                  ),
                                 ),
                                 FilledButton.icon(
                                   onPressed: _processTrim,

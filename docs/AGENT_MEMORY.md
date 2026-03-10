@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 (Bootstrap) + S001B (Brand Rename) merged to main.
-- **QA_PENDING:** S002/S002B/C/D (Core video pipeline + Blocking Fixes) - Awaiting manual QA sign-off. Import migrated to `file_picker`, editor overflow fixed, UX improved.
+- **QA_PENDING:** S002/B/C/D/E (Core pipeline + Native import fix) - Import uses native Kotlin MethodChannel (zero plugin deps). Preview trim auto-pauses at end. Negative trim validated.
 
 ## Environment Identity
 
