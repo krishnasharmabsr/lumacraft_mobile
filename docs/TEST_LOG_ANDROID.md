@@ -167,3 +167,21 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 12 - Task S004B (Export Blocker and UX Separation)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Watermark pipeline runtime encode mapping via `image` package to assure valid explicit image inputs for `ffmpeg`.
+  2. Overlay FFmpeg graph rewritten with `shortest=1` safety bound.
+  3. Preflight validation throws explicit exceptions prior to processing execution.
+  4. Editor UI heavily restructured into Trim, Speed, and Canvas Apply phases.
+  5. Cumulative edits flow sequentially, enabling independent Speed modifications with correct aspect and scaled rendering formats based on preset Export settings.
+  6. Removed Aspect Ratio config from bottom sheet, embedding to Canvas actions.
+- **Validation:**
+  - `flutter pub get`: OK
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

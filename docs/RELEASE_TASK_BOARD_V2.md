@@ -11,7 +11,7 @@
 
 - [x] S003 — Export Studio + UI Polish Foundation (MERGED)
 - [x] S003H — Brand Alignment + Export Productization + Pro Gate (MERGED)
-- [x] S004 — Editing Pack A: Speed, Aspect Ratio, Watermark (QA_PENDING)
+- [x] S004 — Editing Pack A: Speed, Aspect Ratio, Watermark + S004A/B (QA_PENDING)
 
 ## Phase 3: AI Capabilities
 
