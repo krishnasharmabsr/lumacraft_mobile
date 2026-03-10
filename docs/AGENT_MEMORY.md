@@ -28,11 +28,11 @@
 - **Memory:** Editor playback now uses a single active playback source; imported/problematic files are normalized once for playback, and scrub plus +/-10 both route through the same verified seek path with retry and hard reinit fallback.
 - **PR State:** PRs `#4` to `#8` were closed as superseded by the canonical cumulative merge in PR `#9`.
 
-## S005 Start
+## S005 Watermark Fallbacks & S005G Merge
 
-- **Date:** 2026-03-10
-- **Branch:** `fix/s005-export-reliability-hard-fix`
-- **Memory:** S005 started — fixing export reliability: watermark FFprobe removal, drawtext removal, atempo chaining, audio mapping fix, output directory safety.
+- **Date:** 2026-03-11
+- **Status:** Merged to `main`
+- **Memory:** Completed cumulative reliability fix. Replaced fragile `ffmpeg` PNG decode step with a multi-attempt raw RGBA stream matrix fallback. Removed `ffmpeg` drawtext to guarantee asset rendering. Safely integrated production premium `watermark_lockup.png` cleanly on top without corrupting rules. Cleaned up multiple redundant experimental branches (S005E, S005F, S005). `main` is validated and strictly clean for subsequent phases.
 
 ## S005D Branding Consistency
 

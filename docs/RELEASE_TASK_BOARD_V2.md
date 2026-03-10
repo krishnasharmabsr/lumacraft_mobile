@@ -23,7 +23,8 @@
 - [x] S004N — Downloaded Video Timeline 00:00 Gate Fix (1000ms threshold + Player sanity recovery).
 - [x] S004O — Fix Non-Working Seek Controls (+10/-10 and Timeline Drag).
 - [x] S004Q â€” Canonical seek-flow fix merged via PR #9; PRs #4-#8 closed as superseded.
-- [x] S005 — Export Reliability Hard Fix (watermark pipeline, atempo chaining, audio mapping, output safety).
+- [x] S005 — Export Reliability Hard Fix (watermark, atempo, output directory safety).
+- [x] S005/C/D/E/G — Complete cumulative watermark branding & reliability fixes, branch pruned. (MERGED)
 
 ## Phase 3: AI Capabilities
 

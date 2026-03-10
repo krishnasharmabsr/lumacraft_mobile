@@ -61,10 +61,10 @@
 ## S005 Start
 
 - **Date:** 2026-03-10
-- **Branch:** `fix/s005-export-reliability-hard-fix`
+- **Branch:** `main` (Merged)
 - **Focus:** Export reliability hard fix — watermark pipeline, filter graph determinism, atempo chaining, audio mapping.
 
-## S005D Branding Consistency
+## S005G Watermark Target Port Lockup
 
-- **Date:** 2026-03-10
-- **Focus:** Unified all runtime logo references to canonical `assets/branding/logo_mark_master_1024.png`. Removed stale `logo_mark.png`. Created `docs/BRAND_REGISTRY.md`.
+- **Date:** 2026-03-11
+- **Focus:** Safe watermark asset port. Generated vector-clean `watermark_lockup.png` applied via preflight substitution. Merged all safe S005 fallback matrix (S005A, S005B, S005C-EXEC, S005D, S005G) strictly and pruned branch history completely. `main` is now functionally verified as the pristine baseline.
