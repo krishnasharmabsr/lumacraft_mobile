@@ -27,6 +27,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Duration _trimEnd = Duration.zero;
   bool _isProcessing = false;
   bool _isPreviewingTrim = false;
+  bool _hasEdits = false;
   VoidCallback? _previewListener;
 
   @override
@@ -48,6 +49,7 @@ class _EditorScreenState extends State<EditorScreen> {
         _trimStart = Duration.zero;
         _trimEnd = newController.value.duration;
         _isPreviewingTrim = false;
+        // _hasEdits intentionally NOT reset here — only reset on fresh import
       });
     }
 
@@ -100,12 +102,15 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _processTrim() async {
-    // Validate: end must be greater than start
-    if (_trimEnd <= _trimStart) {
+    // Strong validation: minimum 300ms trim range
+    final rangeMs = (_trimEnd - _trimStart).inMilliseconds;
+    if (rangeMs < 300) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Invalid trim: end must be after start'),
+            content: Text(
+              'Invalid trim range. End must be greater than start.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -128,6 +133,7 @@ class _EditorScreenState extends State<EditorScreen> {
       );
 
       _currentVideoPath = trimmedPath;
+      _hasEdits = true;
       await _initializePlayer(trimmedPath);
 
       if (mounted) {
@@ -149,6 +155,19 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _exportVideo() async {
+    // Guard: block export if no edits have been made
+    if (!_hasEdits) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No edits to export. Trim first.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {
@@ -298,7 +317,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   label: const Text('Process Trim'),
                                 ),
                                 FilledButton.icon(
-                                  onPressed: _exportVideo,
+                                  onPressed: _hasEdits ? _exportVideo : null,
                                   icon: const Icon(Icons.save_alt),
                                   label: const Text('Export'),
                                 ),

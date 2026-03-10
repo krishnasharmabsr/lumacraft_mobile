@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 (Bootstrap) + S001B (Brand Rename) merged to main.
-- **QA_PENDING:** S002/B/C/D/E/F (Core pipeline hardened) - All plugin channels replaced with native Kotlin MethodChannel. `path_provider` removed. Zero plugin deps for import/paths.
+- **QA_PENDING:** S002/B/C/D/E/F/G (Core pipeline hardened) - Export guard (no-op blocked), 300ms min trim validation, R8 disabled for Pigeon stability.
 
 ## Environment Identity
 

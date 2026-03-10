@@ -37,14 +37,18 @@
 
 ### 6. Export
 
+- [ ] Export button is disabled (greyed out) before any trim
+- [ ] Tap disabled Export → no action
+- [ ] After successful Process Trim, Export button becomes enabled
 - [ ] Tap "Export" → saves video to device gallery
 - [ ] Snackbar confirms "Exported to gallery!"
 - [ ] Video visible in device Photos/Gallery app
 
-### 7. Negative case: start = end
+### 7. Negative cases
 
-- [ ] Set trim start and end to same position
-- [ ] Tap "Process Trim" → shows validation error snackbar
+- [ ] Set trim start and end to same position (or range < 300ms)
+- [ ] Tap "Process Trim" → shows red validation error snackbar
+- [ ] Import without trimming → tap Export → shows orange "No edits to export" snackbar
 
 ## Sign-off
 
