@@ -346,3 +346,27 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 23 - Task S005 (Export Reliability Hard Fix)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Removed FFprobe PNG validation for watermark — PNG is validated only via Dart-side `image` decode/encode.
+  2. Removed `drawtext` fallback — if watermark prep fails, export continues without watermark (diagnostics log `watermark_skipped=true`).
+  3. Watermark input now uses `-loop 1 -framerate 1` for looped image, and `format=rgba,scale=120:-1` in filter graph.
+  4. Added `buildAtempoChain` helper — chains multiple `atempo=` filters for speed outside 0.5–2.0 (e.g. 4.0 → `atempo=2.0,atempo=2.0`).
+  5. Fixed audio mapping: bare `0:a:0` for unfiltered audio, `[a_speed]` label for filtered.
+  6. Ensured output directory exists before FFmpeg execute.
+  7. Extracted `buildExportCommand` as static testable method.
+  8. Added 11 unit tests in `ffmpeg_command_builder_test.dart` covering: atempo chaining (6 cases), audio+no-speed, audio+speed>2, no-audio, watermark-skipped, watermark-active, MKV format.
+- **Root causes fixed:**
+  - A) FFprobe "video stream from PNG" always fails on mobile.
+  - B) `drawtext` filter not reliably available in mobile FFmpeg runtime.
+  - C) `atempo` values outside [0.5, 2.0] are invalid FFmpeg parameters.
+  - D) Bracket `[0:a:0]` passed to `-map` instead of bare `0:a:0`.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: 13/13 passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.5MB)
+- **Status:** QA_PENDING

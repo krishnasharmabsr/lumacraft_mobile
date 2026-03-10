@@ -1,4 +1,5 @@
 import '../../core/models/export_settings.dart';
+import 'export_result.dart';
 
 /// Interface for video processing operations.
 abstract class IVideoProcessor {
@@ -12,7 +13,7 @@ abstract class IVideoProcessor {
   });
 
   /// Master combined export pass.
-  Future<String> processExport({
+  Future<ExportResult> processExport({
     required String inputPath,
     required String outputPath,
     required ExportSettings settings,
