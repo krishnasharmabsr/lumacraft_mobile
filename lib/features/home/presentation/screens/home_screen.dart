@@ -184,11 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Version badge
                   Text(
-<<<<<<< HEAD
-                    'v2.0 • Video Studio',
-=======
                     'Create • Edit • Export',
->>>>>>> main
                     style: TextStyle(
                       color: AppColors.textMuted.withValues(alpha: 0.6),
                       fontSize: 12,
