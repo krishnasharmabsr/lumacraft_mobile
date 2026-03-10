@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 (Bootstrap) + S001B (Brand Rename) + S002/D/E/F/G (Core pipeline) merged to main. Tagged `v2.0.0-core-trim-export`.
-- **QA_PENDING:** S003 (Export Studio + UI Polish) — Dark cinematic theme, gradient home, export settings sheet (resolution/FPS/quality), Save Copy mode.
+- **QA_PENDING:** S003/S003A (Export Studio + UI Polish + Brand + Progress) — Dark cinematic theme, animated splash, determinate FFmpeg progress bar, export settings (res/FPS/quality), Save Copy mode.
 
 ## Environment Identity
 

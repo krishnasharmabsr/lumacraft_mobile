@@ -10,6 +10,7 @@ import '../../../../services/engine/ffmpeg_processor.dart';
 import '../../../../services/io/media_io_service.dart';
 import '../../../../services/io/native_video_picker.dart';
 import '../../../export/presentation/widgets/export_settings_sheet.dart';
+import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -33,6 +34,7 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isPreviewingTrim = false;
   bool _hasEdits = false;
   String _processingLabel = '';
+  double _processingProgress = -1; // -1 = indeterminate
   VoidCallback? _previewListener;
 
   @override
@@ -120,6 +122,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _isProcessing = true;
       _processingLabel = 'Trimming...';
+      _processingProgress = 0;
     });
 
     try {
@@ -132,6 +135,9 @@ class _EditorScreenState extends State<EditorScreen> {
         outputPath: outputPath,
         startTime: _trimStart,
         endTime: _trimEnd,
+        onProgress: (p) {
+          if (mounted) setState(() => _processingProgress = p);
+        },
       );
 
       _currentVideoPath = trimmedPath;
@@ -151,7 +157,10 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isProcessing = false);
+        setState(() {
+          _isProcessing = false;
+          _processingProgress = -1;
+        });
       }
     }
   }
@@ -164,11 +173,7 @@ class _EditorScreenState extends State<EditorScreen> {
       builder: (ctx) => ExportSettingsSheet(
         hasEdits: _hasEdits,
         onExport: (settings, saveCopy) {
-          if (saveCopy) {
-            _exportWithSettings(settings, saveCopy: true);
-          } else {
-            _exportWithSettings(settings, saveCopy: false);
-          }
+          _exportWithSettings(settings, saveCopy: saveCopy);
         },
       ),
     );
@@ -181,18 +186,20 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _isProcessing = true;
       _processingLabel = 'Exporting ${settings.resolution.label}...';
+      _processingProgress = 0;
     });
 
     try {
       final cachePath = await NativeVideoPicker.getCachePath();
       final outputPath = '$cachePath/export_${const Uuid().v4()}.mp4';
 
-      // If saveCopy (no edits), export from original with settings
-      // If has edits, export trimmed video with settings
       await _processor.processExport(
         inputPath: _currentVideoPath,
         outputPath: outputPath,
         settings: settings,
+        onProgress: (p) {
+          if (mounted) setState(() => _processingProgress = p);
+        },
       );
 
       final success = await _ioService.saveVideoToGallery(outputPath);
@@ -216,7 +223,10 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isProcessing = false);
+        setState(() {
+          _isProcessing = false;
+          _processingProgress = -1;
+        });
       }
     }
   }
@@ -234,51 +244,106 @@ class _EditorScreenState extends State<EditorScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldDark,
-      appBar: AppBar(
-        title: const Text('LumaCraft Editor'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: _isProcessing
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(color: AppColors.accent),
-                  const SizedBox(height: AppTheme.spacingLg),
-                  Text(
-                    _processingLabel,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
+      appBar: _isProcessing
+          ? null
+          : AppBar(
+              title: const Text('LumaCraft Editor'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+      body: Stack(
+        children: [
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                // --- Hero video preview ---
+                if (isReady)
+                  Flexible(
+                    flex: 3,
+                    child: Container(
+                      color: AppColors.playerBg,
+                      alignment: Alignment.center,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          AspectRatio(
+                            aspectRatio: ctrl.value.aspectRatio,
+                            child: VideoPlayer(ctrl),
+                          ),
+                          // Tap to play/pause overlay
+                          Positioned.fill(
+                            child: GestureDetector(
+                              onTap: _isProcessing
+                                  ? null
+                                  : () {
+                                      _removePreviewListener();
+                                      setState(() {
+                                        ctrl.value.isPlaying
+                                            ? ctrl.pause()
+                                            : ctrl.play();
+                                      });
+                                    },
+                              behavior: HitTestBehavior.translucent,
+                              child: AnimatedOpacity(
+                                opacity: ctrl.value.isPlaying ? 0.0 : 1.0,
+                                duration: const Duration(milliseconds: 200),
+                                child: Container(
+                                  color: Colors.black38,
+                                  child: const Icon(
+                                    Icons.play_circle_fill_rounded,
+                                    color: AppColors.accent,
+                                    size: 56,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  const Expanded(
+                    flex: 3,
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.accent),
                     ),
                   ),
-                ],
-              ),
-            )
-          : SafeArea(
-              child: Column(
-                children: [
-                  // --- Hero video preview ---
-                  if (isReady)
-                    Flexible(
-                      flex: 3,
-                      child: Container(
-                        color: AppColors.playerBg,
-                        alignment: Alignment.center,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            AspectRatio(
-                              aspectRatio: ctrl.value.aspectRatio,
-                              child: VideoPlayer(ctrl),
-                            ),
-                            // Tap to play/pause overlay
-                            Positioned.fill(
-                              child: GestureDetector(
-                                onTap: () {
+
+                // --- Playback position bar ---
+                if (isReady)
+                  Container(
+                    color: AppColors.surfaceDark,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingLg,
+                      vertical: AppTheme.spacingSm,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          _formatDuration(ctrl.value.position),
+                          style: const TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: Icon(
+                            ctrl.value.isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            color: AppColors.textPrimary,
+                          ),
+                          iconSize: 28,
+                          onPressed: _isProcessing
+                              ? null
+                              : () {
                                   _removePreviewListener();
                                   setState(() {
                                     ctrl.value.isPlaying
@@ -286,222 +351,165 @@ class _EditorScreenState extends State<EditorScreen> {
                                         : ctrl.play();
                                   });
                                 },
-                                behavior: HitTestBehavior.translucent,
-                                child: AnimatedOpacity(
-                                  opacity: ctrl.value.isPlaying ? 0.0 : 1.0,
-                                  duration: const Duration(milliseconds: 200),
-                                  child: Container(
-                                    color: Colors.black38,
-                                    child: const Icon(
-                                      Icons.play_circle_fill_rounded,
-                                      color: AppColors.accent,
-                                      size: 56,
-                                    ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          _formatDuration(ctrl.value.duration),
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // --- Controls section ---
+                if (isReady)
+                  Expanded(
+                    flex: 4,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingLg,
+                        vertical: AppTheme.spacingMd,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // -- Trim card --
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppTheme.spacingLg),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.content_cut_rounded,
+                                        color: AppColors.accent,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: AppTheme.spacingSm),
+                                      Text(
+                                        'Trim',
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+                                  TrimControls(
+                                    maxDuration: ctrl.value.duration,
+                                    currentStart: _trimStart,
+                                    currentEnd: _trimEnd,
+                                    onStartChanged: (start) {
+                                      setState(() => _trimStart = start);
+                                      ctrl.seekTo(start);
+                                    },
+                                    onEndChanged: (end) {
+                                      setState(() => _trimEnd = end);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: AppTheme.spacingMd),
+
+                          // -- Action buttons --
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : _previewTrim,
+                                  icon: const Icon(Icons.preview, size: 18),
+                                  label: Text(
+                                    _isPreviewingTrim
+                                        ? 'Previewing...'
+                                        : 'Preview',
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    const Expanded(
-                      flex: 3,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ),
+                              const SizedBox(width: AppTheme.spacingMd),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : _processTrim,
+                                  icon: const Icon(Icons.content_cut, size: 18),
+                                  label: const Text('Process Trim'),
+                                ),
+                              ),
+                            ],
+                          ),
 
-                  // --- Playback position bar ---
-                  if (isReady)
-                    Container(
-                      color: AppColors.surfaceDark,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spacingLg,
-                        vertical: AppTheme.spacingSm,
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            _formatDuration(ctrl.value.position),
-                            style: const TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              fontFeatures: [FontFeature.tabularFigures()],
+                          const SizedBox(height: AppTheme.spacingMd),
+
+                          // -- Export button --
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: _isProcessing
+                                  ? null
+                                  : _showExportSheet,
+                              icon: const Icon(
+                                Icons.save_alt_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Export Studio'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _hasEdits
+                                    ? AppColors.accent
+                                    : AppColors.cardDarkAlt,
+                                foregroundColor: _hasEdits
+                                    ? AppColors.scaffoldDark
+                                    : AppColors.textSecondary,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                              ),
                             ),
                           ),
-                          const Spacer(),
-                          IconButton(
-                            icon: Icon(
-                              ctrl.value.isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              color: AppColors.textPrimary,
+
+                          if (_hasEdits)
+                            const Padding(
+                              padding: EdgeInsets.only(top: AppTheme.spacingXs),
+                              child: Text(
+                                'Edited • Ready to export',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
-                            iconSize: 28,
-                            onPressed: () {
-                              _removePreviewListener();
-                              setState(() {
-                                ctrl.value.isPlaying
-                                    ? ctrl.pause()
-                                    : ctrl.play();
-                              });
-                            },
-                          ),
-                          const Spacer(),
-                          Text(
-                            _formatDuration(ctrl.value.duration),
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 13,
-                              fontFeatures: [FontFeature.tabularFigures()],
-                            ),
-                          ),
+
+                          const SizedBox(height: AppTheme.spacingLg),
                         ],
                       ),
                     ),
-
-                  // --- Controls section ---
-                  if (isReady)
-                    Expanded(
-                      flex: 4,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppTheme.spacingLg,
-                          vertical: AppTheme.spacingMd,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // -- Trim card --
-                            Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(
-                                  AppTheme.spacingLg,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Row(
-                                      children: [
-                                        Icon(
-                                          Icons.content_cut_rounded,
-                                          color: AppColors.accent,
-                                          size: 18,
-                                        ),
-                                        SizedBox(width: AppTheme.spacingSm),
-                                        Text(
-                                          'Trim',
-                                          style: TextStyle(
-                                            color: AppColors.textPrimary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: AppTheme.spacingMd),
-                                    TrimControls(
-                                      maxDuration: ctrl.value.duration,
-                                      currentStart: _trimStart,
-                                      currentEnd: _trimEnd,
-                                      onStartChanged: (start) {
-                                        setState(() => _trimStart = start);
-                                        ctrl.seekTo(start);
-                                      },
-                                      onEndChanged: (end) {
-                                        setState(() => _trimEnd = end);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: AppTheme.spacingMd),
-
-                            // -- Action buttons --
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: _previewTrim,
-                                    icon: const Icon(Icons.preview, size: 18),
-                                    label: Text(
-                                      _isPreviewingTrim
-                                          ? 'Previewing...'
-                                          : 'Preview',
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: AppTheme.spacingMd),
-                                Expanded(
-                                  child: FilledButton.icon(
-                                    onPressed: _processTrim,
-                                    icon: const Icon(
-                                      Icons.content_cut,
-                                      size: 18,
-                                    ),
-                                    label: const Text('Process Trim'),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: AppTheme.spacingMd),
-
-                            // -- Export button (always available via sheet) --
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                onPressed: _showExportSheet,
-                                icon: const Icon(
-                                  Icons.save_alt_rounded,
-                                  size: 18,
-                                ),
-                                label: const Text('Export Studio'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: _hasEdits
-                                      ? AppColors.accent
-                                      : AppColors.cardDarkAlt,
-                                  foregroundColor: _hasEdits
-                                      ? AppColors.scaffoldDark
-                                      : AppColors.textSecondary,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            if (_hasEdits)
-                              const Padding(
-                                padding: EdgeInsets.only(
-                                  top: AppTheme.spacingXs,
-                                ),
-                                child: Text(
-                                  'Edited • Ready to export',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: AppColors.accent,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-
-                            const SizedBox(height: AppTheme.spacingLg),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+                  ),
+              ],
             ),
+          ),
+
+          // Processing overlay (on top of everything)
+          if (_isProcessing)
+            ProcessingOverlay(
+              label: _processingLabel,
+              progress: _processingProgress,
+            ),
+        ],
+      ),
     );
   }
 }

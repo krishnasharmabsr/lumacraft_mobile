@@ -85,3 +85,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (104.6MB)
 - **Status:** QA_PENDING
+
+## Execution 7 - Task S003A
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Animated splash screen: logo scale+fade, text slide+fade (~1.9s), fade transition to home
+  2. Logo asset: generated and registered in `assets/branding/logo_mark.png`
+  3. Processing overlay: full-screen with determinate progress bar + percentage text
+  4. FFmpegProcessor: statistics callback maps time→percentage for live progress
+  5. Editor screen: Stack-based overlay, disabled controls during processing
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (105.4MB)
+- **Status:** QA_PENDING
