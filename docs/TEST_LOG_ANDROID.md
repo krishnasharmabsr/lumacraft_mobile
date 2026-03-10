@@ -330,3 +330,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 22 - Task S004O (Fix Non-Working Seek Controls)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Add unified `_seekTo` helper logging forensics via `[SeekProbe]` and clamping reliably to video bounds.
+  2. Implement native `Slider` wrapped in `SliderTheme` for reliable timeline scrubbing, overlaying transparently over the custom PlaybackTimeline visual tracks.
+  3. Paused overlay auto-hide timer dynamically via `_isScrubbing` states injected by Slider gesture delegates (`onChangeStart`/`onChangeEnd`).
+  4. Rewired `+10s`/`-10s` buttons to call `_seekTo` directly and securely refresh UI without loopbacks.
+  5. Placed hit test blockers to ensure timeline/button gestures do not trigger overlay dismissal.
+- **Validation:**
+  - `flutter analyze`: Only 1 pre-existing deprecation notice
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

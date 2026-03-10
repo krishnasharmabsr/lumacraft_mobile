@@ -65,6 +65,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   bool _showOverlay = true;
   bool _showVolumeSlider = false;
+  bool _isScrubbing = false;
   Timer? _overlayTimer;
 
   String _processingLabel = '';
@@ -557,11 +558,31 @@ class _EditorScreenState extends State<EditorScreen> {
     super.dispose();
   }
 
+  Future<void> _seekTo(Duration target, {String source = ''}) async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+
+    final before = _controller!.value.position;
+    Duration clamped = target;
+    if (clamped < Duration.zero) clamped = Duration.zero;
+    if (clamped > _videoDuration) clamped = _videoDuration;
+
+    developer.log(
+      'source=$source, before=${before.inMilliseconds}ms, target=${target.inMilliseconds}ms, clamped=${clamped.inMilliseconds}ms',
+      name: '[SeekProbe]',
+    );
+
+    await _controller!.seekTo(clamped);
+    if (mounted) setState(() {});
+  }
+
   void _resetOverlayTimer() {
     _overlayTimer?.cancel();
+    if (_isScrubbing) return;
     if (_controller?.value.isPlaying == true) {
       _overlayTimer = Timer(const Duration(milliseconds: 2500), () {
-        if (mounted) setState(() => _showOverlay = false);
+        if (mounted && _controller?.value.isPlaying == true && !_isScrubbing) {
+          setState(() => _showOverlay = false);
+        }
       });
     }
   }
@@ -883,17 +904,17 @@ class _EditorScreenState extends State<EditorScreen> {
                                                     iconSize: 36,
                                                     color: Colors.white,
                                                     onPressed: () {
-                                                      _resetOverlayTimer();
+                                                      _removePreviewListener();
                                                       final pos =
                                                           ctrl.value.position -
                                                           const Duration(
                                                             seconds: 10,
                                                           );
-                                                      ctrl.seekTo(
-                                                        pos < Duration.zero
-                                                            ? Duration.zero
-                                                            : pos,
+                                                      _seekTo(
+                                                        pos,
+                                                        source: 'btn_seek_back',
                                                       );
+                                                      _resetOverlayTimer();
                                                     },
                                                   ),
                                                   const SizedBox(width: 16),
@@ -931,17 +952,18 @@ class _EditorScreenState extends State<EditorScreen> {
                                                     iconSize: 36,
                                                     color: Colors.white,
                                                     onPressed: () {
-                                                      _resetOverlayTimer();
+                                                      _removePreviewListener();
                                                       final pos =
                                                           ctrl.value.position +
                                                           const Duration(
                                                             seconds: 10,
                                                           );
-                                                      ctrl.seekTo(
-                                                        pos > _videoDuration
-                                                            ? _videoDuration
-                                                            : pos,
+                                                      _seekTo(
+                                                        pos,
+                                                        source:
+                                                            'btn_seek_forward',
                                                       );
+                                                      _resetOverlayTimer();
                                                     },
                                                   ),
                                                 ],
@@ -952,162 +974,197 @@ class _EditorScreenState extends State<EditorScreen> {
                                             bottom: 0,
                                             left: 0,
                                             right: 0,
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal:
-                                                        AppTheme.spacingMd,
-                                                    vertical:
-                                                        AppTheme.spacingSm,
-                                                  ),
-                                              decoration: const BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  begin: Alignment.topCenter,
-                                                  end: Alignment.bottomCenter,
-                                                  colors: [
-                                                    Colors.transparent,
-                                                    Colors.black87,
-                                                  ],
-                                                ),
-                                              ),
-                                              child: Stack(
-                                                clipBehavior: Clip.none,
-                                                alignment: Alignment.bottomLeft,
-                                                children: [
-                                                  Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          GestureDetector(
-                                                            onTap: () {
-                                                              setState(() {
-                                                                _showVolumeSlider =
-                                                                    !_showVolumeSlider;
-                                                              });
-                                                              _resetOverlayTimer();
-                                                            },
-                                                            onLongPress: () {
-                                                              _toggleMute();
-                                                              _resetOverlayTimer();
-                                                            },
-                                                            child: Padding(
-                                                              padding:
-                                                                  const EdgeInsets.all(
-                                                                    8.0,
-                                                                  ),
-                                                              child: Icon(
-                                                                _isMuted ||
-                                                                        _volume ==
-                                                                            0
-                                                                    ? Icons
-                                                                          .volume_off
-                                                                    : Icons
-                                                                          .volume_up,
-                                                                color: Colors
-                                                                    .white,
-                                                                size: 20,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 8,
-                                                          ),
-                                                          Text(
-                                                            '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
-                                                            style: const TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontSize: 13,
-                                                              fontFeatures: [
-                                                                FontFeature.tabularFigures(),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                          const Spacer(),
-                                                        ],
-                                                      ),
-                                                      const SizedBox(height: 8),
-                                                      PlaybackTimeline(
-                                                        controller: ctrl,
-                                                        duration:
-                                                            _videoDuration,
-                                                        trimStart: _trimStart,
-                                                        trimEnd: _trimEnd,
-                                                      ),
+                                            child: GestureDetector(
+                                              onTap:
+                                                  () {}, // Blocks overlay toggle
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal:
+                                                          AppTheme.spacingMd,
+                                                      vertical:
+                                                          AppTheme.spacingSm,
+                                                    ),
+                                                decoration: const BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    begin: Alignment.topCenter,
+                                                    end: Alignment.bottomCenter,
+                                                    colors: [
+                                                      Colors.transparent,
+                                                      Colors.black87,
                                                     ],
                                                   ),
-                                                  if (_showVolumeSlider)
-                                                    Positioned(
-                                                      left: 8,
-                                                      bottom: 64,
-                                                      child: Container(
-                                                        height: 140,
-                                                        width: 40,
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.black87,
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                20,
-                                                              ),
-                                                        ),
-                                                        child: Column(
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
+                                                ),
+                                                child: Stack(
+                                                  clipBehavior: Clip.none,
+                                                  alignment:
+                                                      Alignment.bottomLeft,
+                                                  children: [
+                                                    Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Row(
                                                           children: [
-                                                            Expanded(
-                                                              child: RotatedBox(
-                                                                quarterTurns: 3,
-                                                                child: SliderTheme(
-                                                                  data: SliderTheme.of(context).copyWith(
-                                                                    trackHeight:
-                                                                        2,
-                                                                    thumbShape:
-                                                                        const RoundSliderThumbShape(
-                                                                          enabledThumbRadius:
-                                                                              6,
-                                                                        ),
-                                                                    overlayShape:
-                                                                        const RoundSliderOverlayShape(
-                                                                          overlayRadius:
-                                                                              10,
-                                                                        ),
-                                                                  ),
-                                                                  child: Slider(
-                                                                    value:
-                                                                        _volume,
-                                                                    min: 0.0,
-                                                                    max: 1.0,
-                                                                    activeColor:
-                                                                        AppColors
-                                                                            .accent,
-                                                                    inactiveColor:
-                                                                        Colors
-                                                                            .white30,
-                                                                    onChangeStart:
-                                                                        (
-                                                                          _,
-                                                                        ) => _overlayTimer
-                                                                            ?.cancel(),
-                                                                    onChangeEnd:
-                                                                        (_) =>
-                                                                            _resetOverlayTimer(),
-                                                                    onChanged:
-                                                                        (val) {
-                                                                          _setVolume(
-                                                                            val,
-                                                                          );
-                                                                        },
-                                                                  ),
+                                                            GestureDetector(
+                                                              onTap: () {
+                                                                setState(() {
+                                                                  _showVolumeSlider =
+                                                                      !_showVolumeSlider;
+                                                                });
+                                                                _resetOverlayTimer();
+                                                              },
+                                                              onLongPress: () {
+                                                                _toggleMute();
+                                                                _resetOverlayTimer();
+                                                              },
+                                                              child: Padding(
+                                                                padding:
+                                                                    const EdgeInsets.all(
+                                                                      8.0,
+                                                                    ),
+                                                                child: Icon(
+                                                                  _isMuted ||
+                                                                          _volume ==
+                                                                              0
+                                                                      ? Icons
+                                                                            .volume_off
+                                                                      : Icons
+                                                                            .volume_up,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  size: 20,
                                                                 ),
                                                               ),
                                                             ),
+                                                            const SizedBox(
+                                                              width: 8,
+                                                            ),
+                                                            Text(
+                                                              '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
+                                                              style: const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: 13,
+                                                                fontFeatures: [
+                                                                  FontFeature.tabularFigures(),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            const Spacer(),
                                                           ],
                                                         ),
-                                                      ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        PlaybackTimeline(
+                                                          controller: ctrl,
+                                                          duration:
+                                                              _videoDuration,
+                                                          trimStart: _trimStart,
+                                                          trimEnd: _trimEnd,
+                                                          onScrubStart: () {
+                                                            setState(
+                                                              () =>
+                                                                  _isScrubbing =
+                                                                      true,
+                                                            );
+                                                            _overlayTimer
+                                                                ?.cancel();
+                                                          },
+                                                          onScrubUpdate: (target) {
+                                                            _seekTo(
+                                                              target,
+                                                              source:
+                                                                  'slider_scrub',
+                                                            );
+                                                          },
+                                                          onScrubEnd: () {
+                                                            setState(
+                                                              () =>
+                                                                  _isScrubbing =
+                                                                      false,
+                                                            );
+                                                            _resetOverlayTimer();
+                                                          },
+                                                        ),
+                                                      ],
                                                     ),
-                                                ],
+                                                    if (_showVolumeSlider)
+                                                      Positioned(
+                                                        left: 8,
+                                                        bottom: 64,
+                                                        child: Container(
+                                                          height: 140,
+                                                          width: 40,
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                Colors.black87,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  20,
+                                                                ),
+                                                          ),
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Expanded(
+                                                                child: RotatedBox(
+                                                                  quarterTurns:
+                                                                      3,
+                                                                  child: SliderTheme(
+                                                                    data: SliderTheme.of(context).copyWith(
+                                                                      trackHeight:
+                                                                          2,
+                                                                      thumbShape:
+                                                                          const RoundSliderThumbShape(
+                                                                            enabledThumbRadius:
+                                                                                6,
+                                                                          ),
+                                                                      overlayShape: const RoundSliderOverlayShape(
+                                                                        overlayRadius:
+                                                                            10,
+                                                                      ),
+                                                                    ),
+                                                                    child: Slider(
+                                                                      value:
+                                                                          _volume,
+                                                                      min: 0.0,
+                                                                      max: 1.0,
+                                                                      activeColor:
+                                                                          AppColors
+                                                                              .accent,
+                                                                      inactiveColor:
+                                                                          Colors
+                                                                              .white30,
+                                                                      onChangeStart:
+                                                                          (
+                                                                            _,
+                                                                          ) => _overlayTimer
+                                                                              ?.cancel(),
+                                                                      onChangeEnd:
+                                                                          (_) =>
+                                                                              _resetOverlayTimer(),
+                                                                      onChanged:
+                                                                          (
+                                                                            val,
+                                                                          ) {
+                                                                            _setVolume(
+                                                                              val,
+                                                                            );
+                                                                          },
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -1656,6 +1713,9 @@ class PlaybackTimeline extends StatelessWidget {
   final Duration duration;
   final Duration trimStart;
   final Duration trimEnd;
+  final VoidCallback? onScrubStart;
+  final ValueChanged<Duration>? onScrubUpdate;
+  final VoidCallback? onScrubEnd;
 
   const PlaybackTimeline({
     super.key,
@@ -1663,6 +1723,9 @@ class PlaybackTimeline extends StatelessWidget {
     required this.duration,
     required this.trimStart,
     required this.trimEnd,
+    this.onScrubStart,
+    this.onScrubUpdate,
+    this.onScrubEnd,
   });
 
   @override
@@ -1684,26 +1747,6 @@ class PlaybackTimeline extends StatelessWidget {
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: (details) {
-            final double percent =
-                (details.localPosition.dx / constraints.maxWidth).clamp(
-                  0.0,
-                  1.0,
-                );
-            controller.seekTo(
-              Duration(milliseconds: (percent * totalMillis).round()),
-            );
-          },
-          onTapDown: (details) {
-            final double percent =
-                (details.localPosition.dx / constraints.maxWidth).clamp(
-                  0.0,
-                  1.0,
-                );
-            controller.seekTo(
-              Duration(milliseconds: (percent * totalMillis).round()),
-            );
-          },
           child: Container(
             height: 24,
             width: double.infinity,
@@ -1712,17 +1755,20 @@ class PlaybackTimeline extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 // Base track
-                Container(
-                  height: 4,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(2),
+                Center(
+                  child: Container(
+                    height: 4,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 // Trim region highlight
                 Positioned(
                   left: startRatio * constraints.maxWidth,
+                  top: 10,
                   width:
                       (endRatio - startRatio).clamp(0.0, 1.0) *
                       constraints.maxWidth,
@@ -1734,16 +1780,39 @@ class PlaybackTimeline extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Playhead
+                // Native Slider overlay for scrubbing
                 Positioned(
-                  left: (positionRatio * constraints.maxWidth) - 6,
-                  top: -4,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
-                      shape: BoxShape.circle,
+                  left: -24,
+                  right: -24,
+                  top: -12,
+                  bottom: -12,
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 24,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 16,
+                      ),
+                      activeTrackColor: Colors.transparent,
+                      inactiveTrackColor: Colors.transparent,
+                      thumbColor: AppColors.accent,
+                    ),
+                    child: Slider(
+                      value: (positionRatio * totalMillis).clamp(
+                        0.0,
+                        totalMillis,
+                      ),
+                      min: 0,
+                      max: totalMillis,
+                      onChangeStart: (_) => onScrubStart?.call(),
+                      onChanged: (val) {
+                        onScrubUpdate?.call(
+                          Duration(milliseconds: val.round()),
+                        );
+                      },
+                      onChangeEnd: (_) => onScrubEnd?.call(),
                     ),
                   ),
                 ),

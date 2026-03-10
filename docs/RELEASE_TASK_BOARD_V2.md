@@ -21,6 +21,7 @@
 - [x] S004L — Downloaded Video Timeline Hard Fix (Normalization Fallback, [DurationProbe] Forensics, Overlay Overflow Fix).
 - [x] S004M — Real Root-Cause Fix (Probed Duration Record Return, No-Downgrade Guard, Duplicate Volume Icon Removal).
 - [x] S004N — Downloaded Video Timeline 00:00 Gate Fix (1000ms threshold + Player sanity recovery).
+- [x] S004O — Fix Non-Working Seek Controls (+10/-10 and Timeline Drag).
 
 ## Phase 3: AI Capabilities
 
