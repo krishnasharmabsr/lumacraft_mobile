@@ -8,8 +8,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 (Bootstrap) + S001B (Brand Rename) merged to main.
-- **QA_PENDING:** S002/B/C/D/E/F/G (Core pipeline hardened) - Export guard (no-op blocked), 300ms min trim validation, R8 disabled for Pigeon stability.
+- **Completed:** S001 (Bootstrap) + S001B (Brand Rename) + S002/D/E/F/G (Core pipeline) merged to main. Tagged `v2.0.0-core-trim-export`.
+- **Next:** S003 — Export Studio + UI Polish Foundation.
 
 ## Environment Identity
 

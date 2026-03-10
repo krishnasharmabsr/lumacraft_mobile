@@ -2,18 +2,22 @@
 
 ## Phase 1: Core Pipeline
 
-- [ ] Import module setup (IN_PROGRESS)
-- [ ] Preview player stabilization (IN_PROGRESS)
-- [ ] Trim functionality (IN_PROGRESS)
-- [ ] Export engine (FFmpeg) stabilization (IN_PROGRESS)
+- [x] Import module setup (MERGED — S002)
+- [x] Preview player stabilization (MERGED — S002)
+- [x] Trim functionality (MERGED — S002)
+- [x] Export engine (FFmpeg) stabilization (MERGED — S002)
 
-## Phase 2: AI Capabilities
+## Phase 2: UI Polish + Export Studio
+
+- [ ] S003 — Export Studio + UI Polish Foundation
+
+## Phase 3: AI Capabilities
 
 - [ ] ML model optimization
 - [ ] AI Blur / Cutout tools
 - [ ] Processing memory limits
 
-## Phase 3: Monetization & Release
+## Phase 4: Monetization & Release
 
 - [ ] AdMob integration
 - [ ] Play Billing setup
