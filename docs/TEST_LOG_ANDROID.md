@@ -185,3 +185,20 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 13 - Task S004C/D (UX Refactor & Export Fallback)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Watermark pipeline now uses a fallback `drawtext` LumaCraft watermark if `image` decode or ffprobe check on the extracted asset fails, solving explicit `-f image2` crashes on misformatted PNGs.
+  2. Editor screen transformed to a non-destructive state model (`_playbackSpeed`, `_aspectRatio`, `_trimRange`) instead of intermediate file encodes.
+  3. Single FFmpeg `processExport` action parses all states into a complex filtergraph, mapping `trim`, `setpts`/`atempo`, `scale`/`pad`, and watermark overlay seamlessly.
+  4. Diagnostics expanded in `FFmpegException` to provide critical debug details (size, probe results).
+- **Validation:**
+  - `flutter pub get`: OK
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+  - Manual verification on trim, speed, canvas variants confirmed compatible via single-pass graph execution.
+- **Status:** QA_PENDING

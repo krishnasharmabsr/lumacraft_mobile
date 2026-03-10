@@ -19,175 +19,20 @@ typedef ProgressCallback = void Function(double progress);
 
 class FFmpegProcessor implements IVideoProcessor {
   @override
-  Future<String> processTrim({
-    required String inputPath,
-    required String outputPath,
-    required Duration startTime,
-    required Duration endTime,
-    ProgressCallback? onProgress,
-  }) async {
-    if (endTime <= startTime) {
-      throw FFmpegException(
-        'Invalid trim duration: endTime must be greater than startTime',
-        '',
-        0,
-        '',
-      );
-    }
-
-    final outFile = File(outputPath);
-    if (await outFile.exists()) {
-      await outFile.delete();
-    }
-
-    final startSecs = startTime.inMilliseconds / 1000.0;
-    final endSecs = endTime.inMilliseconds / 1000.0;
-    final duration = endSecs - startSecs;
-
-    final command =
-        '-y -ss $startSecs -t $duration -i "$inputPath" -map 0:v:0 -map 0:a? -c:v mpeg4 -q:v 3 -c:a aac -b:a 128k -movflags +faststart "$outputPath"';
-
-    final totalMs = (duration * 1000).toInt();
-    return _executeCommand(command, outputPath, totalMs, onProgress);
-  }
-
-  @override
-  Future<String> processSpeed({
-    required String inputPath,
-    required String outputPath,
-    required double speed,
-    ProgressCallback? onProgress,
-  }) async {
-    final outFile = File(outputPath);
-    if (await outFile.exists()) {
-      await outFile.delete();
-    }
-
-    final videoPts = 1.0 / speed;
-    bool hasAudio = false;
-
-    try {
-      final mediaInfo = await FFprobeKit.getMediaInformation(inputPath);
-      final streams = mediaInfo.getMediaInformation()?.getStreams();
-      if (streams != null) {
-        for (final stream in streams) {
-          if (stream.getType() == 'audio') {
-            hasAudio = true;
-            break;
-          }
-        }
-      }
-    } catch (_) {}
-
-    final parts = <String>['-y', '-i', '"$inputPath"'];
-
-    final String atempoFilter = 'atempo=$speed';
-
-    if (hasAudio) {
-      parts.addAll([
-        '-filter_complex',
-        '[0:v:0]setpts=$videoPts*PTS[v_out];[0:a:0]$atempoFilter[a_out]',
-        '-map',
-        '[v_out]',
-        '-map',
-        '[a_out]',
-      ]);
-    } else {
-      parts.addAll([
-        '-filter_complex',
-        '[0:v:0]setpts=$videoPts*PTS[v_out]',
-        '-map',
-        '[v_out]',
-      ]);
-    }
-
-    parts.addAll(['-c:v', 'mpeg4', '-q:v', '3']);
-    if (hasAudio) {
-      parts.addAll(['-c:a', 'aac', '-b:a', '128k']);
-    }
-    parts.add('"$outputPath"');
-
-    final commandStr = parts.join(' ');
-    // We pass totalMs=0 because speed changes duration, making progress percentage complex
-    return _executeCommand(commandStr, outputPath, 0, onProgress);
-  }
-
-  @override
-  Future<String> processCanvas({
-    required String inputPath,
-    required String outputPath,
-    required String scaleFilter,
-    ProgressCallback? onProgress,
-  }) async {
-    final outFile = File(outputPath);
-    if (await outFile.exists()) {
-      await outFile.delete();
-    }
-
-    bool hasAudio = false;
-    try {
-      final mediaInfo = await FFprobeKit.getMediaInformation(inputPath);
-      final streams = mediaInfo.getMediaInformation()?.getStreams();
-      if (streams != null) {
-        for (final stream in streams) {
-          if (stream.getType() == 'audio') {
-            hasAudio = true;
-            break;
-          }
-        }
-      }
-    } catch (_) {}
-
-    final parts = <String>['-y', '-i', '"$inputPath"'];
-
-    parts.addAll([
-      '-filter_complex',
-      '[0:v:0]$scaleFilter[v_out]',
-      '-map',
-      '[v_out]',
-    ]);
-
-    if (hasAudio) {
-      parts.addAll(['-map', '0:a:0']);
-    }
-
-    parts.addAll(['-c:v', 'mpeg4', '-q:v', '3']);
-    if (hasAudio) {
-      parts.addAll(['-c:a', 'copy']);
-    }
-    parts.add('"$outputPath"');
-
-    final commandStr = parts.join(' ');
-    return _executeCommand(commandStr, outputPath, 0, onProgress);
-  }
-
-  @override
   Future<String> processExport({
     required String inputPath,
     required String outputPath,
     required ExportSettings settings,
-    Duration? trimStart,
-    Duration? trimEnd,
+    required Duration trimStart,
+    required Duration trimEnd,
+    required double playbackSpeed,
+    required ExportAspectRatio aspectRatio,
     ProgressCallback? onProgress,
   }) async {
     final outFile = File(outputPath);
     if (await outFile.exists()) {
       await outFile.delete();
     }
-
-    final parts = <String>['-y'];
-    double totalDurationSecs = 0;
-
-    // Trim parameters
-    if (trimStart != null && trimEnd != null && trimEnd > trimStart) {
-      final startSecs = trimStart.inMilliseconds / 1000.0;
-      final duration =
-          (trimEnd.inMilliseconds - trimStart.inMilliseconds) / 1000.0;
-      parts.addAll(['-ss', '$startSecs', '-t', '$duration']);
-      totalDurationSecs = duration;
-    }
-
-    parts.addAll(['-i', '"$inputPath"']);
 
     // Detect Audio + FPS
     int? finalFps = settings.fps;
@@ -220,10 +65,26 @@ class FFmpegProcessor implements IVideoProcessor {
       }
     } catch (_) {}
 
+    final parts = <String>['-y'];
+    double totalDurationSecs = 0;
+
+    // 1. Trim parameters
+    if (trimEnd > trimStart) {
+      final startSecs = trimStart.inMilliseconds / 1000.0;
+      final duration =
+          (trimEnd.inMilliseconds - trimStart.inMilliseconds) / 1000.0;
+      parts.addAll(['-ss', '$startSecs', '-t', '$duration']);
+      totalDurationSecs = duration;
+    }
+
+    parts.addAll(['-i', '"$inputPath"']);
+
     final bool applyWatermark = !ProGate.isPro;
     String? watermarkPath;
     String diagnostics = '';
+    bool useTextFallback = false;
 
+    // 2. Watermark Preflight
     if (applyWatermark) {
       try {
         final ByteData data = await rootBundle.load(
@@ -255,41 +116,117 @@ class FFmpegProcessor implements IVideoProcessor {
         diagnostics += 'Runtime file written to: $watermarkPath\n';
         diagnostics += 'Runtime file size: $finalSize\n';
 
-        parts.addAll(['-loop', '1', '-f', 'image2', '-i', '"$watermarkPath"']);
+        // Additional ffprobe check to ensure the file is readable by ffmpeg
+        final wmInfo = await FFprobeKit.getMediaInformation(watermarkPath);
+        final wmStreams = wmInfo.getMediaInformation()?.getStreams();
+        bool hasWmVideo = false;
+        if (wmStreams != null) {
+          for (final stream in wmStreams) {
+            if (stream.getType() == 'video' &&
+                stream.getWidth() != null &&
+                stream.getWidth()! > 0) {
+              hasWmVideo = true;
+              diagnostics +=
+                  'FFprobe verified watermark width: ${stream.getWidth()}\n';
+              break;
+            }
+          }
+        }
+        if (!hasWmVideo) {
+          throw Exception(
+            'Watermark preflight failed: FFprobe could not read video stream from PNG',
+          );
+        }
+
+        // Use robust explicit -i input without fragile flags
+        parts.addAll(['-i', '"$watermarkPath"']);
       } catch (e) {
-        throw FFmpegException(
-          'Watermark preflight failed: $e',
-          'N/A', // no command yet
-          0,
-          diagnostics, // diagnostics in tail
-        );
+        diagnostics +=
+            'WARNING: Image watermark failed: $e. Falling back to text.\n';
+        useTextFallback = true;
       }
     }
 
     final List<String> filterSegments = [];
-    String currentVideoMap = '[v_scaled]';
+    String currentVideoMap = '[v_initial]';
 
-    // 1. Scale
-    filterSegments.add('[0:v:0]${settings.scaleFilter}$currentVideoMap');
+    // Graph Start
+    filterSegments.add(
+      '[0:v:0]null$currentVideoMap',
+    ); // Just a passthrough to start naming
+    String currentAudioMap = hasAudio ? '[0:a:0]' : '';
 
-    // 2. Watermark overlay (must specify shortest=1)
-    if (applyWatermark) {
-      filterSegments.add('[1:v]scale=120:-1[wm]');
+    // 3. Speed
+    if (playbackSpeed != 1.0) {
+      final videoPts = 1.0 / playbackSpeed;
+      final String nextMap = '[v_speed]';
       filterSegments.add(
-        '$currentVideoMap[wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20:shortest=1[v_out]',
+        '$currentVideoMap'
+        'setpts=$videoPts*PTS$nextMap',
       );
-      currentVideoMap = '[v_out]';
+      currentVideoMap = nextMap;
+
+      if (hasAudio) {
+        final String nextAudioMap = '[a_speed]';
+        filterSegments.add(
+          '$currentAudioMap'
+          'atempo=$playbackSpeed$nextAudioMap',
+        );
+        currentAudioMap = nextAudioMap;
+      }
+      totalDurationSecs = totalDurationSecs / playbackSpeed;
+    }
+
+    // 4. Canvas (Aspect Ratio)
+    if (aspectRatio != ExportAspectRatio.source) {
+      final String nextMap = '[v_canvas]';
+
+      // Use a generic height base like 1080 to maintain quality during intermediate.
+      final targetHeight = 1080;
+      final targetWidth = (targetHeight * aspectRatio.ratio!).round();
+      final scaleFilter =
+          'scale=$targetWidth:$targetHeight:force_original_aspect_ratio=decrease,pad=$targetWidth:$targetHeight:(ow-iw)/2:(oh-ih)/2:black';
+
+      filterSegments.add('$currentVideoMap$scaleFilter$nextMap');
+      currentVideoMap = nextMap;
+    }
+
+    // 5. Final Scale configuration from Export Settings (resolution)
+    final String nextScaleMap = '[v_scaled]';
+    filterSegments.add('$currentVideoMap${settings.scaleFilter}$nextScaleMap');
+    currentVideoMap = nextScaleMap;
+
+    // 6. Watermark overlay
+    if (applyWatermark) {
+      if (!useTextFallback) {
+        // [1:v] references the second input file
+        filterSegments.add('[1:v]scale=120:-1[wm]');
+        // Apply overlay
+        final String nextMap = '[v_out]';
+        filterSegments.add(
+          '$currentVideoMap[wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20:shortest=1$nextMap',
+        );
+        currentVideoMap = nextMap;
+      } else {
+        final String nextMap = '[v_out]';
+        // Fallback text watermark
+        filterSegments.add(
+          '$currentVideoMap'
+          'drawtext=text=\'LumaCraft\':fontcolor=white@0.5:fontsize=48:x=w-tw-20:y=h-th-20$nextMap',
+        );
+        currentVideoMap = nextMap;
+      }
     }
 
     parts.addAll([
       '-filter_complex',
-      filterSegments.join(';'),
+      '"${filterSegments.join(';')}"',
       '-map',
-      currentVideoMap,
+      '"$currentVideoMap"',
     ]);
 
     if (hasAudio) {
-      parts.addAll(['-map', '0:a:0']);
+      parts.addAll(['-map', '"$currentAudioMap"']);
     }
 
     parts.addAll(['-c:v', 'mpeg4', '-q:v', '${settings.qualityValue}']);
@@ -322,7 +259,19 @@ class FFmpegProcessor implements IVideoProcessor {
     debugPrint('command: $commandStr');
     debugPrint('----------------------------');
 
-    return _executeCommand(commandStr, outputPath, totalMs, onProgress);
+    try {
+      return await _executeCommand(commandStr, outputPath, totalMs, onProgress);
+    } catch (e) {
+      if (e is FFmpegException) {
+        throw FFmpegException(
+          e.message,
+          e.command,
+          e.returnCode,
+          'DIAGNOSTICS:\n$diagnostics\n=== LOG TAIL ===\n${e.logTail}',
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<String> _executeCommand(
