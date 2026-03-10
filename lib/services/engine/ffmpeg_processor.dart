@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:ffmpeg_kit_flutter_new_min/statistics.dart';
+import '../../core/services/pro_gate.dart';
+import '../io/native_video_picker.dart';
 
 import '../../core/models/export_settings.dart';
 import 'i_video_processor.dart';
@@ -106,13 +110,57 @@ class FFmpegProcessor implements IVideoProcessor {
       }
     }
 
-    // Video codec + quality + resolution
+    // Speed processing
+    final speed = settings.playbackSpeed;
+    final videoPts = 1.0 / speed;
+
+    // Audio temo in FFmpeg is restricted to 0.5 - 100.0. For our fixed range (0.5x, 1x, 1.5x, 2x),
+    // we can safely just use one atempo filter. If we supported arbitrary speeds we'd chain them.
+    final String atempoFilter = 'atempo=$speed';
+
+    // Complex filter combines scale, format, and speed
+    String complexFilter =
+        '[0:v:0]${settings.scaleFilter},setpts=$videoPts*PTS[v];[0:a?]$atempoFilter[a]';
+
+    final bool applyWatermark = !ProGate.isPro;
+    String watermarkMap = '[v]';
+
+    if (applyWatermark) {
+      // Create a temporary file for the watermark since FFmpeg needs a real file path
+      final ByteData data = await rootBundle.load(
+        'assets/branding/logo_mark.png',
+      );
+      final List<int> bytes = data.buffer.asUint8List();
+      final String cachePath = await NativeVideoPicker.getCachePath();
+      final String watermarkPath = '$cachePath/watermark.png';
+      final File wFile = File(watermarkPath);
+      await wFile.writeAsBytes(bytes);
+
+      // Add watermark file as input 1
+      parts.insert(parts.indexOf('-map'), '-i');
+      parts.insert(parts.indexOf('-map'), '"$watermarkPath"');
+
+      // The watermark asset is large. We should scale it down (e.g., width 120px)
+      // and position it at bottom-right with 20px padding.
+      // Filter sequence:
+      // 1. [1:v]scale=120:-1[wm]
+      // 2. [v][wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20[vout]
+      complexFilter +=
+          ';[1:v]scale=120:-1[wm];[v][wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20[vout]';
+      watermarkMap = '[vout]';
+    }
+
     parts.addAll([
+      '-filter_complex',
+      complexFilter,
+      '-map',
+      watermarkMap,
+      '-map',
+      '[a]?',
       '-c:v',
       'mpeg4',
       '-q:v',
       '${settings.qualityValue}',
-      settings.scaleFilter,
     ]);
 
     if (finalFps != null) {

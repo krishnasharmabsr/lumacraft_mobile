@@ -35,6 +35,7 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _hasEdits = false;
   String _processingLabel = '';
   double _processingProgress = -1; // -1 = indeterminate
+  double _playbackSpeed = 1.0;
   VoidCallback? _previewListener;
 
   @override
@@ -42,6 +43,11 @@ class _EditorScreenState extends State<EditorScreen> {
     super.initState();
     _currentVideoPath = widget.videoPath;
     _initializePlayer(_currentVideoPath);
+  }
+
+  void _setPlaybackSpeed(double speed) {
+    setState(() => _playbackSpeed = speed);
+    _controller?.setPlaybackSpeed(speed);
   }
 
   Future<void> _initializePlayer(String path) async {
@@ -63,6 +69,7 @@ class _EditorScreenState extends State<EditorScreen> {
       if (mounted) setState(() {});
     });
 
+    await newController.setPlaybackSpeed(_playbackSpeed);
     newController.play();
     oldController?.dispose();
   }
@@ -178,7 +185,17 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  Future<void> _exportWithSettings(ExportSettings settings) async {
+  Future<void> _exportWithSettings(ExportSettings baseSettings) async {
+    // Inject EditorScreen's playbackSpeed into the final settings
+    final settings = ExportSettings(
+      resolution: baseSettings.resolution,
+      aspectRatio: baseSettings.aspectRatio,
+      playbackSpeed: _playbackSpeed,
+      fps: baseSettings.fps,
+      quality: baseSettings.quality,
+      format: baseSettings.format,
+    );
+
     setState(() {
       _isProcessing = true;
       _processingLabel = 'Exporting ${settings.resolution.label}...';
@@ -202,12 +219,11 @@ class _EditorScreenState extends State<EditorScreen> {
       final success = await _ioService.saveVideoToGallery(outputPath);
 
       if (mounted) {
+        final fileName = outputPath.split('/').last;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success
-                  ? 'Exported ${settings.resolution.label} to gallery!'
-                  : 'Export failed.',
+              success ? 'Exported $fileName to gallery!' : 'Export failed.',
             ),
           ),
         );
@@ -399,6 +415,100 @@ class _EditorScreenState extends State<EditorScreen> {
                                       ),
                                     ],
                                   ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+
+                                  // -- Speed control card --
+                                  Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(
+                                        AppTheme.spacingLg,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Row(
+                                            children: [
+                                              Icon(
+                                                Icons.speed_rounded,
+                                                color: AppColors.accent,
+                                                size: 18,
+                                              ),
+                                              SizedBox(
+                                                width: AppTheme.spacingSm,
+                                              ),
+                                              Text(
+                                                'Speed',
+                                                style: TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(
+                                            height: AppTheme.spacingMd,
+                                          ),
+                                          Row(
+                                            children: [0.5, 1.0, 1.5, 2.0].map((
+                                              speed,
+                                            ) {
+                                              final isSelected =
+                                                  _playbackSpeed == speed;
+                                              return Expanded(
+                                                child: GestureDetector(
+                                                  onTap: () =>
+                                                      _setPlaybackSpeed(speed),
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          vertical: 8,
+                                                        ),
+                                                    margin:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 4,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: isSelected
+                                                          ? AppColors.accent
+                                                          : AppColors
+                                                                .cardDarkAlt,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            AppTheme.radiusSm,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: isSelected
+                                                            ? AppColors.accent
+                                                            : AppColors.divider,
+                                                      ),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      '${speed}x',
+                                                      style: TextStyle(
+                                                        color: isSelected
+                                                            ? AppColors
+                                                                  .scaffoldDark
+                                                            : AppColors
+                                                                  .textSecondary,
+                                                        fontWeight: isSelected
+                                                            ? FontWeight.bold
+                                                            : FontWeight.normal,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
                                   const SizedBox(height: AppTheme.spacingMd),
                                   TrimControls(
                                     maxDuration: ctrl.value.duration,

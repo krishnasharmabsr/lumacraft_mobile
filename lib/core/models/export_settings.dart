@@ -1,20 +1,31 @@
-/// Export settings model for LumaCraft export studio.
 class ExportSettings {
   final ExportResolution resolution;
+  final ExportAspectRatio aspectRatio;
+  final double playbackSpeed;
   final int? fps; // null means 'Source'
   final int quality; // 0–100 slider value
   final ExportFormat format;
 
   const ExportSettings({
     this.resolution = ExportResolution.p720,
+    this.aspectRatio = ExportAspectRatio.source,
+    this.playbackSpeed = 1.0,
     this.fps, // default Source
     this.quality = 65,
     this.format = ExportFormat.mp4,
   });
 
   /// Returns the FFmpeg scale filter string, e.g. "-vf scale=-2:720"
+  /// If an aspect ratio is forced, adds pad filter to prevent stretching.
   String get scaleFilter {
-    return '-vf scale=-2:${resolution.height}';
+    if (aspectRatio == ExportAspectRatio.source) {
+      return 'scale=-2:${resolution.height}';
+    }
+
+    final targetWidth = (resolution.height * aspectRatio.ratio!).round();
+    // Use force_original_aspect_ratio=decrease to fit within target bounding box,
+    // then pad with black background to fill the exact aspect ratio frame.
+    return 'scale=$targetWidth:${resolution.height}:force_original_aspect_ratio=decrease,pad=$targetWidth:${resolution.height}:(ow-iw)/2:(oh-ih)/2:black';
   }
 
   /// Maps 0–100 quality slider to mpeg4 q:v (1=best, 10=worst).
@@ -60,4 +71,15 @@ enum ExportFormat {
   final String extension;
   final String label;
   const ExportFormat(this.extension, this.label);
+}
+
+enum ExportAspectRatio {
+  source('Source', null),
+  vertical('9:16', 9 / 16),
+  square('1:1', 1.0),
+  horizontal('16:9', 16 / 9);
+
+  final String label;
+  final double? ratio; // null means source (no forcing)
+  const ExportAspectRatio(this.label, this.ratio);
 }

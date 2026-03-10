@@ -16,6 +16,7 @@ class ExportSettingsSheet extends StatefulWidget {
 
 class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
   ExportResolution _resolution = ExportResolution.p720;
+  ExportAspectRatio _aspectRatio = ExportAspectRatio.source;
   int? _fps; // null = Source
   double _quality = 65;
   ExportFormat _format = ExportFormat.mp4;
@@ -76,6 +77,18 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
           ),
           const SizedBox(height: AppTheme.spacingLg),
 
+          // Aspect Ratio
+          _buildOptionRow(
+            label: 'ASPECT RATIO',
+            child: _buildSegmentedControl<ExportAspectRatio>(
+              values: ExportAspectRatio.values,
+              selected: _aspectRatio,
+              labelOf: (v) => v.label,
+              onChanged: (v) => setState(() => _aspectRatio = v),
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingLg),
+
           // FPS
           _buildOptionRow(label: 'FPS', child: _buildFpsPicker()),
           const SizedBox(height: AppTheme.spacingLg),
@@ -108,6 +121,8 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
   ExportSettings _buildSettings() {
     return ExportSettings(
       resolution: _resolution,
+      aspectRatio: _aspectRatio,
+      // playbackSpeed is not managed in this sheet, it's passed from EditorScreen
       fps: _fps,
       quality: _quality.round(),
       format: _format,

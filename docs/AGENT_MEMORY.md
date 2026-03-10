@@ -8,8 +8,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H (Export Studio, UI Polish, Icon Pack).
-- **Active:** S004 (Editing Pack A) — Speed, Aspect Ratio, Watermark (free-tier).
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 (Editing Pack A - Speed, Aspect, Watermark).
+- **Active:** S005 (Video AI Generation Foundation)
 
 ## Environment Identity
 

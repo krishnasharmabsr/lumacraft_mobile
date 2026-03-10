@@ -135,3 +135,20 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 10 - Task S004 (Editing Pack A)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. UI Speed control options (0.5x, 1.0x, 1.5x, 2.0x) added to the Editor preview screen.
+  2. Aspect ratio UI presets (Source, 9:16, 1:1, 16:9) added to Export Studio.
+  3. Integrated FFmpeg `setpts` and `atempo` filters for export speed adjustment.
+  4. Formulated deterministic FFmpeg filtergraph utilizing `scale` and `pad` options designed to block distortion on aspect ratio output.
+  5. Implemented free-tier watermark utilizing `assets/branding/logo_mark.png`, overlaid via `overlay` filter in FFmpeg mapped specifically to `!ProGate.isPro`.
+  6. Single "Export" CTA fully stabilized; snackbar updated to display actual exported filename & format (no duplicate legacy Save Copy).
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING
