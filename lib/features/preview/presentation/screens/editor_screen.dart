@@ -27,27 +27,29 @@ class _EditorScreenState extends State<EditorScreen> {
   final FFmpegProcessor _processor = FFmpegProcessor();
   final MediaIoService _ioService = MediaIoService();
 
-  String _currentVideoPath = '';
+  late String _sourceVideoPath;
+  late String _workingVideoPath;
+
   Duration _trimStart = Duration.zero;
   Duration _trimEnd = Duration.zero;
   bool _isProcessing = false;
   bool _isPreviewingTrim = false;
-  bool _hasEdits = false;
   String _processingLabel = '';
   double _processingProgress = -1; // -1 = indeterminate
+
   double _playbackSpeed = 1.0;
+  ExportAspectRatio _aspectRatio = ExportAspectRatio.source;
+
   VoidCallback? _previewListener;
+
+  bool get _hasEdits => _sourceVideoPath != _workingVideoPath;
 
   @override
   void initState() {
     super.initState();
-    _currentVideoPath = widget.videoPath;
-    _initializePlayer(_currentVideoPath);
-  }
-
-  void _setPlaybackSpeed(double speed) {
-    setState(() => _playbackSpeed = speed);
-    _controller?.setPlaybackSpeed(speed);
+    _sourceVideoPath = widget.videoPath;
+    _workingVideoPath = widget.videoPath;
+    _initializePlayer(_workingVideoPath);
   }
 
   Future<void> _initializePlayer(String path) async {
@@ -62,6 +64,9 @@ class _EditorScreenState extends State<EditorScreen> {
         _trimStart = Duration.zero;
         _trimEnd = newController.value.duration;
         _isPreviewingTrim = false;
+        // Reset local ui states that are not yet applied
+        _playbackSpeed = 1.0;
+        _aspectRatio = ExportAspectRatio.source;
       });
     }
 
@@ -69,7 +74,6 @@ class _EditorScreenState extends State<EditorScreen> {
       if (mounted) setState(() {});
     });
 
-    await newController.setPlaybackSpeed(_playbackSpeed);
     newController.play();
     oldController?.dispose();
   }
@@ -87,6 +91,14 @@ class _EditorScreenState extends State<EditorScreen> {
       _previewListener = null;
     }
     _isPreviewingTrim = false;
+  }
+
+  void _resetEdits() {
+    if (!_hasEdits) return;
+    setState(() {
+      _workingVideoPath = _sourceVideoPath;
+    });
+    _initializePlayer(_workingVideoPath);
   }
 
   void _previewTrim() {
@@ -110,7 +122,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {});
   }
 
-  Future<void> _processTrim() async {
+  Future<void> _applyTrim() async {
     final rangeMs = (_trimEnd - _trimStart).inMilliseconds;
     if (rangeMs < 300) {
       if (mounted) {
@@ -125,6 +137,12 @@ class _EditorScreenState extends State<EditorScreen> {
       }
       return;
     }
+    // If no trim is actually happening:
+    if (_trimStart.inMilliseconds <= 100 &&
+        _trimEnd >=
+            _controller!.value.duration - const Duration(milliseconds: 100)) {
+      return; // Nothing to trim
+    }
 
     setState(() {
       _isProcessing = true;
@@ -134,11 +152,11 @@ class _EditorScreenState extends State<EditorScreen> {
 
     try {
       final cachePath = await NativeVideoPicker.getCachePath();
-      final ext = _currentVideoPath.split('.').last;
+      final ext = _workingVideoPath.split('.').last;
       final outputPath = '$cachePath/trimmed_${const Uuid().v4()}.$ext';
 
-      final trimmedPath = await _processor.processTrim(
-        inputPath: _currentVideoPath,
+      final newPath = await _processor.processTrim(
+        inputPath: _workingVideoPath,
         outputPath: outputPath,
         startTime: _trimStart,
         endTime: _trimEnd,
@@ -147,20 +165,115 @@ class _EditorScreenState extends State<EditorScreen> {
         },
       );
 
-      _currentVideoPath = trimmedPath;
-      _hasEdits = true;
-      await _initializePlayer(trimmedPath);
+      _workingVideoPath = newPath;
+      await _initializePlayer(newPath);
 
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Trim successful')));
+        ).showSnackBar(const SnackBar(content: Text('Trim applied')));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Trim error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _processingProgress = -1;
+        });
+      }
+    }
+  }
+
+  Future<void> _applySpeed() async {
+    if (_playbackSpeed == 1.0) return;
+
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Applying Speed...';
+      _processingProgress = -1;
+    });
+
+    try {
+      final cachePath = await NativeVideoPicker.getCachePath();
+      final ext = _workingVideoPath.split('.').last;
+      final outputPath = '$cachePath/speed_${const Uuid().v4()}.$ext';
+
+      final newPath = await _processor.processSpeed(
+        inputPath: _workingVideoPath,
+        outputPath: outputPath,
+        speed: _playbackSpeed,
+        onProgress: (p) {},
+      );
+
+      _workingVideoPath = newPath;
+      await _initializePlayer(newPath);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Speed applied')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Speed error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _processingProgress = -1;
+        });
+      }
+    }
+  }
+
+  Future<void> _applyCanvas() async {
+    if (_aspectRatio == ExportAspectRatio.source) return;
+
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Applying Canvas...';
+      _processingProgress = -1;
+    });
+
+    try {
+      final cachePath = await NativeVideoPicker.getCachePath();
+      final ext = _workingVideoPath.split('.').last;
+      final outputPath = '$cachePath/canvas_${const Uuid().v4()}.$ext';
+
+      // Use the generic scaleFilter builder logic from previous export, with a generic height base like 1080 to maintain quality during intermediate.
+      final targetHeight = 1080;
+      final targetWidth = (targetHeight * _aspectRatio.ratio!).round();
+      final scaleFilter =
+          'scale=$targetWidth:$targetHeight:force_original_aspect_ratio=decrease,pad=$targetWidth:$targetHeight:(ow-iw)/2:(oh-ih)/2:black';
+
+      final newPath = await _processor.processCanvas(
+        inputPath: _workingVideoPath,
+        outputPath: outputPath,
+        scaleFilter: scaleFilter,
+        onProgress: (p) {},
+      );
+
+      _workingVideoPath = newPath;
+      await _initializePlayer(newPath);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Canvas applied')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Canvas error: $e')));
       }
     } finally {
       if (mounted) {
@@ -185,17 +298,7 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  Future<void> _exportWithSettings(ExportSettings baseSettings) async {
-    // Inject EditorScreen's playbackSpeed into the final settings
-    final settings = ExportSettings(
-      resolution: baseSettings.resolution,
-      aspectRatio: baseSettings.aspectRatio,
-      playbackSpeed: _playbackSpeed,
-      fps: baseSettings.fps,
-      quality: baseSettings.quality,
-      format: baseSettings.format,
-    );
-
+  Future<void> _exportWithSettings(ExportSettings settings) async {
     setState(() {
       _isProcessing = true;
       _processingLabel = 'Exporting ${settings.resolution.label}...';
@@ -208,7 +311,7 @@ class _EditorScreenState extends State<EditorScreen> {
           '$cachePath/export_${const Uuid().v4()}.${settings.extension}';
 
       await _processor.processExport(
-        inputPath: _currentVideoPath,
+        inputPath: _workingVideoPath,
         outputPath: outputPath,
         settings: settings,
         onProgress: (p) {
@@ -265,14 +368,23 @@ class _EditorScreenState extends State<EditorScreen> {
                 icon: const Icon(Icons.arrow_back_rounded),
                 onPressed: () => Navigator.pop(context),
               ),
+              actions: [
+                if (_hasEdits)
+                  TextButton.icon(
+                    onPressed: _resetEdits,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Reset'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                    ),
+                  ),
+              ],
             ),
       body: Stack(
         children: [
-          // Main content
           SafeArea(
             child: Column(
               children: [
-                // --- Hero video preview ---
                 if (isReady)
                   Flexible(
                     flex: 3,
@@ -286,7 +398,6 @@ class _EditorScreenState extends State<EditorScreen> {
                             aspectRatio: ctrl.value.aspectRatio,
                             child: VideoPlayer(ctrl),
                           ),
-                          // Tap to play/pause overlay
                           Positioned.fill(
                             child: GestureDetector(
                               onTap: _isProcessing
@@ -326,7 +437,6 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                   ),
 
-                // --- Playback position bar ---
                 if (isReady)
                   Container(
                     color: AppColors.surfaceDark,
@@ -378,7 +488,6 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                   ),
 
-                // --- Controls section ---
                 if (isReady)
                   Expanded(
                     flex: 4,
@@ -390,7 +499,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // -- Trim card --
+                          // -- Trim Section --
                           Card(
                             child: Padding(
                               padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -416,100 +525,6 @@ class _EditorScreenState extends State<EditorScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: AppTheme.spacingMd),
-
-                                  // -- Speed control card --
-                                  Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(
-                                        AppTheme.spacingLg,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.speed_rounded,
-                                                color: AppColors.accent,
-                                                size: 18,
-                                              ),
-                                              SizedBox(
-                                                width: AppTheme.spacingSm,
-                                              ),
-                                              Text(
-                                                'Speed',
-                                                style: TextStyle(
-                                                  color: AppColors.textPrimary,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(
-                                            height: AppTheme.spacingMd,
-                                          ),
-                                          Row(
-                                            children: [0.5, 1.0, 1.5, 2.0].map((
-                                              speed,
-                                            ) {
-                                              final isSelected =
-                                                  _playbackSpeed == speed;
-                                              return Expanded(
-                                                child: GestureDetector(
-                                                  onTap: () =>
-                                                      _setPlaybackSpeed(speed),
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 8,
-                                                        ),
-                                                    margin:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 4,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: isSelected
-                                                          ? AppColors.accent
-                                                          : AppColors
-                                                                .cardDarkAlt,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            AppTheme.radiusSm,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: isSelected
-                                                            ? AppColors.accent
-                                                            : AppColors.divider,
-                                                      ),
-                                                    ),
-                                                    alignment: Alignment.center,
-                                                    child: Text(
-                                                      '${speed}x',
-                                                      style: TextStyle(
-                                                        color: isSelected
-                                                            ? AppColors
-                                                                  .scaffoldDark
-                                                            : AppColors
-                                                                  .textSecondary,
-                                                        fontWeight: isSelected
-                                                            ? FontWeight.bold
-                                                            : FontWeight.normal,
-                                                        fontSize: 13,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: AppTheme.spacingMd),
                                   TrimControls(
                                     maxDuration: ctrl.value.duration,
                                     currentStart: _trimStart,
@@ -522,43 +537,240 @@ class _EditorScreenState extends State<EditorScreen> {
                                       setState(() => _trimEnd = end);
                                     },
                                   ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: _isProcessing
+                                              ? null
+                                              : _previewTrim,
+                                          icon: const Icon(
+                                            Icons.preview,
+                                            size: 18,
+                                          ),
+                                          label: Text(
+                                            _isPreviewingTrim
+                                                ? 'Previewing...'
+                                                : 'Preview Trim',
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppTheme.spacingMd),
+                                      Expanded(
+                                        child: FilledButton.icon(
+                                          onPressed: _isProcessing
+                                              ? null
+                                              : _applyTrim,
+                                          icon: const Icon(
+                                            Icons.check,
+                                            size: 18,
+                                          ),
+                                          label: const Text('Apply Trim'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingMd),
+
+                          // -- Speed Section --
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppTheme.spacingLg),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.speed_rounded,
+                                        color: AppColors.accent,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: AppTheme.spacingSm),
+                                      Text(
+                                        'Speed',
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+                                  Row(
+                                    children: [0.5, 1.0, 1.5, 2.0].map((speed) {
+                                      final isSelected =
+                                          _playbackSpeed == speed;
+                                      return Expanded(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(
+                                              () => _playbackSpeed = speed,
+                                            );
+                                            // Optional: apply just playback speed for preview if possible.
+                                            // _controller?.setPlaybackSpeed(speed);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 8,
+                                            ),
+                                            margin: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? AppColors.accent
+                                                  : AppColors.cardDarkAlt,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    AppTheme.radiusSm,
+                                                  ),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? AppColors.accent
+                                                    : AppColors.divider,
+                                              ),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '${speed}x',
+                                              style: TextStyle(
+                                                color: isSelected
+                                                    ? AppColors.scaffoldDark
+                                                    : AppColors.textSecondary,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.bold
+                                                    : FontWeight.normal,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton.icon(
+                                      onPressed:
+                                          _isProcessing || _playbackSpeed == 1.0
+                                          ? null
+                                          : _applySpeed,
+                                      icon: const Icon(Icons.check, size: 18),
+                                      label: const Text('Apply Speed'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingMd),
+
+                          // -- Canvas Section --
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppTheme.spacingLg),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.crop_free_rounded,
+                                        color: AppColors.accent,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: AppTheme.spacingSm),
+                                      Text(
+                                        'Canvas Options',
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: ExportAspectRatio.values.map((
+                                        ratio,
+                                      ) {
+                                        final isSelected =
+                                            _aspectRatio == ratio;
+                                        return GestureDetector(
+                                          onTap: () => setState(
+                                            () => _aspectRatio = ratio,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 8,
+                                              horizontal: 16,
+                                            ),
+                                            margin: const EdgeInsets.only(
+                                              right: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? AppColors.accent
+                                                  : AppColors.cardDarkAlt,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    AppTheme.radiusSm,
+                                                  ),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? AppColors.accent
+                                                    : AppColors.divider,
+                                              ),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              ratio.label,
+                                              style: TextStyle(
+                                                color: isSelected
+                                                    ? AppColors.scaffoldDark
+                                                    : AppColors.textSecondary,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.bold
+                                                    : FontWeight.normal,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton.icon(
+                                      onPressed:
+                                          _isProcessing ||
+                                              _aspectRatio ==
+                                                  ExportAspectRatio.source
+                                          ? null
+                                          : _applyCanvas,
+                                      icon: const Icon(Icons.check, size: 18),
+                                      label: const Text('Apply Canvas'),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
 
-                          const SizedBox(height: AppTheme.spacingMd),
-
-                          // -- Action buttons --
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: _isProcessing
-                                      ? null
-                                      : _previewTrim,
-                                  icon: const Icon(Icons.preview, size: 18),
-                                  label: Text(
-                                    _isPreviewingTrim
-                                        ? 'Previewing...'
-                                        : 'Preview',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppTheme.spacingMd),
-                              Expanded(
-                                child: FilledButton.icon(
-                                  onPressed: _isProcessing
-                                      ? null
-                                      : _processTrim,
-                                  icon: const Icon(Icons.content_cut, size: 18),
-                                  label: const Text('Process Trim'),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: AppTheme.spacingMd),
+                          const SizedBox(height: AppTheme.spacingLg),
 
                           // -- Export button --
                           SizedBox(
@@ -585,7 +797,6 @@ class _EditorScreenState extends State<EditorScreen> {
                               ),
                             ),
                           ),
-
                           if (_hasEdits)
                             const Padding(
                               padding: EdgeInsets.only(top: AppTheme.spacingXs),
@@ -599,7 +810,6 @@ class _EditorScreenState extends State<EditorScreen> {
                                 ),
                               ),
                             ),
-
                           const SizedBox(height: AppTheme.spacingLg),
                         ],
                       ),
@@ -608,8 +818,6 @@ class _EditorScreenState extends State<EditorScreen> {
               ],
             ),
           ),
-
-          // Processing overlay (on top of everything)
           if (_isProcessing)
             ProcessingOverlay(
               label: _processingLabel,
