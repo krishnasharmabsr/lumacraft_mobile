@@ -60,13 +60,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo area
+                  // Logo area — canonical brand mark
                   Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppColors.accentGradient,
+                      borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.accent.withValues(alpha: 0.3),
@@ -75,10 +74,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.movie_edit,
-                      color: AppColors.scaffoldDark,
-                      size: 40,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/branding/logo_mark_master_1024.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          decoration: BoxDecoration(
+                            gradient: AppColors.accentGradient,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.play_arrow_rounded,
+                              color: AppColors.scaffoldDark,
+                              size: 48,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingXl),
@@ -141,9 +155,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    Icons.video_library_rounded,
+                                    Icons.play_arrow_rounded,
                                     color: AppColors.accent,
-                                    size: 28,
+                                    size: 32,
                                   ),
                                   SizedBox(width: AppTheme.spacingMd),
                                   Text(
@@ -170,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Version badge
                   Text(
-                    'v2.0 • Free, No Watermarks',
+                    'Create • Edit • Export',
                     style: TextStyle(
                       color: AppColors.textMuted.withValues(alpha: 0.6),
                       fontSize: 12,

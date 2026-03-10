@@ -28,6 +28,22 @@
 - **Local Path:** `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
 - **Remote Repo:** `https://github.com/krishnasharmabsr/lumacraft_mobile`
 
+## S005D Branding Consistency
+
+- **Date:** 2026-03-10
+- **Focus:** Unified all runtime logo references to canonical `assets/branding/logo_mark_master_1024.png`. Removed stale `logo_mark.png`. Created `docs/BRAND_REGISTRY.md`.
+
+## S005E Brand Identity Polish
+
+- **Date:** 2026-03-10
+- **Branch:** `feat/s005e-brand-identity-polish` (branched from main, isolating from S005 series)
+- **Focus:** Regenerated clean vector-based PNGs without checkerboard artifacts. Regenerated adaptive Android icons. Polished splash animation duration to 1.5s total. seek handling with a single playback timeline, deterministic normalized playback source, and verified centralized seek flow for scrub plus +/-10 actions.
+
+## S005E2 Branding Lockdown Fix
+
+- **Date:** 2026-03-11
+- **Focus:** Complete branding lockdown. Hand-generated a perfect teal logo matching `AppColors.accent`, strictly optically-centered on X bounding box. Banned `Icons.movie_edit` in fallback context, replacing with `Icons.play_arrow_rounded`. Fixed home screen version string and button motifs.
+
 ## S004Q Start
 
 - **Date:** 2026-03-10
