@@ -25,6 +25,8 @@ enum ExportFailureType { watermark, audio, encoder, unknown }
 
 enum VideoCodecProfile { mpeg4Default, x264Fallback }
 
+enum WatermarkBackend { none, png, rawRgba }
+
 class FFmpegProcessor implements IVideoProcessor {
   /// Temporary QA flag: when true, allows export even if watermark
   /// could not be applied. Set to false for production.
@@ -160,13 +162,17 @@ class FFmpegProcessor implements IVideoProcessor {
     required int? finalFps,
     required bool applyWatermark,
     required String? watermarkPath,
-    bool includeWatermark = true,
+    int watermarkWidth = 0,
+    int watermarkHeight = 0,
+    WatermarkBackend watermarkBackend = WatermarkBackend.png,
     bool includeAudio = true,
     VideoCodecProfile videoCodecProfile = VideoCodecProfile.mpeg4Default,
   }) {
     final effectiveAudio = hasAudio && includeAudio;
     final effectiveWatermark =
-        applyWatermark && watermarkPath != null && includeWatermark;
+        applyWatermark &&
+        watermarkPath != null &&
+        watermarkBackend != WatermarkBackend.none;
 
     final parts = <String>['-y'];
     double totalDurationSecs = 0;
@@ -183,14 +189,41 @@ class FFmpegProcessor implements IVideoProcessor {
 
     parts.addAll(['-i', '"$inputPath"']);
 
-    // 2. Watermark input — looped image input
+    // 2. Watermark input
     if (effectiveWatermark) {
-      parts.addAll(['-loop', '1', '-framerate', '1', '-i', '"$watermarkPath"']);
-      diagnostics += 'watermark_active=true path=$watermarkPath\n';
+      if (watermarkBackend == WatermarkBackend.png) {
+        parts.addAll([
+          '-loop',
+          '1',
+          '-framerate',
+          '1',
+          '-i',
+          '"$watermarkPath"',
+        ]);
+        diagnostics +=
+            'watermark_active=true backend=png path=$watermarkPath\n';
+      } else if (watermarkBackend == WatermarkBackend.rawRgba) {
+        parts.addAll([
+          '-f',
+          'rawvideo',
+          '-pixel_format',
+          'rgba',
+          '-video_size',
+          '${watermarkWidth}x$watermarkHeight',
+          '-framerate',
+          '1',
+          '-stream_loop',
+          '-1',
+          '-i',
+          '"$watermarkPath"',
+        ]);
+        diagnostics +=
+            'watermark_active=true backend=rawRgba size=${watermarkWidth}x$watermarkHeight path=$watermarkPath\n';
+      }
     } else if (applyWatermark && !effectiveWatermark) {
       final reason = watermarkPath == null
           ? 'watermark_path_null'
-          : 'includeWatermark=false';
+          : 'backend=none';
       diagnostics += 'watermark_skipped=true reason=$reason\n';
     }
 
@@ -330,31 +363,32 @@ class FFmpegProcessor implements IVideoProcessor {
     ExportAttemptConfig current,
     ExportFailureType failureType,
   ) {
-    // A → B: disable watermark
-    if (current.includeWatermark) {
+    // A (png/audio) → B (raw/audio)
+    if (current.label == 'A') {
       return ExportAttemptConfig(
         label: 'B',
-        includeWatermark: false,
+        watermarkBackend: WatermarkBackend.rawRgba,
         includeAudio: current.includeAudio,
         videoCodecProfile: current.videoCodecProfile,
       );
     }
 
-    // B → C: disable audio
-    if (current.includeAudio) {
+    // B (raw/audio) → C (raw/noaudio)
+    if (current.label == 'B' && current.includeAudio) {
       return ExportAttemptConfig(
         label: 'C',
-        includeWatermark: false,
+        watermarkBackend: WatermarkBackend.rawRgba,
         includeAudio: false,
         videoCodecProfile: current.videoCodecProfile,
       );
     }
 
-    // C → D: x264 fallback codec
-    if (current.videoCodecProfile == VideoCodecProfile.mpeg4Default) {
+    // C (raw/noaudio) → D (raw/noaudio/x264)
+    if (current.label == 'C' &&
+        current.videoCodecProfile == VideoCodecProfile.mpeg4Default) {
       return ExportAttemptConfig(
         label: 'D',
-        includeWatermark: false,
+        watermarkBackend: WatermarkBackend.rawRgba,
         includeAudio: false,
         videoCodecProfile: VideoCodecProfile.x264Fallback,
       );
@@ -418,7 +452,10 @@ class FFmpegProcessor implements IVideoProcessor {
 
     // Watermark preflight — Dart-side decode only (NO FFprobe on PNG)
     final bool applyWatermark = !ProGate.isPro;
-    String? watermarkPath;
+    String? pngWatermarkPath;
+    String? rawWatermarkPath;
+    int watermarkWidth = 0;
+    int watermarkHeight = 0;
     String wmDiagnostics = '';
 
     if (applyWatermark) {
@@ -435,34 +472,48 @@ class FFmpegProcessor implements IVideoProcessor {
           );
         }
 
+        watermarkWidth = image.width;
+        watermarkHeight = image.height;
+
         wmDiagnostics +=
             'Watermark loaded. '
             'Asset=${assetBytes.length}B '
             '${image.width}x${image.height}\n';
 
-        final pngBytes = img.encodePng(image);
         final String cachePath = await NativeVideoPicker.getCachePath();
-        watermarkPath = '$cachePath/watermark_runtime.png';
-        final File wFile = File(watermarkPath);
-        await wFile.writeAsBytes(pngBytes);
 
-        final finalSize = await wFile.length();
-        if (finalSize == 0) {
+        // 1. Save PNG backend
+        final pngBytes = img.encodePng(image);
+        pngWatermarkPath = '$cachePath/watermark_runtime.png';
+        final File pngFile = File(pngWatermarkPath);
+        await pngFile.writeAsBytes(pngBytes);
+        wmDiagnostics +=
+            'PNG written: $pngWatermarkPath (${await pngFile.length()} B)\n';
+
+        // 2. Save RAW RGBA backend
+        final rgbaBytes = image.getBytes(order: img.ChannelOrder.rgba);
+        rawWatermarkPath = '$cachePath/watermark_runtime.rgba';
+        final File rawFile = File(rawWatermarkPath);
+        await rawFile.writeAsBytes(rgbaBytes);
+        wmDiagnostics +=
+            'RAW written: $rawWatermarkPath (${await rawFile.length()} B)\n';
+
+        if (await pngFile.length() == 0 || await rawFile.length() == 0) {
           throw Exception('Watermark preflight: encoded file size is 0');
         }
-        wmDiagnostics += 'Runtime written: $watermarkPath ($finalSize B)\n';
       } catch (e) {
         wmDiagnostics += 'watermark_skipped=true reason=$e\n';
-        watermarkPath = null;
+        pngWatermarkPath = null;
+        rawWatermarkPath = null;
       }
     }
 
     // ────────────────────────────────────────────────────────
     //  MULTI-ATTEMPT EXPORT EXECUTION (A → B → C → D)
     // ────────────────────────────────────────────────────────
-    var attemptConfig = ExportAttemptConfig(
+    var attemptConfig = const ExportAttemptConfig(
       label: 'A',
-      includeWatermark: true,
+      watermarkBackend: WatermarkBackend.png,
       includeAudio: true,
       videoCodecProfile: VideoCodecProfile.mpeg4Default,
     );
@@ -471,6 +522,13 @@ class FFmpegProcessor implements IVideoProcessor {
     FFmpegException? lastError;
 
     while (true) {
+      final activeWatermarkPath =
+          attemptConfig.watermarkBackend == WatermarkBackend.png
+          ? pngWatermarkPath
+          : attemptConfig.watermarkBackend == WatermarkBackend.rawRgba
+          ? rawWatermarkPath
+          : null;
+
       final result = buildExportCommand(
         inputPath: inputPath,
         outputPath: outputPath,
@@ -482,8 +540,10 @@ class FFmpegProcessor implements IVideoProcessor {
         hasAudio: hasAudio,
         finalFps: finalFps,
         applyWatermark: applyWatermark,
-        watermarkPath: watermarkPath,
-        includeWatermark: attemptConfig.includeWatermark,
+        watermarkPath: activeWatermarkPath,
+        watermarkWidth: watermarkWidth,
+        watermarkHeight: watermarkHeight,
+        watermarkBackend: attemptConfig.watermarkBackend,
         includeAudio: attemptConfig.includeAudio,
         videoCodecProfile: attemptConfig.videoCodecProfile,
       );
@@ -496,7 +556,7 @@ class FFmpegProcessor implements IVideoProcessor {
       debugPrint(
         'hasAudio: $hasAudio, includeAudio: ${attemptConfig.includeAudio}',
       );
-      debugPrint('includeWatermark: ${attemptConfig.includeWatermark}');
+      debugPrint('watermarkBackend: ${attemptConfig.watermarkBackend.name}');
       debugPrint('codec: ${attemptConfig.videoCodecProfile.name}');
       debugPrint('command: ${result.command}');
 
@@ -517,8 +577,8 @@ class FFmpegProcessor implements IVideoProcessor {
         // Determine watermark contract state
         final watermarkWasApplied =
             applyWatermark &&
-            attemptConfig.includeWatermark &&
-            watermarkPath != null;
+            attemptConfig.watermarkBackend != WatermarkBackend.none &&
+            activeWatermarkPath != null;
         final String? fallbackReason = applyWatermark && !watermarkWasApplied
             ? (result.watermarkSkippedMessage ??
                   'Watermark could not be applied')
@@ -632,13 +692,13 @@ class FFmpegProcessor implements IVideoProcessor {
 /// Configuration for a single export attempt.
 class ExportAttemptConfig {
   final String label;
-  final bool includeWatermark;
+  final WatermarkBackend watermarkBackend;
   final bool includeAudio;
   final VideoCodecProfile videoCodecProfile;
 
   const ExportAttemptConfig({
     required this.label,
-    required this.includeWatermark,
+    required this.watermarkBackend,
     required this.includeAudio,
     required this.videoCodecProfile,
   });

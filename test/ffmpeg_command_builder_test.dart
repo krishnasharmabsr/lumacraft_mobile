@@ -80,50 +80,52 @@ void main() {
 
   // ── RETRY MATRIX ──
   group('nextAttempt', () {
-    test('A → B: disables watermark', () {
+    test('A → B: switches to rawRgba watermark', () {
       const a = ExportAttemptConfig(
         label: 'A',
-        includeWatermark: true,
+        watermarkBackend: WatermarkBackend.png,
         includeAudio: true,
         videoCodecProfile: VideoCodecProfile.mpeg4Default,
       );
       final b = FFmpegProcessor.nextAttempt(a, ExportFailureType.watermark);
       expect(b, isNotNull);
       expect(b!.label, 'B');
-      expect(b.includeWatermark, false);
+      expect(b.watermarkBackend, WatermarkBackend.rawRgba);
       expect(b.includeAudio, true);
     });
 
     test('B → C: disables audio', () {
       const b = ExportAttemptConfig(
         label: 'B',
-        includeWatermark: false,
+        watermarkBackend: WatermarkBackend.rawRgba,
         includeAudio: true,
         videoCodecProfile: VideoCodecProfile.mpeg4Default,
       );
       final c = FFmpegProcessor.nextAttempt(b, ExportFailureType.audio);
       expect(c, isNotNull);
       expect(c!.label, 'C');
+      expect(c.watermarkBackend, WatermarkBackend.rawRgba);
       expect(c.includeAudio, false);
     });
 
     test('C → D: x264 fallback', () {
       const c = ExportAttemptConfig(
         label: 'C',
-        includeWatermark: false,
+        watermarkBackend: WatermarkBackend.rawRgba,
         includeAudio: false,
         videoCodecProfile: VideoCodecProfile.mpeg4Default,
       );
       final d = FFmpegProcessor.nextAttempt(c, ExportFailureType.encoder);
       expect(d, isNotNull);
       expect(d!.label, 'D');
+      expect(d.watermarkBackend, WatermarkBackend.rawRgba);
       expect(d.videoCodecProfile, VideoCodecProfile.x264Fallback);
     });
 
     test('D → null: all exhausted', () {
       const d = ExportAttemptConfig(
         label: 'D',
-        includeWatermark: false,
+        watermarkBackend: WatermarkBackend.rawRgba,
         includeAudio: false,
         videoCodecProfile: VideoCodecProfile.x264Fallback,
       );
@@ -220,7 +222,7 @@ void main() {
       expect(result.command, isNot(contains('drawtext')));
     });
 
-    test('watermark active: looped image input with format=rgba', () {
+    test('watermark active (png): looped image input with format=rgba', () {
       final result = FFmpegProcessor.buildExportCommand(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
@@ -233,9 +235,38 @@ void main() {
         finalFps: 30,
         applyWatermark: true,
         watermarkPath: '/cache/watermark_runtime.png',
+        watermarkBackend: WatermarkBackend.png,
       );
 
       expect(result.command, contains('-loop 1 -framerate 1'));
+      expect(result.command, contains('format=rgba,scale=120:-1'));
+      expect(result.command, contains('overlay='));
+    });
+
+    test('watermark active (rawRgba): rawvideo input with width/height', () {
+      final result = FFmpegProcessor.buildExportCommand(
+        inputPath: '/input.mp4',
+        outputPath: '/output.mp4',
+        settings: baseSettings,
+        trimStart: Duration.zero,
+        trimEnd: const Duration(seconds: 10),
+        playbackSpeed: 1.0,
+        aspectRatio: ExportAspectRatio.source,
+        hasAudio: true,
+        finalFps: 30,
+        applyWatermark: true,
+        watermarkPath: '/cache/watermark_runtime.rgba',
+        watermarkWidth: 1024,
+        watermarkHeight: 1024,
+        watermarkBackend: WatermarkBackend.rawRgba,
+      );
+
+      expect(
+        result.command,
+        contains(
+          '-f rawvideo -pixel_format rgba -video_size 1024x1024 -framerate 1 -stream_loop -1',
+        ),
+      );
       expect(result.command, contains('format=rgba,scale=120:-1'));
       expect(result.command, contains('overlay='));
     });
@@ -267,7 +298,7 @@ void main() {
 
     // ── S005A: FALLBACK TOGGLE TESTS ──
 
-    test('includeWatermark=false: no watermark in command', () {
+    test('watermarkBackend=none: no watermark in command', () {
       final result = FFmpegProcessor.buildExportCommand(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
@@ -280,7 +311,7 @@ void main() {
         finalFps: 30,
         applyWatermark: true,
         watermarkPath: '/cache/watermark_runtime.png',
-        includeWatermark: false,
+        watermarkBackend: WatermarkBackend.none,
       );
 
       expect(result.command, isNot(contains('-loop')));
