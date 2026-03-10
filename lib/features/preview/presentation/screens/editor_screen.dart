@@ -108,7 +108,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     developer.log(
       'Duration resolved via $winningSource: ${resolvedDuration.inMilliseconds}ms',
-      name: 'EditorScreen',
+      name: 'EditorDuration',
     );
 
     final timelineInvalid = resolvedDuration.inMilliseconds <= 0;
@@ -131,7 +131,20 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     newController.addListener(() {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      if (_videoDuration.inMilliseconds <= 0 &&
+          newController.value.duration.inMilliseconds > 0) {
+        developer.log(
+          'Late duration promotion triggered: ${newController.value.duration.inMilliseconds}ms',
+          name: 'EditorDuration',
+        );
+        _videoDuration = newController.value.duration;
+        _isTimelineInvalid = false;
+        if (_trimEnd.inMilliseconds <= 0) {
+          _trimEnd = _videoDuration;
+        }
+      }
+      setState(() {});
     });
 
     if (!timelineInvalid) {
@@ -153,7 +166,8 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Duration? _parseDurationString(String? durationStr) {
-    if (durationStr == null || durationStr.isEmpty) return null;
+    if (durationStr == null || durationStr.trim().isEmpty) return null;
+    durationStr = durationStr.trim().replaceAll(',', '.');
 
     // Try decimal seconds (e.g., "21.64")
     final secs = double.tryParse(durationStr);
@@ -194,8 +208,13 @@ class _EditorScreenState extends State<EditorScreen> {
       final media = info.getMediaInformation();
       if (media != null) {
         final parsedFormat = _parseDurationString(media.getDuration());
-        if (parsedFormat != null)
+        if (parsedFormat != null) {
+          developer.log(
+            'FFProbe Field format duration found: ${parsedFormat.inMilliseconds}ms',
+            name: 'EditorDuration',
+          );
           return (duration: parsedFormat, source: 'ffprobe_field');
+        }
 
         final streams = media.getStreams();
         if (streams.isNotEmpty) {
@@ -208,14 +227,25 @@ class _EditorScreenState extends State<EditorScreen> {
                 final parsedStream = _parseDurationString(
                   streamDur?.toString(),
                 );
-                if (parsedStream != null)
+                if (parsedStream != null) {
+                  developer.log(
+                    'FFProbe Field stream duration found: ${parsedStream.inMilliseconds}ms',
+                    name: 'EditorDuration',
+                  );
                   return (duration: parsedStream, source: 'ffprobe_field');
+                }
               }
             }
           }
         }
       }
-    } catch (_) {}
+      developer.log(
+        'FFProbe Field duration check failed',
+        name: 'EditorDuration',
+      );
+    } catch (e) {
+      developer.log('FFProbe Field error: $e', name: 'EditorDuration');
+    }
 
     // 2. Try raw FFprobe execution
     try {
@@ -223,28 +253,56 @@ class _EditorScreenState extends State<EditorScreen> {
         '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$path"',
       );
       final output = await session.getOutput();
-      final parsedLog = _parseDurationString(output?.trim());
-      if (parsedLog != null) {
-        return (duration: parsedLog, source: 'ffprobe_log');
+      final logsStr = await session.getAllLogsAsString();
+
+      final parsedOut = _parseDurationString(output?.trim());
+      if (parsedOut != null) {
+        developer.log(
+          'FFProbe raw output duration found: ${parsedOut.inMilliseconds}ms',
+          name: 'EditorDuration',
+        );
+        return (duration: parsedOut, source: 'ffprobe_log');
       }
-    } catch (_) {}
+
+      final parsedLogs = _parseDurationString(logsStr?.trim());
+      if (parsedLogs != null) {
+        developer.log(
+          'FFProbe raw logs duration found: ${parsedLogs.inMilliseconds}ms',
+          name: 'EditorDuration',
+        );
+        return (duration: parsedLogs, source: 'ffprobe_log');
+      }
+
+      developer.log('FFProbe raw check failed', name: 'EditorDuration');
+    } catch (e) {
+      developer.log('FFProbe raw error: $e', name: 'EditorDuration');
+    }
 
     // 2b. Try FFprobe full output regex
     try {
       final session = await FFprobeKit.execute('-i "$path"');
       final output = await session.getOutput();
-      if (output != null) {
-        final match = RegExp(
-          r'Duration:\s+(\d{2}:\d{2}:\d{2}\.\d+)',
-        ).firstMatch(output);
-        if (match != null) {
-          final parsedRegex = _parseDurationString(match.group(1));
-          if (parsedRegex != null) {
-            return (duration: parsedRegex, source: 'ffprobe_log_regex');
-          }
+      final logsStr = await session.getAllLogsAsString();
+
+      final combined = '${output ?? ""} ${logsStr ?? ""}';
+
+      final match = RegExp(
+        r'Duration:\s+(\d{2}:\d{2}:\d{2}\.\d+)',
+      ).firstMatch(combined);
+      if (match != null) {
+        final parsedRegex = _parseDurationString(match.group(1));
+        if (parsedRegex != null) {
+          developer.log(
+            'FFProbe regex duration found: ${parsedRegex.inMilliseconds}ms',
+            name: 'EditorDuration',
+          );
+          return (duration: parsedRegex, source: 'ffprobe_log_regex');
         }
       }
-    } catch (_) {}
+      developer.log('FFProbe regex check failed', name: 'EditorDuration');
+    } catch (e) {
+      developer.log('FFProbe regex error: $e', name: 'EditorDuration');
+    }
 
     // 3. Fallback to Native Android MMR
     try {
@@ -252,10 +310,17 @@ class _EditorScreenState extends State<EditorScreen> {
       if (nativeDurStr != null) {
         final millis = int.tryParse(nativeDurStr);
         if (millis != null && millis > 0) {
+          developer.log(
+            'Android MMR duration found: ${millis}ms',
+            name: 'EditorDuration',
+          );
           return (duration: Duration(milliseconds: millis), source: 'mmr');
         }
       }
-    } catch (_) {}
+      developer.log('Android MMR check failed', name: 'EditorDuration');
+    } catch (e) {
+      developer.log('Android MMR error: $e', name: 'EditorDuration');
+    }
 
     // 4. Fallback to Native Android MediaExtractor
     try {
@@ -265,14 +330,22 @@ class _EditorScreenState extends State<EditorScreen> {
       if (extractorDurStr != null) {
         final millis = int.tryParse(extractorDurStr);
         if (millis != null && millis > 0) {
+          developer.log(
+            'MediaExtractor duration found: ${millis}ms',
+            name: 'EditorDuration',
+          );
           return (
             duration: Duration(milliseconds: millis),
             source: 'media_extractor',
           );
         }
       }
-    } catch (_) {}
+      developer.log('MediaExtractor check failed', name: 'EditorDuration');
+    } catch (e) {
+      developer.log('MediaExtractor error: $e', name: 'EditorDuration');
+    }
 
+    developer.log('All fallback sources failed', name: 'EditorDuration');
     return (duration: Duration.zero, source: 'none');
   }
 
@@ -598,26 +671,77 @@ class _EditorScreenState extends State<EditorScreen> {
                                       child: Stack(
                                         children: [
                                           Center(
-                                            child: IconButton(
-                                              iconSize: 64,
-                                              color: Colors.white,
-                                              icon: Icon(
-                                                ctrl.value.isPlaying
-                                                    ? Icons.pause_circle_filled
-                                                    : Icons.play_circle_filled,
-                                              ),
-                                              onPressed: () {
-                                                _removePreviewListener();
-                                                setState(() {
-                                                  if (ctrl.value.isPlaying) {
-                                                    ctrl.pause();
-                                                    _overlayTimer?.cancel();
-                                                  } else {
-                                                    ctrl.play();
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.replay_10,
+                                                  ),
+                                                  iconSize: 40,
+                                                  color: Colors.white,
+                                                  onPressed: () {
                                                     _resetOverlayTimer();
-                                                  }
-                                                });
-                                              },
+                                                    final pos =
+                                                        ctrl.value.position -
+                                                        const Duration(
+                                                          seconds: 10,
+                                                        );
+                                                    ctrl.seekTo(
+                                                      pos < Duration.zero
+                                                          ? Duration.zero
+                                                          : pos,
+                                                    );
+                                                  },
+                                                ),
+                                                const SizedBox(width: 24),
+                                                IconButton(
+                                                  iconSize: 64,
+                                                  color: Colors.white,
+                                                  icon: Icon(
+                                                    ctrl.value.isPlaying
+                                                        ? Icons
+                                                              .pause_circle_filled
+                                                        : Icons
+                                                              .play_circle_filled,
+                                                  ),
+                                                  onPressed: () {
+                                                    _removePreviewListener();
+                                                    setState(() {
+                                                      if (ctrl
+                                                          .value
+                                                          .isPlaying) {
+                                                        ctrl.pause();
+                                                        _overlayTimer?.cancel();
+                                                      } else {
+                                                        ctrl.play();
+                                                        _resetOverlayTimer();
+                                                      }
+                                                    });
+                                                  },
+                                                ),
+                                                const SizedBox(width: 24),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.forward_10,
+                                                  ),
+                                                  iconSize: 40,
+                                                  color: Colors.white,
+                                                  onPressed: () {
+                                                    _resetOverlayTimer();
+                                                    final pos =
+                                                        ctrl.value.position +
+                                                        const Duration(
+                                                          seconds: 10,
+                                                        );
+                                                    ctrl.seekTo(
+                                                      pos > _videoDuration
+                                                          ? _videoDuration
+                                                          : pos,
+                                                    );
+                                                  },
+                                                ),
+                                              ],
                                             ),
                                           ),
                                           Positioned(
@@ -652,26 +776,36 @@ class _EditorScreenState extends State<EditorScreen> {
                                                     children: [
                                                       Row(
                                                         children: [
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              _isMuted ||
-                                                                      _volume ==
-                                                                          0
-                                                                  ? Icons
-                                                                        .volume_off
-                                                                  : Icons
-                                                                        .volume_up,
-                                                              color:
-                                                                  Colors.white,
-                                                              size: 20,
-                                                            ),
-                                                            onPressed: () {
+                                                          GestureDetector(
+                                                            onTap: () {
                                                               setState(() {
                                                                 _showVolumeSlider =
                                                                     !_showVolumeSlider;
                                                               });
                                                               _resetOverlayTimer();
                                                             },
+                                                            onLongPress: () {
+                                                              _toggleMute();
+                                                              _resetOverlayTimer();
+                                                            },
+                                                            child: Padding(
+                                                              padding:
+                                                                  const EdgeInsets.all(
+                                                                    8.0,
+                                                                  ),
+                                                              child: Icon(
+                                                                _isMuted ||
+                                                                        _volume ==
+                                                                            0
+                                                                    ? Icons
+                                                                          .volume_off
+                                                                    : Icons
+                                                                          .volume_up,
+                                                                color: Colors
+                                                                    .white,
+                                                                size: 20,
+                                                              ),
+                                                            ),
                                                           ),
                                                           const SizedBox(
                                                             width: 8,
@@ -747,12 +881,20 @@ class _EditorScreenState extends State<EditorScreen> {
                                                                     inactiveColor:
                                                                         Colors
                                                                             .white30,
-                                                                    onChanged: (val) {
-                                                                      _setVolume(
-                                                                        val,
-                                                                      );
-                                                                      _resetOverlayTimer();
-                                                                    },
+                                                                    onChangeStart:
+                                                                        (
+                                                                          _,
+                                                                        ) => _overlayTimer
+                                                                            ?.cancel(),
+                                                                    onChangeEnd:
+                                                                        (_) =>
+                                                                            _resetOverlayTimer(),
+                                                                    onChanged:
+                                                                        (val) {
+                                                                          _setVolume(
+                                                                            val,
+                                                                          );
+                                                                        },
                                                                   ),
                                                                 ),
                                                               ),

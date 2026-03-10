@@ -267,3 +267,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 18 - Task S004K (Timeline 00:00 Root-Cause Fix + Overlay Control Cleanup)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Fixed late `video_player` duration initialization by correctly updating and invalidating timeline states inside `addListener`.
+  2. Hardened FFprobe raw duration fallback by extracting from both `getOutput()` and `getAllLogsAsString()` session data.
+  3. Improved string duration parsing explicitly filtering for decimal comma delimiters and padding formats.
+  4. Displayed each step in the duration fallback chain using `developer.log` with label `EditorDuration`.
+  5. Refined bottom overlay logic: eliminated duplicated volume icon, added `onChangeStart`/`onChangeEnd` to reset `Timer`, and integrated native `±10s` rewind and fast-forward quick actions.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

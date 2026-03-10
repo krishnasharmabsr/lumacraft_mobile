@@ -17,6 +17,7 @@
 - [x] S004G — Editor Playback UX Upgrade (Playable timeline, Audio controls, Landscape UI, Icon Toolbar, Native Duration Fallback).
 - [x] S004H — Editor Player Controls Overlay + Downloaded Video Duration Parse Fix.
 - [x] S004I — Duration Zero Hard Fix + Volume UI Alignment (MediaExtractor Fallback, Volume Popover).
+- [x] S004K — Timeline 00:00 Root-Cause Fix + Overlay Control Cleanup (Late Duration Promotion, FFprobe harden, ±10s seek).
 
 ## Phase 3: AI Capabilities
 
