@@ -257,6 +257,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     _detachControllerListener(oldController);
     _attachControllerListener(activeCtrl);
+    await activeCtrl.setVolume(_isMuted ? 0.0 : _volume);
 
     if (!timelineInvalid) {
       activeCtrl.play();
@@ -882,15 +883,35 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _isMuted = !_isMuted;
     });
-    _controller?.setVolume(_isMuted ? 0.0 : _volume);
+    unawaited(_applyVolume());
   }
 
   void _setVolume(double value) {
     setState(() {
-      _volume = value;
+      _volume = value.clamp(0.0, 1.0).toDouble();
       if (value > 0) _isMuted = false;
     });
-    _controller?.setVolume(_isMuted ? 0.0 : _volume);
+    unawaited(_applyVolume());
+  }
+
+  Future<void> _applyVolume() async {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    final target = (_isMuted ? 0.0 : _volume).clamp(0.0, 1.0).toDouble();
+    try {
+      await ctrl.setVolume(target);
+    } catch (e) {
+      developer.log('volume_apply_error: $e', name: '[AudioProbe]');
+    }
+  }
+
+  void _setVolumeFromVerticalDrag({
+    required double localDy,
+    required double trackHeight,
+  }) {
+    final safeHeight = trackHeight <= 0 ? 1.0 : trackHeight;
+    final next = (1 - (localDy / safeHeight)).clamp(0.0, 1.0).toDouble();
+    _setVolume(next);
   }
 
   // ────────────────────────────────────────────────────────────
@@ -1268,14 +1289,14 @@ class _EditorScreenState extends State<EditorScreen> {
                                                           children: [
                                                             GestureDetector(
                                                               onTap: () {
+                                                                _toggleMute();
+                                                                _resetOverlayTimer();
+                                                              },
+                                                              onLongPress: () {
                                                                 setState(() {
                                                                   _showVolumeSlider =
                                                                       !_showVolumeSlider;
                                                                 });
-                                                                _resetOverlayTimer();
-                                                              },
-                                                              onLongPress: () {
-                                                                _toggleMute();
                                                                 _resetOverlayTimer();
                                                               },
                                                               child: Padding(
@@ -1392,61 +1413,125 @@ class _EditorScreenState extends State<EditorScreen> {
                                                                   20,
                                                                 ),
                                                           ),
-                                                          child: Column(
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .min,
-                                                            children: [
-                                                              Expanded(
-                                                                child: RotatedBox(
-                                                                  quarterTurns:
-                                                                      3,
-                                                                  child: SliderTheme(
-                                                                    data: SliderTheme.of(context).copyWith(
-                                                                      trackHeight:
-                                                                          2,
-                                                                      thumbShape:
-                                                                          const RoundSliderThumbShape(
-                                                                            enabledThumbRadius:
-                                                                                6,
+                                                          child: LayoutBuilder(
+                                                            builder:
+                                                                (
+                                                                  context,
+                                                                  constraints,
+                                                                ) {
+                                                                  final trackHeight =
+                                                                      constraints.maxHeight -
+                                                                      20;
+                                                                  final knobBottom =
+                                                                      (_volume *
+                                                                              trackHeight)
+                                                                          .clamp(
+                                                                            0.0,
+                                                                            trackHeight,
+                                                                          )
+                                                                          .toDouble();
+                                                                  return GestureDetector(
+                                                                    behavior:
+                                                                        HitTestBehavior
+                                                                            .opaque,
+                                                                    onTapDown:
+                                                                        (
+                                                                          details,
+                                                                        ) {
+                                                                          _overlayTimer
+                                                                              ?.cancel();
+                                                                          _setVolumeFromVerticalDrag(
+                                                                            localDy: details
+                                                                                .localPosition
+                                                                                .dy,
+                                                                            trackHeight:
+                                                                                constraints.maxHeight,
+                                                                          );
+                                                                          _resetOverlayTimer();
+                                                                        },
+                                                                    onVerticalDragStart:
+                                                                        (_) => _overlayTimer
+                                                                            ?.cancel(),
+                                                                    onVerticalDragUpdate:
+                                                                        (
+                                                                          details,
+                                                                        ) {
+                                                                          _setVolumeFromVerticalDrag(
+                                                                            localDy: details
+                                                                                .localPosition
+                                                                                .dy,
+                                                                            trackHeight:
+                                                                                constraints.maxHeight,
+                                                                          );
+                                                                        },
+                                                                    onVerticalDragEnd:
+                                                                        (_) =>
+                                                                            _resetOverlayTimer(),
+                                                                    child: Stack(
+                                                                      alignment:
+                                                                          Alignment
+                                                                              .center,
+                                                                      children: [
+                                                                        Positioned(
+                                                                          top:
+                                                                              10,
+                                                                          bottom:
+                                                                              10,
+                                                                          child: Container(
+                                                                            width:
+                                                                                4,
+                                                                            decoration: BoxDecoration(
+                                                                              color: Colors.white30,
+                                                                              borderRadius: BorderRadius.circular(
+                                                                                999,
+                                                                              ),
+                                                                            ),
                                                                           ),
-                                                                      overlayShape: const RoundSliderOverlayShape(
-                                                                        overlayRadius:
-                                                                            10,
-                                                                      ),
+                                                                        ),
+                                                                        Positioned(
+                                                                          left:
+                                                                              18,
+                                                                          right:
+                                                                              18,
+                                                                          bottom:
+                                                                              10,
+                                                                          height:
+                                                                              trackHeight *
+                                                                              _volume,
+                                                                          child: Container(
+                                                                            decoration: BoxDecoration(
+                                                                              color: AppColors.accent,
+                                                                              borderRadius: BorderRadius.circular(
+                                                                                999,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        Positioned(
+                                                                          bottom:
+                                                                              2 +
+                                                                              knobBottom,
+                                                                          child: Container(
+                                                                            width:
+                                                                                14,
+                                                                            height:
+                                                                                14,
+                                                                            decoration: BoxDecoration(
+                                                                              color: Colors.white,
+                                                                              borderRadius: BorderRadius.circular(
+                                                                                999,
+                                                                              ),
+                                                                              border: Border.all(
+                                                                                color: AppColors.accent,
+                                                                                width: 2,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
                                                                     ),
-                                                                    child: Slider(
-                                                                      value:
-                                                                          _volume,
-                                                                      min: 0.0,
-                                                                      max: 1.0,
-                                                                      activeColor:
-                                                                          AppColors
-                                                                              .accent,
-                                                                      inactiveColor:
-                                                                          Colors
-                                                                              .white30,
-                                                                      onChangeStart:
-                                                                          (
-                                                                            _,
-                                                                          ) => _overlayTimer
-                                                                              ?.cancel(),
-                                                                      onChangeEnd:
-                                                                          (_) =>
-                                                                              _resetOverlayTimer(),
-                                                                      onChanged:
-                                                                          (
-                                                                            val,
-                                                                          ) {
-                                                                            _setVolume(
-                                                                              val,
-                                                                            );
-                                                                          },
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ],
+                                                                  );
+                                                                },
                                                           ),
                                                         ),
                                                       ),
