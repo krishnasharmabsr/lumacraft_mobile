@@ -32,9 +32,14 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Disable R8 shrinking to preserve Flutter plugin Pigeon channels.
+            // Flutter plugins use Pigeon-generated platform channels that R8
+            // strips as "unused" because they are registered reflectively.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
