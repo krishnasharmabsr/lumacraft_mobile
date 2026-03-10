@@ -119,7 +119,25 @@ class _EditorScreenState extends State<EditorScreen> {
         'normalization_triggered=yes, all probes failed, attempting normalization',
         name: '[DurationProbe]',
       );
+
+      // Show processing overlay while normalizing
+      if (mounted) {
+        setState(() {
+          _isProcessing = true;
+          _processingLabel = 'Normalizing video...';
+          _processingProgress = -1;
+        });
+      }
+
       final normResult = await _tryNormalizeVideo(path);
+
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _processingLabel = '';
+        });
+      }
+
       if (normResult != null) {
         // Use the PROBED duration as source-of-truth (never trust controller blindly)
         newController.dispose();
@@ -206,7 +224,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<({String path, Duration duration, String mode})?> _tryNormalizeVideo(
     String inputPath,
   ) async {
-    final cacheDir = Directory.systemTemp;
+    final cacheDir = File(inputPath).parent;
     final uuid = const Uuid().v4().substring(0, 8);
     // Clean stale normalization files
     try {
