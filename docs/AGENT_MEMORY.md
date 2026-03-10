@@ -24,5 +24,6 @@
 
 ## S004Q Update
 
-- **Status:** Code fix implemented and build-validated.
+- **Status:** Code fix merged to `main` via PR `#9`.
 - **Memory:** Editor playback now uses a single active playback source; imported/problematic files are normalized once for playback, and scrub plus +/-10 both route through the same verified seek path with retry and hard reinit fallback.
+- **PR State:** PRs `#4` to `#8` were closed as superseded by the canonical cumulative merge in PR `#9`.

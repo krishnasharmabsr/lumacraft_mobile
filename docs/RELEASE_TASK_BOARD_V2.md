@@ -22,6 +22,7 @@
 - [x] S004M — Real Root-Cause Fix (Probed Duration Record Return, No-Downgrade Guard, Duplicate Volume Icon Removal).
 - [x] S004N — Downloaded Video Timeline 00:00 Gate Fix (1000ms threshold + Player sanity recovery).
 - [x] S004O — Fix Non-Working Seek Controls (+10/-10 and Timeline Drag).
+- [x] S004Q â€” Canonical seek-flow fix merged via PR #9; PRs #4-#8 closed as superseded.
 
 ## Phase 3: AI Capabilities
 

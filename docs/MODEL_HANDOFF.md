@@ -36,7 +36,8 @@
 
 ## S004Q Update
 
-- **Status:** Implemented
+- **Status:** Merged to `main` via PR `#9`
 - **Result:** Removed proxy timebase seek mapping from editor playback, introduced deterministic playback-source preparation with normalization for imported/problematic sources, and rewired scrub plus +/-10 to the same verified seek helper with reinit fallback.
 - **Validation:** `flutter analyze`, `flutter test`, `flutter build apk --debug`, and `flutter build apk --release` all passed on 2026-03-10.
-- **Next Step:** Manual Android QA must confirm downloaded-video scrub and +/-10 behavior on-device before merge.
+- **PR Consolidation:** PR `#9` was squash-merged as the canonical cumulative merge. PRs `#4`, `#5`, `#6`, `#7`, and `#8` were closed as superseded by `#9`.
+- **Next Step:** Manual Android QA must confirm downloaded-video scrub and +/-10 behavior on-device on clean `main`.
