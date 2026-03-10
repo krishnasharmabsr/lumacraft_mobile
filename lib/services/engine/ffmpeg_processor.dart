@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
@@ -94,7 +95,7 @@ class FFmpegProcessor implements IVideoProcessor {
 
     final totalMs = totalDurationSecs > 0
         ? (totalDurationSecs * 1000).toInt()
-        : 0; // 0 = unknown, will be indeterminate
+        : 0;
 
     return _executeCommand(parts.join(' '), outputPath, totalMs, onProgress);
   }
@@ -105,10 +106,16 @@ class FFmpegProcessor implements IVideoProcessor {
     int totalDurationMs,
     ProgressCallback? onProgress,
   ) async {
+    // Use a Completer to properly wait for async execution to finish
+    final completer = Completer<void>();
+
     final session = await FFmpegKit.executeAsync(
       command,
-      (session) async {
-        // Completion callback — handled below
+      // Completion callback — signals that FFmpeg has finished
+      (session) {
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       },
       null, // Log callback
       totalDurationMs > 0 && onProgress != null
@@ -122,7 +129,9 @@ class FFmpegProcessor implements IVideoProcessor {
           : null,
     );
 
-    // Wait for completion
+    // Wait for the completion callback to fire
+    await completer.future;
+
     final returnCode = await session.getReturnCode();
 
     if (!ReturnCode.isSuccess(returnCode)) {
