@@ -20,6 +20,7 @@
 - [x] S004K — Timeline 00:00 Root-Cause Fix + Overlay Control Cleanup (Late Duration Promotion, FFprobe harden, ±10s seek).
 - [x] S004L — Downloaded Video Timeline Hard Fix (Normalization Fallback, [DurationProbe] Forensics, Overlay Overflow Fix).
 - [x] S004M — Real Root-Cause Fix (Probed Duration Record Return, No-Downgrade Guard, Duplicate Volume Icon Removal).
+- [x] S004N — Downloaded Video Timeline 00:00 Gate Fix (1000ms threshold + Player sanity recovery).
 
 ## Phase 3: AI Capabilities
 

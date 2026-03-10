@@ -314,3 +314,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (108.5MB)
 - **Status:** QA_PENDING
+
+## Execution 21 - Task S004N (Quick Resync + Fix Downloaded Video Timeline 00:00)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Applied `_isUsableDuration` gate (duration >= 1000ms) across all duration checks and parsers parsing zero/tiny values.
+  2. Integrated `_isUsableDuration` checking within `_parseDurationString` for decimal parsing formats.
+  3. Ensured sanity recovery listener verifies position against usable duration and avoids recursive loops (`_durationRecoveryInProgress`).
+  4. Preserved normalized probe durations actively against incoming controller late-evaluations.
+  5. Confirmed duplicate volume icon was already scrubbed; preserved functional mute toggles and slider overlays.
+- **Validation:**
+  - `flutter analyze`: Only 1 pre-existing deprecation notice
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

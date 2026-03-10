@@ -6,9 +6,7 @@
 - Inter-layer communication for model tracking should be heavily decoupled and dependency injected.
 - Any model addition or swap requires updating this document with new benchmark results.
 
-## Current Sprint Focus: S004H (COMPLETED)
-
-**Objective**: Finalize Editor screen playback UX with an overlay controls system and harden duration fallback.
+**Objective**: Finalize Editor screen playback UX with an overlay controls system and harden duration fallback (S004H-N).
 **Key Decisions**:
 
 - Implemented tap-to-toggle overlay player controls.
@@ -22,7 +20,7 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H (Export Hotfix/UX/Stability).
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N (Export Hotfix/UX/Stability/Duration).
 - **Active:** S005 (Video AI Generation Foundation)
 
 ## Environment Identity

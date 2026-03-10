@@ -73,7 +73,7 @@ class _EditorScreenState extends State<EditorScreen> {
   VoidCallback? _previewListener;
 
   bool get _hasEdits {
-    if (_videoDuration == Duration.zero) return false;
+    if (!_isUsableDuration(_videoDuration)) return false;
     final isTrimmed =
         _trimStart.inMilliseconds > 100 ||
         _trimEnd < _videoDuration - const Duration(milliseconds: 100);
@@ -81,6 +81,10 @@ class _EditorScreenState extends State<EditorScreen> {
         _appliedSpeed != 1.0 ||
         _appliedCanvas != ExportAspectRatio.source;
   }
+
+  bool _durationRecoveryInProgress = false;
+
+  bool _isUsableDuration(Duration d) => d.inMilliseconds >= 1000;
 
   @override
   void initState() {
@@ -106,17 +110,17 @@ class _EditorScreenState extends State<EditorScreen> {
       name: '[DurationProbe]',
     );
 
-    // Fallback chain when video_player reports 0
-    if (resolvedDuration.inMilliseconds <= 0) {
+    // Fallback chain when video_player reports unusable duration
+    if (!_isUsableDuration(resolvedDuration)) {
       final fallback = await _resolveDurationFallback(path);
       resolvedDuration = fallback.duration;
       winningSource = fallback.source;
     }
 
-    // ── Normalization fallback if duration is still zero ──
-    if (resolvedDuration.inMilliseconds <= 0) {
+    // ── Normalization fallback if duration is still unusable ──
+    if (!_isUsableDuration(resolvedDuration)) {
       developer.log(
-        'normalization_triggered=yes, all probes failed, attempting normalization',
+        'normalization_triggered=yes, all probes failed or returned tiny duration, attempting normalization',
         name: '[DurationProbe]',
       );
 
@@ -138,7 +142,7 @@ class _EditorScreenState extends State<EditorScreen> {
         });
       }
 
-      if (normResult != null) {
+      if (normResult != null && _isUsableDuration(normResult.duration)) {
         // Use the PROBED duration as source-of-truth (never trust controller blindly)
         newController.dispose();
         newController = VideoPlayerController.file(File(normResult.path));
@@ -166,7 +170,7 @@ class _EditorScreenState extends State<EditorScreen> {
       name: '[DurationProbe]',
     );
 
-    final timelineInvalid = resolvedDuration.inMilliseconds <= 0;
+    final timelineInvalid = !_isUsableDuration(resolvedDuration);
 
     if (mounted) {
       setState(() {
@@ -185,21 +189,60 @@ class _EditorScreenState extends State<EditorScreen> {
       });
     }
 
-    newController.addListener(() {
+    newController.addListener(() async {
       if (!mounted) return;
-      if (_videoDuration.inMilliseconds <= 0 &&
-          newController.value.duration.inMilliseconds > 0) {
+
+      final pos = newController.value.position;
+      final reportedDur = newController.value.duration;
+
+      // 1. Late promotion (only if new duration is usable and better than current)
+      if (!_isUsableDuration(_videoDuration) &&
+          _isUsableDuration(reportedDur)) {
         developer.log(
-          'video_player late update: ${newController.value.duration.inMilliseconds}ms',
+          'video_player late update: ${reportedDur.inMilliseconds}ms',
           name: '[DurationProbe]',
         );
-        _videoDuration = newController.value.duration;
+        _videoDuration = reportedDur;
         _isTimelineInvalid = false;
-        if (_trimEnd.inMilliseconds <= 0) {
+        if (!_isUsableDuration(_trimEnd)) {
           _trimEnd = _videoDuration;
         }
+        setState(() {});
+      } else {
+        setState(() {});
       }
-      setState(() {});
+
+      // 2. Position-vs-duration sanity recovery
+      // If position somehow exceeds our chosen duration, it means our duration is wrong.
+      if (!_durationRecoveryInProgress &&
+          _isUsableDuration(pos) &&
+          _isUsableDuration(_videoDuration) &&
+          pos.inMilliseconds > _videoDuration.inMilliseconds + 500) {
+        developer.log(
+          'sanity_recovery_triggered: pos=${pos.inMilliseconds}ms > dur=${_videoDuration.inMilliseconds}ms',
+          name: '[DurationProbe]',
+        );
+        _durationRecoveryInProgress = true;
+        // Re-read or re-normalize asynchronously
+        if (_isUsableDuration(reportedDur) &&
+            reportedDur.inMilliseconds > _videoDuration.inMilliseconds) {
+          _videoDuration = reportedDur;
+          _trimEnd = reportedDur;
+          _isTimelineInvalid = false;
+          developer.log(
+            'sanity_recovered_from_controller',
+            name: '[DurationProbe]',
+          );
+          setState(() {});
+        } else {
+          developer.log(
+            'sanity_requires_renormalization',
+            name: '[DurationProbe]',
+          );
+          // Trigger a silent re-initialization if needed
+          _initializePlayer(_workingVideoPath, keepEdits: true);
+        }
+      }
     });
 
     if (!timelineInvalid) {
@@ -254,7 +297,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final rc = await session.getReturnCode();
       if (ReturnCode.isSuccess(rc) && File(remuxPath).existsSync()) {
         final dur = await _quickProbeDuration(remuxPath);
-        if (dur.inMilliseconds > 0) {
+        if (_isUsableDuration(dur)) {
           developer.log(
             'normalization_mode=remux, success, probed_duration=${dur.inMilliseconds}ms',
             name: '[DurationProbe]',
@@ -279,7 +322,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final rc = await session.getReturnCode();
       if (ReturnCode.isSuccess(rc) && File(reencPath).existsSync()) {
         final dur = await _quickProbeDuration(reencPath);
-        if (dur.inMilliseconds > 0) {
+        if (_isUsableDuration(dur)) {
           developer.log(
             'normalization_mode=reencode, success, probed_duration=${dur.inMilliseconds}ms',
             name: '[DurationProbe]',
@@ -322,7 +365,8 @@ class _EditorScreenState extends State<EditorScreen> {
     // Try decimal seconds (e.g., "21.64")
     final secs = double.tryParse(durationStr);
     if (secs != null && secs > 0) {
-      return Duration(milliseconds: (secs * 1000).round());
+      final duration = Duration(milliseconds: (secs * 1000).round());
+      if (_isUsableDuration(duration)) return duration;
     }
 
     // Try sexagesimal HH:MM:SS.mmm format (e.g., "00:00:21.64")
@@ -342,7 +386,7 @@ class _EditorScreenState extends State<EditorScreen> {
         seconds: s,
         milliseconds: ms,
       );
-      if (duration.inMilliseconds > 0) return duration;
+      if (_isUsableDuration(duration)) return duration;
     }
 
     return null;
@@ -358,7 +402,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final media = info.getMediaInformation();
       if (media != null) {
         final parsedFormat = _parseDurationString(media.getDuration());
-        if (parsedFormat != null) {
+        if (parsedFormat != null && _isUsableDuration(parsedFormat)) {
           developer.log(
             'ffprobe_field format: ${parsedFormat.inMilliseconds}ms',
             name: '[DurationProbe]',
@@ -377,7 +421,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 final parsedStream = _parseDurationString(
                   streamDur?.toString(),
                 );
-                if (parsedStream != null) {
+                if (parsedStream != null && _isUsableDuration(parsedStream)) {
                   developer.log(
                     'ffprobe_field stream: ${parsedStream.inMilliseconds}ms',
                     name: '[DurationProbe]',
@@ -406,7 +450,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final logsStr = await session.getAllLogsAsString();
 
       final parsedOut = _parseDurationString(output?.trim());
-      if (parsedOut != null) {
+      if (parsedOut != null && _isUsableDuration(parsedOut)) {
         developer.log(
           'ffprobe_output: ${parsedOut.inMilliseconds}ms',
           name: '[DurationProbe]',
@@ -415,7 +459,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       final parsedLogs = _parseDurationString(logsStr?.trim());
-      if (parsedLogs != null) {
+      if (parsedLogs != null && _isUsableDuration(parsedLogs)) {
         developer.log(
           'ffprobe_logs: ${parsedLogs.inMilliseconds}ms',
           name: '[DurationProbe]',
@@ -441,7 +485,7 @@ class _EditorScreenState extends State<EditorScreen> {
       ).firstMatch(combined);
       if (match != null) {
         final parsedRegex = _parseDurationString(match.group(1));
-        if (parsedRegex != null) {
+        if (parsedRegex != null && _isUsableDuration(parsedRegex)) {
           developer.log(
             'ffprobe_regex: ${parsedRegex.inMilliseconds}ms',
             name: '[DurationProbe]',
@@ -462,9 +506,12 @@ class _EditorScreenState extends State<EditorScreen> {
       final nativeDurStr = await NativeVideoPicker.getMediaDuration(path);
       if (nativeDurStr != null) {
         final millis = int.tryParse(nativeDurStr);
-        if (millis != null && millis > 0) {
-          developer.log('mmr: ${millis}ms', name: '[DurationProbe]');
-          return (duration: Duration(milliseconds: millis), source: 'mmr');
+        if (millis != null) {
+          final dur = Duration(milliseconds: millis);
+          if (_isUsableDuration(dur)) {
+            developer.log('mmr: ${millis}ms', name: '[DurationProbe]');
+            return (duration: dur, source: 'mmr');
+          }
         }
       }
       developer.log('mmr: no duration found', name: '[DurationProbe]');
@@ -479,15 +526,15 @@ class _EditorScreenState extends State<EditorScreen> {
       );
       if (extractorDurStr != null) {
         final millis = int.tryParse(extractorDurStr);
-        if (millis != null && millis > 0) {
-          developer.log(
-            'media_extractor: ${millis}ms',
-            name: '[DurationProbe]',
-          );
-          return (
-            duration: Duration(milliseconds: millis),
-            source: 'media_extractor',
-          );
+        if (millis != null) {
+          final dur = Duration(milliseconds: millis);
+          if (_isUsableDuration(dur)) {
+            developer.log(
+              'media_extractor: ${millis}ms',
+              name: '[DurationProbe]',
+            );
+            return (duration: dur, source: 'media_extractor');
+          }
         }
       }
       developer.log(
@@ -1620,7 +1667,7 @@ class PlaybackTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (duration.inMilliseconds == 0) return const SizedBox(height: 16);
+    if (duration.inMilliseconds < 1000) return const SizedBox(height: 16);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1682,7 +1729,7 @@ class PlaybackTimeline extends StatelessWidget {
                   child: Container(
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withOpacity(0.35),
+                      color: AppColors.accent.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
