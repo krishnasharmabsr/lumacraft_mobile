@@ -7,6 +7,7 @@ class TrimControls extends StatelessWidget {
   final Duration currentEnd;
   final Function(Duration)? onStartChanged;
   final Function(Duration)? onEndChanged;
+  final Function(Duration, Duration)? onChangeEnd;
 
   const TrimControls({
     super.key,
@@ -15,6 +16,7 @@ class TrimControls extends StatelessWidget {
     required this.currentEnd,
     this.onStartChanged,
     this.onEndChanged,
+    this.onChangeEnd,
   });
 
   @override
@@ -37,6 +39,14 @@ class TrimControls extends StatelessWidget {
                     Duration(milliseconds: values.start.toInt()),
                   );
                   onEndChanged?.call(
+                    Duration(milliseconds: values.end.toInt()),
+                  );
+                },
+          onChangeEnd: onChangeEnd == null
+              ? null
+              : (RangeValues values) {
+                  onChangeEnd?.call(
+                    Duration(milliseconds: values.start.toInt()),
                     Duration(milliseconds: values.end.toInt()),
                   );
                 },

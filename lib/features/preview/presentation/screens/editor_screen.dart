@@ -613,41 +613,34 @@ class _EditorScreenState extends State<EditorScreen> {
                   ? null
                   : (start) {
                       setState(() => _trimStart = start);
-                      ctrl.seekTo(start);
                     },
               onEndChanged: _isTimelineInvalid
                   ? null
                   : (end) => setState(() => _trimEnd = end),
+              onChangeEnd: _isTimelineInvalid
+                  ? null
+                  : (start, end) {
+                      setState(() {
+                        _trimStart = start;
+                        _trimEnd = end;
+                      });
+                      _previewTrim(); // Auto-preview when user releases drag
+                    },
             ),
             const SizedBox(height: AppTheme.spacingMd),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: (_isProcessing || _isTimelineInvalid)
-                        ? null
-                        : _previewTrim,
-                    icon: const Icon(Icons.preview, size: 18),
-                    label: Text(
-                      _isPreviewingTrim ? 'Previewing...' : 'Preview Trim',
-                    ),
-                  ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: (_isProcessing || _isTimelineInvalid)
+                    ? null
+                    : _processTrim,
+                icon: const Icon(Icons.cut_rounded, size: 18),
+                label: const Text('Process Trim'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: AppColors.scaffoldDark,
                 ),
-                const SizedBox(width: AppTheme.spacingSm),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: (_isProcessing || _isTimelineInvalid)
-                        ? null
-                        : _processTrim,
-                    icon: const Icon(Icons.cut_rounded, size: 18),
-                    label: const Text('Process Trim'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.scaffoldDark,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
