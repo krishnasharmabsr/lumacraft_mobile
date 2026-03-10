@@ -15,6 +15,8 @@
 - [x] S004E — Editor Screen Stability (Trim Pipeline Restored, Speed Slider UX).
 - [x] S004F — Trim UX Polish (Auto-preview range, Remove separate Preview button).
 - [x] S004G — Editor Playback UX Upgrade (Playable timeline, Audio controls, Landscape UI, Icon Toolbar, Native Duration Fallback).
+- [x] S004H — Editor Player Controls Overlay + Downloaded Video Duration Parse Fix.
+- [x] S004I — Duration Zero Hard Fix + Volume UI Alignment (MediaExtractor Fallback, Volume Popover).
 
 ## Phase 3: AI Capabilities
 

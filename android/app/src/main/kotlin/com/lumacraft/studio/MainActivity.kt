@@ -54,6 +54,19 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGUMENT", "Path cannot be null", null)
                     }
                 }
+                "getMediaDurationExtractor" -> {
+                    val path = call.argument<String>("path")
+                    if (path != null) {
+                        try {
+                            val extractorStr = getMediaDurationExtractor(path)
+                            result.success(extractorStr)
+                        } catch (e: Exception) {
+                            result.error("EXTRACTOR_ERROR", "Failed to extract duration: ${e.message}", null)
+                        }
+                    } else {
+                        result.error("INVALID_ARGUMENT", "Path cannot be null", null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -102,5 +115,30 @@ class MainActivity : FlutterActivity() {
             mimeType.contains("avi") -> "avi"
             else -> "mp4"
         }
+    }
+
+    private fun getMediaDurationExtractor(path: String): String? {
+        val extractor = android.media.MediaExtractor()
+        try {
+            extractor.setDataSource(path)
+            var maxDuration = 0L
+            for (i in 0 until extractor.trackCount) {
+                val format = extractor.getTrackFormat(i)
+                if (format.containsKey(android.media.MediaFormat.KEY_DURATION)) {
+                    val durationUs = format.getLong(android.media.MediaFormat.KEY_DURATION)
+                    if (durationUs > maxDuration) {
+                        maxDuration = durationUs
+                    }
+                }
+            }
+            if (maxDuration > 0) {
+                return (maxDuration / 1000).toString()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            extractor.release()
+        }
+        return null
     }
 }

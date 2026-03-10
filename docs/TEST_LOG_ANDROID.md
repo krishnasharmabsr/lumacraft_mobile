@@ -252,3 +252,18 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK (108.4MB)
   - Manual verification: verified duration resolution and overlay rendering.
 - **Status:** QA_PENDING
+
+## Execution 17 - Task S004I (Duration Zero Hard Fix + Volume UI Alignment)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Implemented a deterministic multi-source duration resolver in `EditorScreen`.
+  2. Added track-level duration probing using `android.media.MediaExtractor` via `NativeVideoPicker`.
+  3. Relocated volume configuration to the left of the overlay bounds.
+  4. Added a vertical popup slider for volume control natively connected to the overlay hiding timer.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

@@ -49,4 +49,24 @@ class NativeVideoPicker {
     }
     return null;
   }
+
+  /// Returns the duration of the media file using MediaExtractor fallback.
+  static Future<String?> getMediaDurationExtractor(String path) async {
+    if (Platform.isAndroid) {
+      try {
+        final String? duration = await _channel.invokeMethod<String>(
+          'getMediaDurationExtractor',
+          {'path': path},
+        );
+        return duration;
+      } catch (e) {
+        developer.log(
+          'NativeVideoPicker getMediaDurationExtractor error: $e',
+          name: 'NativeVideoPicker',
+        );
+        return null;
+      }
+    }
+    return null;
+  }
 }

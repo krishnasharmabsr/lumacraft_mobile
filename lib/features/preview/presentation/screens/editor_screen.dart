@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -61,6 +62,7 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isPreviewingTrim = false;
 
   bool _showOverlay = true;
+  bool _showVolumeSlider = false;
   Timer? _overlayTimer;
 
   String _processingLabel = '';
@@ -95,11 +97,19 @@ class _EditorScreenState extends State<EditorScreen> {
     await newController.initialize();
 
     Duration resolvedDuration = newController.value.duration;
+    String winningSource = 'video_player';
 
     // Fallback chain when video_player reports 0
     if (resolvedDuration.inMilliseconds <= 0) {
-      resolvedDuration = await _resolveDurationViaFFprobe(path);
+      final fallback = await _resolveDurationFallback(path);
+      resolvedDuration = fallback.duration;
+      winningSource = fallback.source;
     }
+
+    developer.log(
+      'Duration resolved via $winningSource: ${resolvedDuration.inMilliseconds}ms',
+      name: 'EditorScreen',
+    );
 
     final timelineInvalid = resolvedDuration.inMilliseconds <= 0;
 
@@ -174,45 +184,96 @@ class _EditorScreenState extends State<EditorScreen> {
     return null;
   }
 
-  /// FFprobe fallback: tries format duration, then first video stream duration.
-  Future<Duration> _resolveDurationViaFFprobe(String path) async {
+  /// Multi-source fallback: 1) FFprobe field, 2) FFprobe command, 3) Android MMR, 4) Android MediaExtractor
+  Future<({Duration duration, String source})> _resolveDurationFallback(
+    String path,
+  ) async {
+    // 1. Try format-level / stream-level duration from FFprobeKit
     try {
       final info = await FFprobeKit.getMediaInformation(path);
       final media = info.getMediaInformation();
-      if (media == null) return Duration.zero;
+      if (media != null) {
+        final parsedFormat = _parseDurationString(media.getDuration());
+        if (parsedFormat != null)
+          return (duration: parsedFormat, source: 'ffprobe_field');
 
-      // Try format-level duration
-      final parsedFormat = _parseDurationString(media.getDuration());
-      if (parsedFormat != null) return parsedFormat;
-
-      // Try stream-level duration
-      final streams = media.getStreams();
-      if (streams.isNotEmpty) {
-        for (final stream in streams) {
-          if (stream.getType() == 'video') {
-            final props = stream.getAllProperties();
-            if (props != null) {
-              final streamDur = props['duration'] ?? props['tags']?['DURATION'];
-              final parsedStream = _parseDurationString(streamDur?.toString());
-              if (parsedStream != null) return parsedStream;
+        final streams = media.getStreams();
+        if (streams.isNotEmpty) {
+          for (final stream in streams) {
+            if (stream.getType() == 'video') {
+              final props = stream.getAllProperties();
+              if (props != null) {
+                final streamDur =
+                    props['duration'] ?? props['tags']?['DURATION'];
+                final parsedStream = _parseDurationString(
+                  streamDur?.toString(),
+                );
+                if (parsedStream != null)
+                  return (duration: parsedStream, source: 'ffprobe_field');
+              }
             }
           }
         }
       }
     } catch (_) {}
 
-    // Final fallback: Native Android MediaMetadataRetriever
+    // 2. Try raw FFprobe execution
+    try {
+      final session = await FFprobeKit.execute(
+        '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$path"',
+      );
+      final output = await session.getOutput();
+      final parsedLog = _parseDurationString(output?.trim());
+      if (parsedLog != null) {
+        return (duration: parsedLog, source: 'ffprobe_log');
+      }
+    } catch (_) {}
+
+    // 2b. Try FFprobe full output regex
+    try {
+      final session = await FFprobeKit.execute('-i "$path"');
+      final output = await session.getOutput();
+      if (output != null) {
+        final match = RegExp(
+          r'Duration:\s+(\d{2}:\d{2}:\d{2}\.\d+)',
+        ).firstMatch(output);
+        if (match != null) {
+          final parsedRegex = _parseDurationString(match.group(1));
+          if (parsedRegex != null) {
+            return (duration: parsedRegex, source: 'ffprobe_log_regex');
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fallback to Native Android MMR
     try {
       final nativeDurStr = await NativeVideoPicker.getMediaDuration(path);
       if (nativeDurStr != null) {
         final millis = int.tryParse(nativeDurStr);
         if (millis != null && millis > 0) {
-          return Duration(milliseconds: millis);
+          return (duration: Duration(milliseconds: millis), source: 'mmr');
         }
       }
     } catch (_) {}
 
-    return Duration.zero;
+    // 4. Fallback to Native Android MediaExtractor
+    try {
+      final extractorDurStr = await NativeVideoPicker.getMediaDurationExtractor(
+        path,
+      );
+      if (extractorDurStr != null) {
+        final millis = int.tryParse(extractorDurStr);
+        if (millis != null && millis > 0) {
+          return (
+            duration: Duration(milliseconds: millis),
+            source: 'media_extractor',
+          );
+        }
+      }
+    } catch (_) {}
+
+    return (duration: Duration.zero, source: 'none');
   }
 
   @override
@@ -581,75 +642,143 @@ class _EditorScreenState extends State<EditorScreen> {
                                                   ],
                                                 ),
                                               ),
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
+                                              child: Stack(
+                                                clipBehavior: Clip.none,
+                                                alignment: Alignment.bottomLeft,
                                                 children: [
-                                                  Row(
+                                                  Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
                                                     children: [
-                                                      Text(
-                                                        '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 13,
-                                                          fontFeatures: [
-                                                            FontFeature.tabularFigures(),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      const Spacer(),
-                                                      IconButton(
-                                                        icon: Icon(
-                                                          _isMuted ||
-                                                                  _volume == 0
-                                                              ? Icons.volume_off
-                                                              : Icons.volume_up,
-                                                          color: Colors.white,
-                                                          size: 20,
-                                                        ),
-                                                        onPressed: _toggleMute,
-                                                      ),
-                                                      SizedBox(
-                                                        width: 80,
-                                                        child: SliderTheme(
-                                                          data:
-                                                              SliderTheme.of(
-                                                                context,
-                                                              ).copyWith(
-                                                                trackHeight: 2,
-                                                                thumbShape:
-                                                                    const RoundSliderThumbShape(
-                                                                      enabledThumbRadius:
-                                                                          6,
-                                                                    ),
-                                                                overlayShape:
-                                                                    const RoundSliderOverlayShape(
-                                                                      overlayRadius:
-                                                                          10,
-                                                                    ),
-                                                              ),
-                                                          child: Slider(
-                                                            value: _volume,
-                                                            min: 0.0,
-                                                            max: 1.0,
-                                                            activeColor:
-                                                                AppColors
-                                                                    .accent,
-                                                            inactiveColor:
-                                                                Colors.white30,
-                                                            onChanged:
-                                                                _setVolume,
+                                                      Row(
+                                                        children: [
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              _isMuted ||
+                                                                      _volume ==
+                                                                          0
+                                                                  ? Icons
+                                                                        .volume_off
+                                                                  : Icons
+                                                                        .volume_up,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 20,
+                                                            ),
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                _showVolumeSlider =
+                                                                    !_showVolumeSlider;
+                                                              });
+                                                              _resetOverlayTimer();
+                                                            },
                                                           ),
-                                                        ),
+                                                          const SizedBox(
+                                                            width: 8,
+                                                          ),
+                                                          Text(
+                                                            '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
+                                                            style: const TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: 13,
+                                                              fontFeatures: [
+                                                                FontFeature.tabularFigures(),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          const Spacer(),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      PlaybackTimeline(
+                                                        controller: ctrl,
+                                                        duration:
+                                                            _videoDuration,
+                                                        trimStart: _trimStart,
+                                                        trimEnd: _trimEnd,
                                                       ),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: 8),
-                                                  PlaybackTimeline(
-                                                    controller: ctrl,
-                                                    duration: _videoDuration,
-                                                    trimStart: _trimStart,
-                                                    trimEnd: _trimEnd,
-                                                  ),
+                                                  if (_showVolumeSlider)
+                                                    Positioned(
+                                                      left: 8,
+                                                      bottom: 64,
+                                                      child: Container(
+                                                        height: 140,
+                                                        width: 40,
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.black87,
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                20,
+                                                              ),
+                                                        ),
+                                                        child: Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Expanded(
+                                                              child: RotatedBox(
+                                                                quarterTurns: 3,
+                                                                child: SliderTheme(
+                                                                  data: SliderTheme.of(context).copyWith(
+                                                                    trackHeight:
+                                                                        2,
+                                                                    thumbShape:
+                                                                        const RoundSliderThumbShape(
+                                                                          enabledThumbRadius:
+                                                                              6,
+                                                                        ),
+                                                                    overlayShape:
+                                                                        const RoundSliderOverlayShape(
+                                                                          overlayRadius:
+                                                                              10,
+                                                                        ),
+                                                                  ),
+                                                                  child: Slider(
+                                                                    value:
+                                                                        _volume,
+                                                                    min: 0.0,
+                                                                    max: 1.0,
+                                                                    activeColor:
+                                                                        AppColors
+                                                                            .accent,
+                                                                    inactiveColor:
+                                                                        Colors
+                                                                            .white30,
+                                                                    onChanged: (val) {
+                                                                      _setVolume(
+                                                                        val,
+                                                                      );
+                                                                      _resetOverlayTimer();
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            IconButton(
+                                                              icon: Icon(
+                                                                _isMuted ||
+                                                                        _volume ==
+                                                                            0
+                                                                    ? Icons
+                                                                          .volume_off
+                                                                    : Icons
+                                                                          .volume_up,
+                                                                color: Colors
+                                                                    .white,
+                                                                size: 20,
+                                                              ),
+                                                              onPressed: () {
+                                                                _toggleMute();
+                                                                _resetOverlayTimer();
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
                                                 ],
                                               ),
                                             ),
@@ -870,8 +999,6 @@ class _EditorScreenState extends State<EditorScreen> {
 
   // ── SPEED CARD ──
   Widget _buildSpeedCard(VideoPlayerController ctrl) {
-    // 0 = 0.25x, 1 = 0.5x, 2 = 1.0x, 3 = 2.0x, 4 = 4.0x, 5 = 8.0x
-    final speedValues = [0.25, 0.5, 1.0, 2.0, 4.0, 8.0];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
