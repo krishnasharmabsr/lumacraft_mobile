@@ -101,3 +101,20 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (105.4MB)
 - **Status:** QA_PENDING
+
+## Execution 8 - Task S003B
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Generated 1024x1024 master icon + foreground (teal mark on transparent bg)
+  2. Used `flutter_launcher_icons` to produce all density outputs (mdpi→xxxhdpi)
+  3. Adaptive icon: foreground PNGs + `#16213E` background via `colors.xml`
+  4. Monochrome themed icon for Android 13+ (all densities)
+  5. XML config: `mipmap-anydpi-v26/ic_launcher.xml`
+- **Icon generation:** `flutter_launcher_icons` v0.14.4 from `pubspec.yaml` config
+- **Asset sources:** `assets/branding/logo_mark_master_1024.png`, `assets/branding/ic_launcher_foreground.png`
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+- **Status:** QA_PENDING
