@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/models/export_settings.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../services/engine/ffmpeg_processor.dart';
 import '../../../../services/io/media_io_service.dart';
 import '../../../../services/io/native_video_picker.dart';
+import '../../../export/presentation/widgets/export_settings_sheet.dart';
+import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -28,6 +33,8 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isProcessing = false;
   bool _isPreviewingTrim = false;
   bool _hasEdits = false;
+  String _processingLabel = '';
+  double _processingProgress = -1; // -1 = indeterminate
   VoidCallback? _previewListener;
 
   @override
@@ -49,7 +56,6 @@ class _EditorScreenState extends State<EditorScreen> {
         _trimStart = Duration.zero;
         _trimEnd = newController.value.duration;
         _isPreviewingTrim = false;
-        // _hasEdits intentionally NOT reset here — only reset on fresh import
       });
     }
 
@@ -80,15 +86,11 @@ class _EditorScreenState extends State<EditorScreen> {
     final ctrl = _controller;
     if (ctrl == null) return;
 
-    // Clean up any existing preview listener
     _removePreviewListener();
-
-    // Seek to trim start and play
     ctrl.seekTo(_trimStart);
     ctrl.play();
     _isPreviewingTrim = true;
 
-    // Create a listener that pauses at _trimEnd
     _previewListener = () {
       if (!mounted || !_isPreviewingTrim) return;
       if (ctrl.value.position >= _trimEnd) {
@@ -102,7 +104,6 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _processTrim() async {
-    // Strong validation: minimum 300ms trim range
     final rangeMs = (_trimEnd - _trimStart).inMilliseconds;
     if (rangeMs < 300) {
       if (mounted) {
@@ -111,14 +112,18 @@ class _EditorScreenState extends State<EditorScreen> {
             content: Text(
               'Invalid trim range. End must be greater than start.',
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
       return;
     }
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Trimming...';
+      _processingProgress = 0;
+    });
 
     try {
       final cachePath = await NativeVideoPicker.getCachePath();
@@ -130,6 +135,9 @@ class _EditorScreenState extends State<EditorScreen> {
         outputPath: outputPath,
         startTime: _trimStart,
         endTime: _trimEnd,
+        onProgress: (p) {
+          if (mounted) setState(() => _processingProgress = p);
+        },
       );
 
       _currentVideoPath = trimmedPath;
@@ -149,33 +157,58 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isProcessing = false);
+        setState(() {
+          _isProcessing = false;
+          _processingProgress = -1;
+        });
       }
     }
   }
 
-  Future<void> _exportVideo() async {
-    // Guard: block export if no edits have been made
-    if (!_hasEdits) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No edits to export. Trim first.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
+  void _showExportSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ExportSettingsSheet(
+        onExport: (settings) {
+          _exportWithSettings(settings);
+        },
+      ),
+    );
+  }
 
-    setState(() => _isProcessing = true);
+  Future<void> _exportWithSettings(ExportSettings settings) async {
+    setState(() {
+      _isProcessing = true;
+      _processingLabel = 'Exporting ${settings.resolution.label}...';
+      _processingProgress = 0;
+    });
 
     try {
-      final success = await _ioService.saveVideoToGallery(_currentVideoPath);
+      final cachePath = await NativeVideoPicker.getCachePath();
+      final outputPath =
+          '$cachePath/export_${const Uuid().v4()}.${settings.extension}';
+
+      await _processor.processExport(
+        inputPath: _currentVideoPath,
+        outputPath: outputPath,
+        settings: settings,
+        onProgress: (p) {
+          if (mounted) setState(() => _processingProgress = p);
+        },
+      );
+
+      final success = await _ioService.saveVideoToGallery(outputPath);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(success ? 'Exported to gallery!' : 'Export failed.'),
+            content: Text(
+              success
+                  ? 'Exported ${settings.resolution.label} to gallery!'
+                  : 'Export failed.',
+            ),
           ),
         );
       }
@@ -187,7 +220,10 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isProcessing = false);
+        setState(() {
+          _isProcessing = false;
+          _processingProgress = -1;
+        });
       }
     }
   }
@@ -204,144 +240,272 @@ class _EditorScreenState extends State<EditorScreen> {
     final isReady = ctrl != null && ctrl.value.isInitialized;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('LumaCraft Editor')),
-      body: _isProcessing
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: Column(
-                children: [
-                  // --- Video preview area (bounded) ---
-                  if (isReady)
-                    Flexible(
-                      flex: 3,
-                      child: Container(
-                        color: Colors.black,
+      backgroundColor: AppColors.scaffoldDark,
+      appBar: _isProcessing
+          ? null
+          : AppBar(
+              title: const Text('LumaCraft Editor'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+      body: Stack(
+        children: [
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                // --- Hero video preview ---
+                if (isReady)
+                  Flexible(
+                    flex: 3,
+                    child: Container(
+                      color: AppColors.playerBg,
+                      alignment: Alignment.center,
+                      child: Stack(
                         alignment: Alignment.center,
-                        child: AspectRatio(
-                          aspectRatio: ctrl.value.aspectRatio,
-                          child: VideoPlayer(ctrl),
-                        ),
-                      ),
-                    )
-                  else
-                    const Expanded(
-                      flex: 3,
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-
-                  // --- Controls section (scrollable) ---
-                  if (isReady)
-                    Expanded(
-                      flex: 4,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // -- Playback section --
-                            _sectionHeader('Playback'),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '${_formatDuration(ctrl.value.position)} / ${_formatDuration(ctrl.value.duration)}',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                                const SizedBox(width: 16),
-                                IconButton.filled(
-                                  icon: Icon(
-                                    ctrl.value.isPlaying
-                                        ? Icons.pause
-                                        : Icons.play_arrow,
+                        children: [
+                          AspectRatio(
+                            aspectRatio: ctrl.value.aspectRatio,
+                            child: VideoPlayer(ctrl),
+                          ),
+                          // Tap to play/pause overlay
+                          Positioned.fill(
+                            child: GestureDetector(
+                              onTap: _isProcessing
+                                  ? null
+                                  : () {
+                                      _removePreviewListener();
+                                      setState(() {
+                                        ctrl.value.isPlaying
+                                            ? ctrl.pause()
+                                            : ctrl.play();
+                                      });
+                                    },
+                              behavior: HitTestBehavior.translucent,
+                              child: AnimatedOpacity(
+                                opacity: ctrl.value.isPlaying ? 0.0 : 1.0,
+                                duration: const Duration(milliseconds: 200),
+                                child: Container(
+                                  color: Colors.black38,
+                                  child: const Icon(
+                                    Icons.play_circle_fill_rounded,
+                                    color: AppColors.accent,
+                                    size: 56,
                                   ),
-                                  onPressed: () {
-                                    _removePreviewListener();
-                                    setState(() {
-                                      ctrl.value.isPlaying
-                                          ? ctrl.pause()
-                                          : ctrl.play();
-                                    });
-                                  },
                                 ),
-                              ],
+                              ),
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  const Expanded(
+                    flex: 3,
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.accent),
+                    ),
+                  ),
 
-                            const SizedBox(height: 16),
-                            const Divider(),
+                // --- Playback position bar ---
+                if (isReady)
+                  Container(
+                    color: AppColors.surfaceDark,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingLg,
+                      vertical: AppTheme.spacingSm,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          _formatDuration(ctrl.value.position),
+                          style: const TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: Icon(
+                            ctrl.value.isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            color: AppColors.textPrimary,
+                          ),
+                          iconSize: 28,
+                          onPressed: _isProcessing
+                              ? null
+                              : () {
+                                  _removePreviewListener();
+                                  setState(() {
+                                    ctrl.value.isPlaying
+                                        ? ctrl.pause()
+                                        : ctrl.play();
+                                  });
+                                },
+                        ),
+                        const Spacer(),
+                        Text(
+                          _formatDuration(ctrl.value.duration),
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                            // -- Trim Range section --
-                            _sectionHeader('Trim Range'),
-                            const SizedBox(height: 4),
-                            TrimControls(
-                              maxDuration: ctrl.value.duration,
-                              currentStart: _trimStart,
-                              currentEnd: _trimEnd,
-                              onStartChanged: (start) {
-                                setState(() => _trimStart = start);
-                                ctrl.seekTo(start);
-                              },
-                              onEndChanged: (end) {
-                                setState(() => _trimEnd = end);
-                              },
+                // --- Controls section ---
+                if (isReady)
+                  Expanded(
+                    flex: 4,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingLg,
+                        vertical: AppTheme.spacingMd,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // -- Trim card --
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppTheme.spacingLg),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.content_cut_rounded,
+                                        color: AppColors.accent,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: AppTheme.spacingSm),
+                                      Text(
+                                        'Trim',
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppTheme.spacingMd),
+                                  TrimControls(
+                                    maxDuration: ctrl.value.duration,
+                                    currentStart: _trimStart,
+                                    currentEnd: _trimEnd,
+                                    onStartChanged: (start) {
+                                      setState(() => _trimStart = start);
+                                      ctrl.seekTo(start);
+                                    },
+                                    onEndChanged: (end) {
+                                      setState(() => _trimEnd = end);
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
+                          ),
 
-                            const SizedBox(height: 16),
-                            const Divider(),
+                          const SizedBox(height: AppTheme.spacingMd),
 
-                            // -- Actions section --
-                            _sectionHeader('Actions'),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 8,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                OutlinedButton.icon(
-                                  onPressed: _previewTrim,
-                                  icon: const Icon(Icons.preview),
+                          // -- Action buttons --
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : _previewTrim,
+                                  icon: const Icon(Icons.preview, size: 18),
                                   label: Text(
                                     _isPreviewingTrim
                                         ? 'Previewing...'
-                                        : 'Preview Trim',
+                                        : 'Preview',
                                   ),
                                 ),
-                                FilledButton.icon(
-                                  onPressed: _processTrim,
-                                  icon: const Icon(Icons.content_cut),
+                              ),
+                              const SizedBox(width: AppTheme.spacingMd),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : _processTrim,
+                                  icon: const Icon(Icons.content_cut, size: 18),
                                   label: const Text('Process Trim'),
                                 ),
-                                FilledButton.icon(
-                                  onPressed: _hasEdits ? _exportVideo : null,
-                                  icon: const Icon(Icons.save_alt),
-                                  label: const Text('Export'),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: AppTheme.spacingMd),
+
+                          // -- Export button --
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: _isProcessing
+                                  ? null
+                                  : _showExportSheet,
+                              icon: const Icon(
+                                Icons.save_alt_rounded,
+                                size: 18,
+                              ),
+                              label: const Text('Export Studio'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _hasEdits
+                                    ? AppColors.accent
+                                    : AppColors.cardDarkAlt,
+                                foregroundColor: _hasEdits
+                                    ? AppColors.scaffoldDark
+                                    : AppColors.textSecondary,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
                                 ),
-                              ],
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
+                          ),
+
+                          if (_hasEdits)
+                            const Padding(
+                              padding: EdgeInsets.only(top: AppTheme.spacingXs),
+                              child: Text(
+                                'Edited • Ready to export',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                          const SizedBox(height: AppTheme.spacingLg),
+                        ],
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-    );
-  }
+          ),
 
-  Widget _sectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-        color: Colors.grey,
-        letterSpacing: 0.5,
+          // Processing overlay (on top of everything)
+          if (_isProcessing)
+            ProcessingOverlay(
+              label: _processingLabel,
+              progress: _processingProgress,
+            ),
+        ],
       ),
     );
   }

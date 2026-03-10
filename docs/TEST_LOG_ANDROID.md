@@ -67,3 +67,71 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (100.8MB)
 - **Status:** QA_PENDING
+
+## Execution 6 - Task S003
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Design system: `app_colors.dart` (dark cinematic palette, teal accent), `app_theme.dart` (full dark ThemeData)
+  2. Home screen: gradient hero, glowing logo, branded card, version badge
+  3. Editor screen: dark theme, hero preview with tap-to-play overlay, playback bar, trim card, Export Studio button
+  4. Export studio: bottom sheet with resolution (480p/720p/1080p), FPS (24/30), quality (Low/Med/High) controls
+  5. Save Copy mode: export original video with settings even without trim edits
+  6. FFmpegProcessor: new `processExport` method with configurable resolution/FPS/quality
+  7. Trim controls: polished with time chips and selected duration display
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (104.6MB)
+- **Status:** QA_PENDING
+
+## Execution 7 - Task S003A
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Animated splash screen: logo scale+fade, text slide+fade (~1.9s), fade transition to home
+  2. Logo asset: generated and registered in `assets/branding/logo_mark.png`
+  3. Processing overlay: full-screen with determinate progress bar + percentage text
+  4. FFmpegProcessor: statistics callback maps time→percentage for live progress
+  5. Editor screen: Stack-based overlay, disabled controls during processing
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (105.4MB)
+- **Status:** QA_PENDING
+
+## Execution 8 - Task S003B
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Generated 1024x1024 master icon + foreground (teal mark on transparent bg)
+  2. Used `flutter_launcher_icons` to produce all density outputs (mdpi→xxxhdpi)
+  3. Adaptive icon: foreground PNGs + `#16213E` background via `colors.xml`
+  4. Monochrome themed icon for Android 13+ (all densities)
+  5. XML config: `mipmap-anydpi-v26/ic_launcher.xml`
+- **Icon generation:** `flutter_launcher_icons` v0.14.4 from `pubspec.yaml` config
+- **Asset sources:** `assets/branding/logo_mark_master_1024.png`, `assets/branding/ic_launcher_foreground.png`
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+- **Status:** QA_PENDING
+
+## Execution 9 - Task S003H
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Splash screen fixed (removed ClipOval crop, used ClipRRect mapping master icon).
+  2. Single Export CTA added to Export Studio, replacing Save Copy confusion.
+  3. Quality 0-100 slider implemented and mapped to FFmpeg q:v parameters.
+  4. MKV export format option added, removing MP4 faststart flags for MKV.
+  5. FPS Picker supports 'Source' auto-detection with FFprobe clamping safety.
+  6. Pro-Gate Scaffold implemented showing Pro badges for 4K/60fps locks.
+- **Validation:**
+  - `flutter analyze`: No issues
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

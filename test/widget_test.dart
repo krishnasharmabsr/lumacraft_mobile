@@ -2,12 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumacraft_mobile/main.dart';
 
 void main() {
-  testWidgets('App load smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('App load smoke test — splash screen renders', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const LumaCraftApp());
+    await tester.pump();
 
-    // Verify placeholder text is present
-    expect(find.text('LumaCraft Studio'), findsOneWidget);
-    expect(find.text('Import Video'), findsOneWidget);
+    // Splash screen should show branded text
+    expect(find.text('LumaCraft'), findsOneWidget);
+    expect(find.text('VIDEO STUDIO'), findsOneWidget);
+
+    // Pump remaining timers to avoid pending timer errors
+    await tester.pumpAndSettle(const Duration(seconds: 3));
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'features/home/presentation/screens/home_screen.dart';
+import 'core/theme/app_theme.dart';
+import 'features/splash/splash_screen.dart';
 
 void main() {
   runApp(const LumaCraftApp());
@@ -12,11 +13,9 @@ class LumaCraftApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'LumaCraft',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
+      home: const SplashScreen(),
     );
   }
 }

@@ -9,7 +9,8 @@
 
 ## Phase 2: UI Polish + Export Studio
 
-- [ ] S003 — Export Studio + UI Polish Foundation
+- [/] S003 — Export Studio + UI Polish Foundation (IN_PROGRESS)
+- [/] S003H — Brand Alignment + Export Productization + Pro Gate (QA_PENDING)
 
 ## Phase 3: AI Capabilities
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class TrimControls extends StatelessWidget {
   final Duration maxDuration;
@@ -20,7 +21,6 @@ class TrimControls extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text("Trim Video", style: TextStyle(fontWeight: FontWeight.bold)),
         RangeSlider(
           values: RangeValues(
             currentStart.inMilliseconds.toDouble(),
@@ -38,9 +38,35 @@ class TrimControls extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Start: ${_formatDuration(currentStart)}"),
-            Text("End: ${_formatDuration(currentEnd)}"),
+            _timeChip(Icons.start, 'Start', currentStart),
+            Text(
+              _formatDuration(currentEnd - currentStart),
+              style: const TextStyle(
+                color: AppColors.accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            _timeChip(Icons.stop, 'End', currentEnd),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _timeChip(IconData icon, String label, Duration time) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppColors.textMuted),
+        const SizedBox(width: 4),
+        Text(
+          _formatDuration(time),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
