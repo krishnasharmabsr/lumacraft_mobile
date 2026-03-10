@@ -8,6 +8,6 @@ void main() {
 
     // Verify placeholder text is present
     expect(find.text('LumaCraft Studio'), findsOneWidget);
-    expect(find.text('V2 Bootstrap Environment'), findsOneWidget);
+    expect(find.text('Import Video'), findsOneWidget);
   });
 }

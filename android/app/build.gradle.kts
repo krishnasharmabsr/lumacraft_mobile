@@ -24,7 +24,7 @@ android {
         applicationId = "com.lumacraft.studio"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -32,9 +32,14 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Disable R8 shrinking to preserve Flutter plugin Pigeon channels.
+            // Flutter plugins use Pigeon-generated platform channels that R8
+            // strips as "unused" because they are registered reflectively.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -42,3 +47,4 @@ android {
 flutter {
     source = "../.."
 }
+

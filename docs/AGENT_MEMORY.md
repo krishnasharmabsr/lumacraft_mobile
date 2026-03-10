@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 (Bootstrap) + S001B (Brand Rename) merged to main.
-- **Next Task:** S002 (Core video pipeline: import -> preview -> trim -> export)
+- **QA_PENDING:** S002/B/C/D/E/F/G (Core pipeline hardened) - Export guard (no-op blocked), 300ms min trim validation, R8 disabled for Pigeon stability.
 
 ## Environment Identity
 

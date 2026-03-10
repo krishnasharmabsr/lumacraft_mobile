@@ -2,10 +2,10 @@
 
 ## Phase 1: Core Pipeline
 
-- [ ] Import module setup
-- [ ] Preview player stabilization
-- [ ] Trim functionality
-- [ ] Export engine (FFmpeg) stabilization
+- [ ] Import module setup (IN_PROGRESS)
+- [ ] Preview player stabilization (IN_PROGRESS)
+- [ ] Trim functionality (IN_PROGRESS)
+- [ ] Export engine (FFmpeg) stabilization (IN_PROGRESS)
 
 ## Phase 2: AI Capabilities
 
