@@ -185,9 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Version badge
                   Text(
                     'Create • Edit • Export',
-                    style: TextStyle(
-                      color: AppColors.textMuted.withValues(alpha: 0.6),
-                      fontSize: 12,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
