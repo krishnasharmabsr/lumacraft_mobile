@@ -152,3 +152,18 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 11 - Task S004A (Export Watermark Hotfix)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Watermark asset validation implemented (`package:image`).
+  2. Fixed FFmpeg syntax bug where `[0:a?]` was mapped invalidly within `filter_complex`.
+  3. FFprobe automatically checks for audio stream before determining audio mapping & `atempo` injection logic.
+  4. Global `-map` definitions deleted to fully support `filter_complex` routing to `currentVideoMap` label.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

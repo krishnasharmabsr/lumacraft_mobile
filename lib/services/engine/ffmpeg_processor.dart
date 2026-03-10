@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:image/image.dart' as img;
 import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
@@ -77,98 +78,119 @@ class FFmpegProcessor implements IVideoProcessor {
     }
 
     parts.addAll(['-i', '"$inputPath"']);
-    parts.addAll(['-map', '0:v:0', '-map', '0:a?']);
 
     // Auto-detect and clamp FPS if needed
     int? finalFps = settings.fps;
-    if (finalFps != null) {
-      try {
-        final mediaInfo = await FFprobeKit.getMediaInformation(inputPath);
-        final streams = mediaInfo.getMediaInformation()?.getStreams();
-        if (streams != null) {
-          for (final stream in streams) {
-            if (stream.getType() == 'video') {
-              final rateStr =
-                  stream.getAverageFrameRate() ?? stream.getRealFrameRate();
-              if (rateStr != null && rateStr.contains('/')) {
-                final rateParts = rateStr.split('/');
-                if (rateParts.length == 2 && rateParts[1] != '0') {
-                  final sourceFps =
-                      (double.parse(rateParts[0]) / double.parse(rateParts[1]))
-                          .round();
-                  if (sourceFps > 0 && sourceFps < finalFps!) {
-                    finalFps = sourceFps;
-                  }
+    bool hasAudio = false;
+
+    try {
+      final mediaInfo = await FFprobeKit.getMediaInformation(inputPath);
+      final streams = mediaInfo.getMediaInformation()?.getStreams();
+      if (streams != null) {
+        for (final stream in streams) {
+          if (stream.getType() == 'audio') {
+            hasAudio = true;
+          }
+          if (stream.getType() == 'video') {
+            final rateStr =
+                stream.getAverageFrameRate() ?? stream.getRealFrameRate();
+            if (rateStr != null && rateStr.contains('/')) {
+              final rateParts = rateStr.split('/');
+              if (rateParts.length == 2 && rateParts[1] != '0') {
+                final sourceFps =
+                    (double.parse(rateParts[0]) / double.parse(rateParts[1]))
+                        .round();
+                if (sourceFps > 0 && finalFps != null && sourceFps < finalFps) {
+                  finalFps = sourceFps;
                 }
               }
-              break;
             }
           }
         }
-      } catch (_) {
-        // Fallback to user-selected FPS if probing fails
       }
+    } catch (_) {
+      // Fallback to user-selected FPS if probing fails
     }
 
     // Speed processing
     final speed = settings.playbackSpeed;
     final videoPts = 1.0 / speed;
-
-    // Audio temo in FFmpeg is restricted to 0.5 - 100.0. For our fixed range (0.5x, 1x, 1.5x, 2x),
-    // we can safely just use one atempo filter. If we supported arbitrary speeds we'd chain them.
     final String atempoFilter = 'atempo=$speed';
 
-    // Complex filter combines scale, format, and speed
-    String complexFilter =
-        '[0:v:0]${settings.scaleFilter},setpts=$videoPts*PTS[v];[0:a?]$atempoFilter[a]';
-
     final bool applyWatermark = !ProGate.isPro;
-    String watermarkMap = '[v]';
+    String? watermarkPath;
 
     if (applyWatermark) {
       // Create a temporary file for the watermark since FFmpeg needs a real file path
       final ByteData data = await rootBundle.load(
         'assets/branding/logo_mark.png',
       );
-      final List<int> bytes = data.buffer.asUint8List();
+      final Uint8List bytes = data.buffer.asUint8List();
+
+      // Validate decode
+      final image = img.decodePng(bytes);
+      if (image == null || image.width == 0 || image.height == 0) {
+        throw FFmpegException(
+          'Watermark asset invalid',
+          '',
+          0,
+          'Could not decode PNG from assets/branding/logo_mark.png',
+        );
+      }
+
       final String cachePath = await NativeVideoPicker.getCachePath();
-      final String watermarkPath = '$cachePath/watermark.png';
+      watermarkPath = '$cachePath/watermark.png';
       final File wFile = File(watermarkPath);
       await wFile.writeAsBytes(bytes);
 
-      // Add watermark file as input 1
-      parts.insert(parts.indexOf('-map'), '-i');
-      parts.insert(parts.indexOf('-map'), '"$watermarkPath"');
+      parts.addAll(['-i', '"$watermarkPath"']);
+    }
 
-      // The watermark asset is large. We should scale it down (e.g., width 120px)
-      // and position it at bottom-right with 20px padding.
-      // Filter sequence:
-      // 1. [1:v]scale=120:-1[wm]
-      // 2. [v][wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20[vout]
-      complexFilter +=
-          ';[1:v]scale=120:-1[wm];[v][wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20[vout]';
-      watermarkMap = '[vout]';
+    final List<String> filterSegments = [];
+    String currentVideoMap = '[v_scaled]';
+
+    // 1. Video scale and speed
+    filterSegments.add(
+      '[0:v:0]${settings.scaleFilter},setpts=$videoPts*PTS$currentVideoMap',
+    );
+
+    // 2. Audio speed (conditional)
+    String? currentAudioMap;
+    if (hasAudio) {
+      currentAudioMap = '[a_out]';
+      filterSegments.add('[0:a:0]$atempoFilter$currentAudioMap');
+    }
+
+    // 3. Watermark
+    if (applyWatermark) {
+      filterSegments.add('[1:v]scale=120:-1[wm]');
+      filterSegments.add(
+        '$currentVideoMap[wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20[v_out]',
+      );
+      currentVideoMap = '[v_out]';
     }
 
     parts.addAll([
       '-filter_complex',
-      complexFilter,
+      filterSegments.join(';'),
       '-map',
-      watermarkMap,
-      '-map',
-      '[a]?',
-      '-c:v',
-      'mpeg4',
-      '-q:v',
-      '${settings.qualityValue}',
+      currentVideoMap,
     ]);
+
+    if (currentAudioMap != null) {
+      parts.addAll(['-map', currentAudioMap]);
+    }
+
+    parts.addAll(['-c:v', 'mpeg4', '-q:v', '${settings.qualityValue}']);
 
     if (finalFps != null) {
       parts.addAll(['-r', '$finalFps']);
     }
 
-    // Audio
-    parts.addAll(['-c:a', 'aac', '-b:a', settings.audioBitrate]);
+    // Audio conditionally
+    if (hasAudio) {
+      parts.addAll(['-c:a', 'aac', '-b:a', settings.audioBitrate]);
+    }
 
     // MP4 optimization (only for MP4)
     if (settings.format == ExportFormat.mp4) {
@@ -181,7 +203,16 @@ class FFmpegProcessor implements IVideoProcessor {
         ? (totalDurationSecs * 1000).toInt()
         : 0;
 
-    return _executeCommand(parts.join(' '), outputPath, totalMs, onProgress);
+    final commandStr = parts.join(' ');
+    debugPrint('--- FFMPEG MEDIA PROFILE ---');
+    debugPrint('hasAudio: $hasAudio');
+    debugPrint('targetFps: $finalFps');
+    debugPrint('format: ${settings.format.name}');
+    debugPrint('resolution: ${settings.resolution.label}');
+    debugPrint('command: $commandStr');
+    debugPrint('----------------------------');
+
+    return _executeCommand(commandStr, outputPath, totalMs, onProgress);
   }
 
   Future<String> _executeCommand(
