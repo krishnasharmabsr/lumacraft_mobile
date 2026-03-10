@@ -116,40 +116,28 @@ class _EditorScreenState extends State<EditorScreen> {
     // ── Normalization fallback if duration is still zero ──
     if (resolvedDuration.inMilliseconds <= 0) {
       developer.log(
-        'normalization_triggered=yes, all probes failed, attempting remux',
+        'normalization_triggered=yes, all probes failed, attempting normalization',
         name: '[DurationProbe]',
       );
-      final normalizedPath = await _tryNormalizeVideo(path);
-      if (normalizedPath != null) {
+      final normResult = await _tryNormalizeVideo(path);
+      if (normResult != null) {
+        // Use the PROBED duration as source-of-truth (never trust controller blindly)
         newController.dispose();
-        newController = VideoPlayerController.file(File(normalizedPath));
+        newController = VideoPlayerController.file(File(normResult.path));
         await newController.initialize();
-        resolvedDuration = newController.value.duration;
-        if (resolvedDuration.inMilliseconds > 0) {
-          winningSource = 'normalized_video_player';
-          _workingVideoPath = normalizedPath;
-          developer.log(
-            'normalization_mode=success, duration=${resolvedDuration.inMilliseconds}ms',
-            name: '[DurationProbe]',
-          );
-        } else {
-          // try fallback chain on normalized file
-          final fb2 = await _resolveDurationFallback(normalizedPath);
-          if (fb2.duration.inMilliseconds > 0) {
-            resolvedDuration = fb2.duration;
-            winningSource = 'normalized_${fb2.source}';
-            _workingVideoPath = normalizedPath;
-            developer.log(
-              'normalization_mode=fallback_chain, duration=${resolvedDuration.inMilliseconds}ms, source=${fb2.source}',
-              name: '[DurationProbe]',
-            );
-          } else {
-            developer.log(
-              'normalization_failed: duration still zero after normalization',
-              name: '[DurationProbe]',
-            );
-          }
-        }
+        // Take the probed duration — controller may still report 0
+        resolvedDuration = normResult.duration;
+        winningSource = 'normalized_probe_${normResult.mode}';
+        _workingVideoPath = normResult.path;
+        developer.log(
+          'normalization_success: mode=${normResult.mode}, probed_duration=${normResult.duration.inMilliseconds}ms, controller_duration=${newController.value.duration.inMilliseconds}ms',
+          name: '[DurationProbe]',
+        );
+      } else {
+        developer.log(
+          'normalization_failed: both remux and reencode unsuccessful',
+          name: '[DurationProbe]',
+        );
       }
     } else {
       developer.log('normalization_triggered=no', name: '[DurationProbe]');
@@ -214,8 +202,10 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
-  /// Try remux first, then re-encode. Returns normalized path or null.
-  Future<String?> _tryNormalizeVideo(String inputPath) async {
+  /// Try remux first, then re-encode. Returns record with path, probed duration, and mode; or null.
+  Future<({String path, Duration duration, String mode})?> _tryNormalizeVideo(
+    String inputPath,
+  ) async {
     final cacheDir = Directory.systemTemp;
     final uuid = const Uuid().v4().substring(0, 8);
     // Clean stale normalization files
@@ -245,14 +235,13 @@ class _EditorScreenState extends State<EditorScreen> {
       );
       final rc = await session.getReturnCode();
       if (ReturnCode.isSuccess(rc) && File(remuxPath).existsSync()) {
-        // Verify duration
         final dur = await _quickProbeDuration(remuxPath);
         if (dur.inMilliseconds > 0) {
           developer.log(
-            'normalization_mode=remux, success, duration=${dur.inMilliseconds}ms',
+            'normalization_mode=remux, success, probed_duration=${dur.inMilliseconds}ms',
             name: '[DurationProbe]',
           );
-          return remuxPath;
+          return (path: remuxPath, duration: dur, mode: 'remux');
         }
       }
       developer.log(
@@ -274,10 +263,10 @@ class _EditorScreenState extends State<EditorScreen> {
         final dur = await _quickProbeDuration(reencPath);
         if (dur.inMilliseconds > 0) {
           developer.log(
-            'normalization_mode=reencode, success, duration=${dur.inMilliseconds}ms',
+            'normalization_mode=reencode, success, probed_duration=${dur.inMilliseconds}ms',
             name: '[DurationProbe]',
           );
-          return reencPath;
+          return (path: reencPath, duration: dur, mode: 'reencode');
         }
       }
       developer.log(
@@ -1048,24 +1037,6 @@ class _EditorScreenState extends State<EditorScreen> {
                                                                   ),
                                                                 ),
                                                               ),
-                                                            ),
-                                                            IconButton(
-                                                              icon: Icon(
-                                                                _isMuted ||
-                                                                        _volume ==
-                                                                            0
-                                                                    ? Icons
-                                                                          .volume_off
-                                                                    : Icons
-                                                                          .volume_up,
-                                                                color: Colors
-                                                                    .white,
-                                                                size: 20,
-                                                              ),
-                                                              onPressed: () {
-                                                                _toggleMute();
-                                                                _resetOverlayTimer();
-                                                              },
                                                             ),
                                                           ],
                                                         ),

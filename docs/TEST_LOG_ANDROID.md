@@ -299,3 +299,18 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (108.5MB)
 - **Status:** QA_PENDING
+
+## Execution 20 - Task S004M (Real Root-Cause Fix for 00:00 Timeline)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Changed `_tryNormalizeVideo` return type from `String?` to `({String path, Duration duration, String mode})?` record to carry probed duration alongside path.
+  2. `_initializePlayer` now uses `normResult.duration` (probed via FFprobe) as the source-of-truth instead of trusting `newController.value.duration` which can still be 0 after normalization.
+  3. Removed duplicate volume `IconButton` inside the vertical slider popover (lines 1052-1069 in previous version). Only the bottom-bar GestureDetector icon remains.
+  4. Late-promotion listener preserved with no-downgrade guard.
+- **Validation:**
+  - `flutter analyze`: 1 pre-existing deprecation info only
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.5MB)
+- **Status:** QA_PENDING

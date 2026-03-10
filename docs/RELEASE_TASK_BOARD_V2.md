@@ -19,6 +19,7 @@
 - [x] S004I — Duration Zero Hard Fix + Volume UI Alignment (MediaExtractor Fallback, Volume Popover).
 - [x] S004K — Timeline 00:00 Root-Cause Fix + Overlay Control Cleanup (Late Duration Promotion, FFprobe harden, ±10s seek).
 - [x] S004L — Downloaded Video Timeline Hard Fix (Normalization Fallback, [DurationProbe] Forensics, Overlay Overflow Fix).
+- [x] S004M — Real Root-Cause Fix (Probed Duration Record Return, No-Downgrade Guard, Duplicate Volume Icon Removal).
 
 ## Phase 3: AI Capabilities
 
