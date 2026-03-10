@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:gal/gal.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,17 +10,19 @@ class MediaIoService implements IMediaIoService {
   @override
   Future<String?> pickVideoFromGallery() async {
     if (Platform.isAndroid) {
+      // Native picker already copies to cache, returns local path
       return NativeVideoPicker.pickVideo();
     }
-    // Non-Android: unsupported for now
     return null;
   }
 
   @override
   Future<String> copyToLocalWorkingDir(String sourcePath) async {
-    final cacheDir = await getTemporaryDirectory();
+    // On Android, native picker already returns a cache-local path.
+    // But we still copy to a unique working file for safety.
+    final cachePath = await NativeVideoPicker.getCachePath();
     final ext = sourcePath.split('.').last;
-    final String newPath = '${cacheDir.path}/working_${const Uuid().v4()}.$ext';
+    final String newPath = '$cachePath/working_${const Uuid().v4()}.$ext';
 
     final File sourceFile = File(sourcePath);
     await sourceFile.copy(newPath);

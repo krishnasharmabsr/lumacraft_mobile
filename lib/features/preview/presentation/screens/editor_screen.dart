@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:uuid/uuid.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../../services/engine/ffmpeg_processor.dart';
 import '../../../../services/io/media_io_service.dart';
+import '../../../../services/io/native_video_picker.dart';
 import '../widgets/trim_controls.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -116,9 +116,9 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      final cacheDir = await getTemporaryDirectory();
+      final cachePath = await NativeVideoPicker.getCachePath();
       final ext = _currentVideoPath.split('.').last;
-      final outputPath = '${cacheDir.path}/trimmed_${const Uuid().v4()}.$ext';
+      final outputPath = '$cachePath/trimmed_${const Uuid().v4()}.$ext';
 
       final trimmedPath = await _processor.processTrim(
         inputPath: _currentVideoPath,

@@ -50,3 +50,20 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (100.9MB)
 - **Status:** QA_PENDING
+
+## Execution 5 - Task S002F
+
+- **Date:** 2026-03-10
+- **Root cause:** `path_provider` uses Pigeon-generated `PathProviderApi.getTemporaryPath` channel that R8 strips in release builds, same class of issue as `image_picker`/`file_picker`.
+- **Changes:**
+  1. Added `getCachePath` native method to Kotlin MethodChannel
+  2. Replaced all `path_provider` calls in `media_io_service.dart` and `editor_screen.dart` with `NativeVideoPicker.getCachePath()`
+  3. Removed `path_provider` dependency entirely (18 transitive deps dropped)
+  4. Updated QA checklist: SAF picker docs (no permission prompt), preview trim auto-pause check
+- **Validation:**
+  - `flutter pub get`: OK
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (100.8MB)
+- **Status:** QA_PENDING

@@ -29,6 +29,9 @@ class MainActivity : FlutterActivity() {
                     }
                     startActivityForResult(intent, PICK_VIDEO_REQUEST)
                 }
+                "getCachePath" -> {
+                    result.success(cacheDir.absolutePath)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -40,16 +43,14 @@ class MainActivity : FlutterActivity() {
             if (resultCode == Activity.RESULT_OK && data?.data != null) {
                 val uri: Uri = data.data!!
                 try {
-                    // Persist read permission
                     contentResolver.takePersistableUriPermission(
                         uri,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION
                     )
                 } catch (_: SecurityException) {
-                    // Some providers don't support persistable permissions, that's fine
+                    // Some providers don't support persistable permissions
                 }
 
-                // Copy content to app cache
                 try {
                     val ext = getFileExtension(uri) ?: "mp4"
                     val cacheFile = File(cacheDir, "picked_${UUID.randomUUID()}.$ext")
@@ -63,7 +64,7 @@ class MainActivity : FlutterActivity() {
                     pendingResult?.error("COPY_ERROR", "Failed to copy video: ${e.message}", null)
                 }
             } else {
-                pendingResult?.success(null) // User cancelled
+                pendingResult?.success(null)
             }
             pendingResult = null
         }

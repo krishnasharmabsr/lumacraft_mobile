@@ -9,8 +9,7 @@
 ### 1. Import video
 
 - [ ] Tap "Import Video" on home screen
-- [ ] Permission prompt appears (if first launch)
-- [ ] Gallery/file picker opens
+- [ ] Document picker (SAF) opens (no separate permission prompt needed)
 - [ ] Select a video → navigates to editor screen
 
 ### 2. Preview playback
@@ -28,6 +27,7 @@
 ### 4. Preview Trim
 
 - [ ] Tap "Preview Trim" → player seeks to trim start and plays
+- [ ] Player auto-pauses when reaching trim end
 
 ### 5. Process Trim
 
