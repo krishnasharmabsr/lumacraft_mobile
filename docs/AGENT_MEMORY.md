@@ -27,3 +27,9 @@
 - **Status:** Code fix merged to `main` via PR `#9`.
 - **Memory:** Editor playback now uses a single active playback source; imported/problematic files are normalized once for playback, and scrub plus +/-10 both route through the same verified seek path with retry and hard reinit fallback.
 - **PR State:** PRs `#4` to `#8` were closed as superseded by the canonical cumulative merge in PR `#9`.
+
+## S005 Start
+
+- **Date:** 2026-03-10
+- **Branch:** `fix/s005-export-reliability-hard-fix`
+- **Memory:** S005 started — fixing export reliability: watermark FFprobe removal, drawtext removal, atempo chaining, audio mapping fix, output directory safety.
