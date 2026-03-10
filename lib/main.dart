@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 
 void main() {
@@ -12,10 +13,8 @@ class LumaCraftApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'LumaCraft',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
       home: const HomeScreen(),
     );
   }

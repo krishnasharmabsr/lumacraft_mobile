@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002/D/E/F/G (Core pipeline) merged to main. Tagged `v2.0.0-core-trim-export`.
-- **Next:** S003 — Export Studio + UI Polish Foundation.
+- **QA_PENDING:** S003 (Export Studio + UI Polish) — Dark cinematic theme, gradient home, export settings sheet (resolution/FPS/quality), Save Copy mode.
 
 ## Environment Identity
 

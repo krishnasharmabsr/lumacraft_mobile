@@ -3,11 +3,11 @@ import 'package:lumacraft_mobile/main.dart';
 
 void main() {
   testWidgets('App load smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
     await tester.pumpWidget(const LumaCraftApp());
 
-    // Verify placeholder text is present
-    expect(find.text('LumaCraft Studio'), findsOneWidget);
+    // Verify branded home screen elements
+    expect(find.text('LumaCraft'), findsOneWidget);
+    expect(find.text('Video Studio'), findsOneWidget);
     expect(find.text('Import Video'), findsOneWidget);
   });
 }
