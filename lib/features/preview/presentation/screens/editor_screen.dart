@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:uuid/uuid.dart';
 import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 
 import '../../../../core/models/export_settings.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -88,16 +90,21 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   // ────────────────────────────────────────────────────────────
-  //  PLAYER INIT WITH FFPROBE DURATION FALLBACK
+  //  PLAYER INIT WITH FFPROBE DURATION FALLBACK + NORMALIZATION
   // ────────────────────────────────────────────────────────────
   Future<void> _initializePlayer(String path, {bool keepEdits = false}) async {
     final oldController = _controller;
 
-    final newController = VideoPlayerController.file(File(path));
+    var newController = VideoPlayerController.file(File(path));
     await newController.initialize();
 
     Duration resolvedDuration = newController.value.duration;
     String winningSource = 'video_player';
+
+    developer.log(
+      'video_player initial duration: ${resolvedDuration.inMilliseconds}ms',
+      name: '[DurationProbe]',
+    );
 
     // Fallback chain when video_player reports 0
     if (resolvedDuration.inMilliseconds <= 0) {
@@ -106,9 +113,51 @@ class _EditorScreenState extends State<EditorScreen> {
       winningSource = fallback.source;
     }
 
+    // ── Normalization fallback if duration is still zero ──
+    if (resolvedDuration.inMilliseconds <= 0) {
+      developer.log(
+        'normalization_triggered=yes, all probes failed, attempting remux',
+        name: '[DurationProbe]',
+      );
+      final normalizedPath = await _tryNormalizeVideo(path);
+      if (normalizedPath != null) {
+        newController.dispose();
+        newController = VideoPlayerController.file(File(normalizedPath));
+        await newController.initialize();
+        resolvedDuration = newController.value.duration;
+        if (resolvedDuration.inMilliseconds > 0) {
+          winningSource = 'normalized_video_player';
+          _workingVideoPath = normalizedPath;
+          developer.log(
+            'normalization_mode=success, duration=${resolvedDuration.inMilliseconds}ms',
+            name: '[DurationProbe]',
+          );
+        } else {
+          // try fallback chain on normalized file
+          final fb2 = await _resolveDurationFallback(normalizedPath);
+          if (fb2.duration.inMilliseconds > 0) {
+            resolvedDuration = fb2.duration;
+            winningSource = 'normalized_${fb2.source}';
+            _workingVideoPath = normalizedPath;
+            developer.log(
+              'normalization_mode=fallback_chain, duration=${resolvedDuration.inMilliseconds}ms, source=${fb2.source}',
+              name: '[DurationProbe]',
+            );
+          } else {
+            developer.log(
+              'normalization_failed: duration still zero after normalization',
+              name: '[DurationProbe]',
+            );
+          }
+        }
+      }
+    } else {
+      developer.log('normalization_triggered=no', name: '[DurationProbe]');
+    }
+
     developer.log(
-      'Duration resolved via $winningSource: ${resolvedDuration.inMilliseconds}ms',
-      name: 'EditorDuration',
+      'FINAL duration resolved via $winningSource: ${resolvedDuration.inMilliseconds}ms',
+      name: '[DurationProbe]',
     );
 
     final timelineInvalid = resolvedDuration.inMilliseconds <= 0;
@@ -135,8 +184,8 @@ class _EditorScreenState extends State<EditorScreen> {
       if (_videoDuration.inMilliseconds <= 0 &&
           newController.value.duration.inMilliseconds > 0) {
         developer.log(
-          'Late duration promotion triggered: ${newController.value.duration.inMilliseconds}ms',
-          name: 'EditorDuration',
+          'video_player late update: ${newController.value.duration.inMilliseconds}ms',
+          name: '[DurationProbe]',
         );
         _videoDuration = newController.value.duration;
         _isTimelineInvalid = false;
@@ -163,6 +212,100 @@ class _EditorScreenState extends State<EditorScreen> {
         ),
       );
     }
+  }
+
+  /// Try remux first, then re-encode. Returns normalized path or null.
+  Future<String?> _tryNormalizeVideo(String inputPath) async {
+    final cacheDir = Directory.systemTemp;
+    final uuid = const Uuid().v4().substring(0, 8);
+    // Clean stale normalization files
+    try {
+      cacheDir
+          .listSync()
+          .whereType<File>()
+          .where((f) {
+            final name = f.uri.pathSegments.last;
+            return name.startsWith('norm_') && name.endsWith('.mp4');
+          })
+          .forEach((f) {
+            try {
+              f.deleteSync();
+            } catch (_) {}
+          });
+    } catch (_) {}
+
+    final remuxPath = '${cacheDir.path}/norm_remux_$uuid.mp4';
+    final reencPath = '${cacheDir.path}/norm_reenc_$uuid.mp4';
+
+    // 1) Remux attempt
+    try {
+      developer.log('normalization_attempt=remux', name: '[DurationProbe]');
+      final session = await FFmpegKit.execute(
+        '-y -fflags +genpts -i "$inputPath" -map 0:v:0 -map 0:a? -c copy -movflags +faststart "$remuxPath"',
+      );
+      final rc = await session.getReturnCode();
+      if (ReturnCode.isSuccess(rc) && File(remuxPath).existsSync()) {
+        // Verify duration
+        final dur = await _quickProbeDuration(remuxPath);
+        if (dur.inMilliseconds > 0) {
+          developer.log(
+            'normalization_mode=remux, success, duration=${dur.inMilliseconds}ms',
+            name: '[DurationProbe]',
+          );
+          return remuxPath;
+        }
+      }
+      developer.log(
+        'remux produced 0-duration or failed, trying re-encode',
+        name: '[DurationProbe]',
+      );
+    } catch (e) {
+      developer.log('remux error: $e', name: '[DurationProbe]');
+    }
+
+    // 2) Re-encode attempt
+    try {
+      developer.log('normalization_attempt=reencode', name: '[DurationProbe]');
+      final session = await FFmpegKit.execute(
+        '-y -fflags +genpts -i "$inputPath" -map 0:v:0 -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -c:a aac -movflags +faststart "$reencPath"',
+      );
+      final rc = await session.getReturnCode();
+      if (ReturnCode.isSuccess(rc) && File(reencPath).existsSync()) {
+        final dur = await _quickProbeDuration(reencPath);
+        if (dur.inMilliseconds > 0) {
+          developer.log(
+            'normalization_mode=reencode, success, duration=${dur.inMilliseconds}ms',
+            name: '[DurationProbe]',
+          );
+          return reencPath;
+        }
+      }
+      developer.log(
+        'reencode also failed to produce valid duration',
+        name: '[DurationProbe]',
+      );
+    } catch (e) {
+      developer.log('reencode error: $e', name: '[DurationProbe]');
+    }
+
+    developer.log(
+      'normalization_failed: both remux and reencode unsuccessful',
+      name: '[DurationProbe]',
+    );
+    return null;
+  }
+
+  /// Quick FFprobe duration check on a file.
+  Future<Duration> _quickProbeDuration(String path) async {
+    try {
+      final info = await FFprobeKit.getMediaInformation(path);
+      final media = info.getMediaInformation();
+      if (media != null) {
+        final d = _parseDurationString(media.getDuration());
+        if (d != null) return d;
+      }
+    } catch (_) {}
+    return Duration.zero;
   }
 
   Duration? _parseDurationString(String? durationStr) {
@@ -210,8 +353,8 @@ class _EditorScreenState extends State<EditorScreen> {
         final parsedFormat = _parseDurationString(media.getDuration());
         if (parsedFormat != null) {
           developer.log(
-            'FFProbe Field format duration found: ${parsedFormat.inMilliseconds}ms',
-            name: 'EditorDuration',
+            'ffprobe_field format: ${parsedFormat.inMilliseconds}ms',
+            name: '[DurationProbe]',
           );
           return (duration: parsedFormat, source: 'ffprobe_field');
         }
@@ -229,8 +372,8 @@ class _EditorScreenState extends State<EditorScreen> {
                 );
                 if (parsedStream != null) {
                   developer.log(
-                    'FFProbe Field stream duration found: ${parsedStream.inMilliseconds}ms',
-                    name: 'EditorDuration',
+                    'ffprobe_field stream: ${parsedStream.inMilliseconds}ms',
+                    name: '[DurationProbe]',
                   );
                   return (duration: parsedStream, source: 'ffprobe_field');
                 }
@@ -240,11 +383,11 @@ class _EditorScreenState extends State<EditorScreen> {
         }
       }
       developer.log(
-        'FFProbe Field duration check failed',
-        name: 'EditorDuration',
+        'ffprobe_field: no duration found',
+        name: '[DurationProbe]',
       );
     } catch (e) {
-      developer.log('FFProbe Field error: $e', name: 'EditorDuration');
+      developer.log('ffprobe_field error: $e', name: '[DurationProbe]');
     }
 
     // 2. Try raw FFprobe execution
@@ -258,8 +401,8 @@ class _EditorScreenState extends State<EditorScreen> {
       final parsedOut = _parseDurationString(output?.trim());
       if (parsedOut != null) {
         developer.log(
-          'FFProbe raw output duration found: ${parsedOut.inMilliseconds}ms',
-          name: 'EditorDuration',
+          'ffprobe_output: ${parsedOut.inMilliseconds}ms',
+          name: '[DurationProbe]',
         );
         return (duration: parsedOut, source: 'ffprobe_log');
       }
@@ -267,15 +410,15 @@ class _EditorScreenState extends State<EditorScreen> {
       final parsedLogs = _parseDurationString(logsStr?.trim());
       if (parsedLogs != null) {
         developer.log(
-          'FFProbe raw logs duration found: ${parsedLogs.inMilliseconds}ms',
-          name: 'EditorDuration',
+          'ffprobe_logs: ${parsedLogs.inMilliseconds}ms',
+          name: '[DurationProbe]',
         );
         return (duration: parsedLogs, source: 'ffprobe_log');
       }
 
-      developer.log('FFProbe raw check failed', name: 'EditorDuration');
+      developer.log('ffprobe_raw: no duration found', name: '[DurationProbe]');
     } catch (e) {
-      developer.log('FFProbe raw error: $e', name: 'EditorDuration');
+      developer.log('ffprobe_raw error: $e', name: '[DurationProbe]');
     }
 
     // 2b. Try FFprobe full output regex
@@ -293,15 +436,18 @@ class _EditorScreenState extends State<EditorScreen> {
         final parsedRegex = _parseDurationString(match.group(1));
         if (parsedRegex != null) {
           developer.log(
-            'FFProbe regex duration found: ${parsedRegex.inMilliseconds}ms',
-            name: 'EditorDuration',
+            'ffprobe_regex: ${parsedRegex.inMilliseconds}ms',
+            name: '[DurationProbe]',
           );
           return (duration: parsedRegex, source: 'ffprobe_log_regex');
         }
       }
-      developer.log('FFProbe regex check failed', name: 'EditorDuration');
+      developer.log(
+        'ffprobe_regex: no duration found',
+        name: '[DurationProbe]',
+      );
     } catch (e) {
-      developer.log('FFProbe regex error: $e', name: 'EditorDuration');
+      developer.log('ffprobe_regex error: $e', name: '[DurationProbe]');
     }
 
     // 3. Fallback to Native Android MMR
@@ -310,16 +456,13 @@ class _EditorScreenState extends State<EditorScreen> {
       if (nativeDurStr != null) {
         final millis = int.tryParse(nativeDurStr);
         if (millis != null && millis > 0) {
-          developer.log(
-            'Android MMR duration found: ${millis}ms',
-            name: 'EditorDuration',
-          );
+          developer.log('mmr: ${millis}ms', name: '[DurationProbe]');
           return (duration: Duration(milliseconds: millis), source: 'mmr');
         }
       }
-      developer.log('Android MMR check failed', name: 'EditorDuration');
+      developer.log('mmr: no duration found', name: '[DurationProbe]');
     } catch (e) {
-      developer.log('Android MMR error: $e', name: 'EditorDuration');
+      developer.log('mmr error: $e', name: '[DurationProbe]');
     }
 
     // 4. Fallback to Native Android MediaExtractor
@@ -331,8 +474,8 @@ class _EditorScreenState extends State<EditorScreen> {
         final millis = int.tryParse(extractorDurStr);
         if (millis != null && millis > 0) {
           developer.log(
-            'MediaExtractor duration found: ${millis}ms',
-            name: 'EditorDuration',
+            'media_extractor: ${millis}ms',
+            name: '[DurationProbe]',
           );
           return (
             duration: Duration(milliseconds: millis),
@@ -340,12 +483,15 @@ class _EditorScreenState extends State<EditorScreen> {
           );
         }
       }
-      developer.log('MediaExtractor check failed', name: 'EditorDuration');
+      developer.log(
+        'media_extractor: no duration found',
+        name: '[DurationProbe]',
+      );
     } catch (e) {
-      developer.log('MediaExtractor error: $e', name: 'EditorDuration');
+      developer.log('media_extractor error: $e', name: '[DurationProbe]');
     }
 
-    developer.log('All fallback sources failed', name: 'EditorDuration');
+    developer.log('all_probes_failed', name: '[DurationProbe]');
     return (duration: Duration.zero, source: 'none');
   }
 
@@ -671,77 +817,81 @@ class _EditorScreenState extends State<EditorScreen> {
                                       child: Stack(
                                         children: [
                                           Center(
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.replay_10,
+                                            child: FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                      Icons.replay_10,
+                                                    ),
+                                                    iconSize: 36,
+                                                    color: Colors.white,
+                                                    onPressed: () {
+                                                      _resetOverlayTimer();
+                                                      final pos =
+                                                          ctrl.value.position -
+                                                          const Duration(
+                                                            seconds: 10,
+                                                          );
+                                                      ctrl.seekTo(
+                                                        pos < Duration.zero
+                                                            ? Duration.zero
+                                                            : pos,
+                                                      );
+                                                    },
                                                   ),
-                                                  iconSize: 40,
-                                                  color: Colors.white,
-                                                  onPressed: () {
-                                                    _resetOverlayTimer();
-                                                    final pos =
-                                                        ctrl.value.position -
-                                                        const Duration(
-                                                          seconds: 10,
-                                                        );
-                                                    ctrl.seekTo(
-                                                      pos < Duration.zero
-                                                          ? Duration.zero
-                                                          : pos,
-                                                    );
-                                                  },
-                                                ),
-                                                const SizedBox(width: 24),
-                                                IconButton(
-                                                  iconSize: 64,
-                                                  color: Colors.white,
-                                                  icon: Icon(
-                                                    ctrl.value.isPlaying
-                                                        ? Icons
-                                                              .pause_circle_filled
-                                                        : Icons
-                                                              .play_circle_filled,
+                                                  const SizedBox(width: 16),
+                                                  IconButton(
+                                                    iconSize: 56,
+                                                    color: Colors.white,
+                                                    icon: Icon(
+                                                      ctrl.value.isPlaying
+                                                          ? Icons
+                                                                .pause_circle_filled
+                                                          : Icons
+                                                                .play_circle_filled,
+                                                    ),
+                                                    onPressed: () {
+                                                      _removePreviewListener();
+                                                      setState(() {
+                                                        if (ctrl
+                                                            .value
+                                                            .isPlaying) {
+                                                          ctrl.pause();
+                                                          _overlayTimer
+                                                              ?.cancel();
+                                                        } else {
+                                                          ctrl.play();
+                                                          _resetOverlayTimer();
+                                                        }
+                                                      });
+                                                    },
                                                   ),
-                                                  onPressed: () {
-                                                    _removePreviewListener();
-                                                    setState(() {
-                                                      if (ctrl
-                                                          .value
-                                                          .isPlaying) {
-                                                        ctrl.pause();
-                                                        _overlayTimer?.cancel();
-                                                      } else {
-                                                        ctrl.play();
-                                                        _resetOverlayTimer();
-                                                      }
-                                                    });
-                                                  },
-                                                ),
-                                                const SizedBox(width: 24),
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.forward_10,
+                                                  const SizedBox(width: 16),
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                      Icons.forward_10,
+                                                    ),
+                                                    iconSize: 36,
+                                                    color: Colors.white,
+                                                    onPressed: () {
+                                                      _resetOverlayTimer();
+                                                      final pos =
+                                                          ctrl.value.position +
+                                                          const Duration(
+                                                            seconds: 10,
+                                                          );
+                                                      ctrl.seekTo(
+                                                        pos > _videoDuration
+                                                            ? _videoDuration
+                                                            : pos,
+                                                      );
+                                                    },
                                                   ),
-                                                  iconSize: 40,
-                                                  color: Colors.white,
-                                                  onPressed: () {
-                                                    _resetOverlayTimer();
-                                                    final pos =
-                                                        ctrl.value.position +
-                                                        const Duration(
-                                                          seconds: 10,
-                                                        );
-                                                    ctrl.seekTo(
-                                                      pos > _videoDuration
-                                                          ? _videoDuration
-                                                          : pos,
-                                                    );
-                                                  },
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ),
                                           Positioned(

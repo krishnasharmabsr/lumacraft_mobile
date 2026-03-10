@@ -18,6 +18,7 @@
 - [x] S004H — Editor Player Controls Overlay + Downloaded Video Duration Parse Fix.
 - [x] S004I — Duration Zero Hard Fix + Volume UI Alignment (MediaExtractor Fallback, Volume Popover).
 - [x] S004K — Timeline 00:00 Root-Cause Fix + Overlay Control Cleanup (Late Duration Promotion, FFprobe harden, ±10s seek).
+- [x] S004L — Downloaded Video Timeline Hard Fix (Normalization Fallback, [DurationProbe] Forensics, Overlay Overflow Fix).
 
 ## Phase 3: AI Capabilities
 

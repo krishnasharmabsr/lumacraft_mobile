@@ -283,3 +283,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 19 - Task S004L (Downloaded Video Timeline Hard Fix + Overlay Control Cleanup)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Implemented deterministic pre-normalization fallback for downloaded videos with broken metadata: remux first (`-c copy -movflags +faststart`), then full re-encode (`libx264 ultrafast`).
+  2. Added `[DurationProbe]` forensics logging for every source in the fallback chain (video_player, ffprobe_field, ffprobe_output, ffprobe_logs, ffprobe_regex, mmr, media_extractor, normalization mode, final decision).
+  3. Wrapped overlay center seek-button Row in `FittedBox` to prevent RenderFlex overflow on narrow viewports (landscape).
+  4. Reduced icon sizes (36/56) and spacing (16) for better fit.
+  5. Stale normalization temp files cleaned on each init cycle.
+- **Validation:**
+  - `flutter analyze`: 1 pre-existing deprecation info only
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.5MB)
+- **Status:** QA_PENDING
