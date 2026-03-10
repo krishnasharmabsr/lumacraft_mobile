@@ -37,3 +37,11 @@
 ## S005D Branding Consistency
 
 - **Memory:** Unified all runtime logo references. Canonical path: `assets/branding/logo_mark_master_1024.png`. Home screen now uses Image.asset with canonical PNG. Removed stale `logo_mark.png`. See `docs/BRAND_REGISTRY.md` for full contract.
+
+## S005E Brand Identity Polish
+
+- **Memory:** Regenerated pristine vector-based PNGs without checkerboard artifacts. Regenerated adaptive Android icons using `flutter_launcher_icons`. Polished splash animation duration to 1.5s total. Branch: `feat/s005e-brand-identity-polish`.
+
+## S005E2 Branding Lockdown Fix
+
+- **Memory:** Enforced teal core branding color match. Hand-centered play motif via generation script. Stripped all `Icons.movie_edit` references to maintain single motif style. Added strict fallback rules to `BRAND_REGISTRY.md`.
