@@ -202,3 +202,22 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK
   - Manual verification on trim, speed, canvas variants confirmed compatible via single-pass graph execution.
 - **Status:** QA_PENDING
+
+## Execution 14 - Task S004E (Editor Screen Stability Pass)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Restored `processTrim` workflow: Process Trim button trims working video, reloads player, retains applied speed/canvas state.
+  2. Speed control switched from chips to slider (0.25x – 8.0x) with real-time preview and split `previewSpeed` / `appliedSpeed` state. Apply Speed button persists.
+  3. Canvas options now have split `previewCanvas` / `appliedCanvas` state with instant viewport preview and Apply Canvas button.
+  4. Timeline reliability: FFprobe duration fallback chain (format → stream) resolves 0:00 duration for downloaded videos. Trim disabled with clear message if duration unresolvable.
+  5. `TrimControls` callbacks made nullable to support disabled state.
+  6. State consistency: applying one feature does not wipe others.
+- **Root cause (timeline=0):** `video_player` plugin cannot always parse container-level duration for re-muxed/downloaded videos (missing moov/duration atoms). FFprobe reads format-level or stream-level duration as fallback.
+- **Validation:**
+  - `flutter pub get`: OK
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.4MB)
+- **Status:** QA_PENDING

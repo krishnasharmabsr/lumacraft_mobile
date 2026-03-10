@@ -19,6 +19,39 @@ typedef ProgressCallback = void Function(double progress);
 
 class FFmpegProcessor implements IVideoProcessor {
   @override
+  Future<String> processTrim({
+    required String inputPath,
+    required String outputPath,
+    required Duration startTime,
+    required Duration endTime,
+    ProgressCallback? onProgress,
+  }) async {
+    if (endTime <= startTime) {
+      throw FFmpegException(
+        'Invalid trim duration: endTime must be greater than startTime',
+        '',
+        0,
+        '',
+      );
+    }
+
+    final outFile = File(outputPath);
+    if (await outFile.exists()) {
+      await outFile.delete();
+    }
+
+    final startSecs = startTime.inMilliseconds / 1000.0;
+    final endSecs = endTime.inMilliseconds / 1000.0;
+    final duration = endSecs - startSecs;
+
+    final command =
+        '-y -ss $startSecs -t $duration -i "$inputPath" -map 0:v:0 -map 0:a? -c:v mpeg4 -q:v 3 -c:a aac -b:a 128k -movflags +faststart "$outputPath"';
+
+    final totalMs = (duration * 1000).toInt();
+    return _executeCommand(command, outputPath, totalMs, onProgress);
+  }
+
+  @override
   Future<String> processExport({
     required String inputPath,
     required String outputPath,

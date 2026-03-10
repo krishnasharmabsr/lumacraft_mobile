@@ -5,16 +5,16 @@ class TrimControls extends StatelessWidget {
   final Duration maxDuration;
   final Duration currentStart;
   final Duration currentEnd;
-  final Function(Duration) onStartChanged;
-  final Function(Duration) onEndChanged;
+  final Function(Duration)? onStartChanged;
+  final Function(Duration)? onEndChanged;
 
   const TrimControls({
     super.key,
     required this.maxDuration,
     required this.currentStart,
     required this.currentEnd,
-    required this.onStartChanged,
-    required this.onEndChanged,
+    this.onStartChanged,
+    this.onEndChanged,
   });
 
   @override
@@ -30,10 +30,16 @@ class TrimControls extends StatelessWidget {
           max: maxDuration.inMilliseconds.toDouble() > 0
               ? maxDuration.inMilliseconds.toDouble()
               : 100,
-          onChanged: (RangeValues values) {
-            onStartChanged(Duration(milliseconds: values.start.toInt()));
-            onEndChanged(Duration(milliseconds: values.end.toInt()));
-          },
+          onChanged: onStartChanged == null && onEndChanged == null
+              ? null
+              : (RangeValues values) {
+                  onStartChanged?.call(
+                    Duration(milliseconds: values.start.toInt()),
+                  );
+                  onEndChanged?.call(
+                    Duration(milliseconds: values.end.toInt()),
+                  );
+                },
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
