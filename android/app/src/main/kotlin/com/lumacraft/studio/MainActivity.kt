@@ -9,6 +9,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import android.media.MediaMetadataRetriever
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.lumacraft.studio/video_picker"
@@ -31,6 +32,40 @@ class MainActivity : FlutterActivity() {
                 }
                 "getCachePath" -> {
                     result.success(cacheDir.absolutePath)
+                }
+                "getMediaDuration" -> {
+                    val path = call.argument<String>("path")
+                    if (path != null) {
+                        try {
+                            val retriever = MediaMetadataRetriever()
+                            try {
+                                retriever.setDataSource(path)
+                            } catch (e: Exception) {
+                                val fd = java.io.FileInputStream(path).fd
+                                retriever.setDataSource(fd)
+                            }
+                            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                            retriever.release()
+                            result.success(durationStr)
+                        } catch (e: Exception) {
+                            result.error("METADATA_ERROR", "Failed to extract duration: ${e.message}", null)
+                        }
+                    } else {
+                        result.error("INVALID_ARGUMENT", "Path cannot be null", null)
+                    }
+                }
+                "getMediaDurationExtractor" -> {
+                    val path = call.argument<String>("path")
+                    if (path != null) {
+                        try {
+                            val extractorStr = getMediaDurationExtractor(path)
+                            result.success(extractorStr)
+                        } catch (e: Exception) {
+                            result.error("EXTRACTOR_ERROR", "Failed to extract duration: ${e.message}", null)
+                        }
+                    } else {
+                        result.error("INVALID_ARGUMENT", "Path cannot be null", null)
+                    }
                 }
                 else -> result.notImplemented()
             }
@@ -80,5 +115,30 @@ class MainActivity : FlutterActivity() {
             mimeType.contains("avi") -> "avi"
             else -> "mp4"
         }
+    }
+
+    private fun getMediaDurationExtractor(path: String): String? {
+        val extractor = android.media.MediaExtractor()
+        try {
+            extractor.setDataSource(path)
+            var maxDuration = 0L
+            for (i in 0 until extractor.trackCount) {
+                val format = extractor.getTrackFormat(i)
+                if (format.containsKey(android.media.MediaFormat.KEY_DURATION)) {
+                    val durationUs = format.getLong(android.media.MediaFormat.KEY_DURATION)
+                    if (durationUs > maxDuration) {
+                        maxDuration = durationUs
+                    }
+                }
+            }
+            if (maxDuration > 0) {
+                return (maxDuration / 1000).toString()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            extractor.release()
+        }
+        return null
     }
 }

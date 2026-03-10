@@ -1,4 +1,3 @@
-/// Export settings model for LumaCraft export studio.
 class ExportSettings {
   final ExportResolution resolution;
   final int? fps; // null means 'Source'
@@ -14,7 +13,7 @@ class ExportSettings {
 
   /// Returns the FFmpeg scale filter string, e.g. "-vf scale=-2:720"
   String get scaleFilter {
-    return '-vf scale=-2:${resolution.height}';
+    return 'scale=-2:${resolution.height}';
   }
 
   /// Maps 0–100 quality slider to mpeg4 q:v (1=best, 10=worst).
@@ -60,4 +59,15 @@ enum ExportFormat {
   final String extension;
   final String label;
   const ExportFormat(this.extension, this.label);
+}
+
+enum ExportAspectRatio {
+  source('Source', null),
+  vertical('9:16', 9 / 16),
+  square('1:1', 1.0),
+  horizontal('16:9', 16 / 9);
+
+  final String label;
+  final double? ratio; // null means source (no forcing)
+  const ExportAspectRatio(this.label, this.ratio);
 }

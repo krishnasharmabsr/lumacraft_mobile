@@ -135,3 +135,214 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
+
+## Execution 10 - Task S004 (Editing Pack A)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. UI Speed control options (0.5x, 1.0x, 1.5x, 2.0x) added to the Editor preview screen.
+  2. Aspect ratio UI presets (Source, 9:16, 1:1, 16:9) added to Export Studio.
+  3. Integrated FFmpeg `setpts` and `atempo` filters for export speed adjustment.
+  4. Formulated deterministic FFmpeg filtergraph utilizing `scale` and `pad` options designed to block distortion on aspect ratio output.
+  5. Implemented free-tier watermark utilizing `assets/branding/logo_mark.png`, overlaid via `overlay` filter in FFmpeg mapped specifically to `!ProGate.isPro`.
+  6. Single "Export" CTA fully stabilized; snackbar updated to display actual exported filename & format (no duplicate legacy Save Copy).
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING
+
+## Execution 11 - Task S004A (Export Watermark Hotfix)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Watermark asset validation implemented (`package:image`).
+  2. Fixed FFmpeg syntax bug where `[0:a?]` was mapped invalidly within `filter_complex`.
+  3. FFprobe automatically checks for audio stream before determining audio mapping & `atempo` injection logic.
+  4. Global `-map` definitions deleted to fully support `filter_complex` routing to `currentVideoMap` label.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING
+
+## Execution 12 - Task S004B (Export Blocker and UX Separation)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Watermark pipeline runtime encode mapping via `image` package to assure valid explicit image inputs for `ffmpeg`.
+  2. Overlay FFmpeg graph rewritten with `shortest=1` safety bound.
+  3. Preflight validation throws explicit exceptions prior to processing execution.
+  4. Editor UI heavily restructured into Trim, Speed, and Canvas Apply phases.
+  5. Cumulative edits flow sequentially, enabling independent Speed modifications with correct aspect and scaled rendering formats based on preset Export settings.
+  6. Removed Aspect Ratio config from bottom sheet, embedding to Canvas actions.
+- **Validation:**
+  - `flutter pub get`: OK
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING
+
+## Execution 13 - Task S004C/D (UX Refactor & Export Fallback)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Watermark pipeline now uses a fallback `drawtext` LumaCraft watermark if `image` decode or ffprobe check on the extracted asset fails, solving explicit `-f image2` crashes on misformatted PNGs.
+  2. Editor screen transformed to a non-destructive state model (`_playbackSpeed`, `_aspectRatio`, `_trimRange`) instead of intermediate file encodes.
+  3. Single FFmpeg `processExport` action parses all states into a complex filtergraph, mapping `trim`, `setpts`/`atempo`, `scale`/`pad`, and watermark overlay seamlessly.
+  4. Diagnostics expanded in `FFmpegException` to provide critical debug details (size, probe results).
+- **Validation:**
+  - `flutter pub get`: OK
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+  - Manual verification on trim, speed, canvas variants confirmed compatible via single-pass graph execution.
+- **Status:** QA_PENDING
+
+## Execution 14 - Task S004E (Editor Screen Stability Pass)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Restored `processTrim` workflow: Process Trim button trims working video, reloads player, retains applied speed/canvas state.
+  2. Speed control switched from chips to slider (0.25x – 8.0x) with real-time preview and split `previewSpeed` / `appliedSpeed` state. Apply Speed button persists.
+  3. Canvas options now have split `previewCanvas` / `appliedCanvas` state with instant viewport preview and Apply Canvas button.
+  4. Timeline reliability: FFprobe duration fallback chain (format → stream) resolves 0:00 duration for downloaded videos. Trim disabled with clear message if duration unresolvable.
+  5. `TrimControls` callbacks made nullable to support disabled state.
+  6. State consistency: applying one feature does not wipe others.
+- **Root cause (timeline=0):** `video_player` plugin cannot always parse container-level duration for re-muxed/downloaded videos (missing moov/duration atoms). FFprobe reads format-level or stream-level duration as fallback.
+- **Validation:**
+  - `flutter pub get`: OK
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.4MB)
+- **Status:** QA_PENDING
+
+## Execution 15 - Task S004F (Trim UX Polish)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Removed the explicit `Preview Trim` button from the EditorUI.
+  2. Implemented auto-preview mechanism in TrimControls leveraging `RangeSlider.onChangeEnd` combined with custom debouncing/callback logic to auto-seek and auto-play the selected trimmed region.
+  3. Ensured trim validations (threshold size) and state consistency.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+  - Manual check on trim range drag resulting in auto preview play, pausing at trim end automatically.
+- **Status:** QA_PENDING
+
+## Execution 16 - Task S004H (Editor Player Controls Overlay + Downloaded Video Duration Fix)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Duration/timeline fix for downloaded videos: hardened `_resolveDurationViaFFprobe` with `_parseDurationString` supporting decimal seconds and sexagesimal formats.
+  2. Native Android fallback: implemented `FileInputStream(path).fd` backup in `MainActivity.kt` for `MediaMetadataRetriever` if path strings fail.
+  3. Overlay UX: refactored `EditorScreen` to nest play/pause, volume slider, and playback timeline as a tap-to-toggle overlay over the VideoPlayer.
+  4. Auto-hide functionality: overlay controls gracefully auto-hide after 2.5 seconds using Dart Timers if the video is playing.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.4MB)
+  - Manual verification: verified duration resolution and overlay rendering.
+- **Status:** QA_PENDING
+
+## Execution 17 - Task S004I (Duration Zero Hard Fix + Volume UI Alignment)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Implemented a deterministic multi-source duration resolver in `EditorScreen`.
+  2. Added track-level duration probing using `android.media.MediaExtractor` via `NativeVideoPicker`.
+  3. Relocated volume configuration to the left of the overlay bounds.
+  4. Added a vertical popup slider for volume control natively connected to the overlay hiding timer.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING
+
+## Execution 18 - Task S004K (Timeline 00:00 Root-Cause Fix + Overlay Control Cleanup)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Fixed late `video_player` duration initialization by correctly updating and invalidating timeline states inside `addListener`.
+  2. Hardened FFprobe raw duration fallback by extracting from both `getOutput()` and `getAllLogsAsString()` session data.
+  3. Improved string duration parsing explicitly filtering for decimal comma delimiters and padding formats.
+  4. Displayed each step in the duration fallback chain using `developer.log` with label `EditorDuration`.
+  5. Refined bottom overlay logic: eliminated duplicated volume icon, added `onChangeStart`/`onChangeEnd` to reset `Timer`, and integrated native `±10s` rewind and fast-forward quick actions.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING
+
+## Execution 19 - Task S004L (Downloaded Video Timeline Hard Fix + Overlay Control Cleanup)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Implemented deterministic pre-normalization fallback for downloaded videos with broken metadata: remux first (`-c copy -movflags +faststart`), then full re-encode (`libx264 ultrafast`).
+  2. Added `[DurationProbe]` forensics logging for every source in the fallback chain (video_player, ffprobe_field, ffprobe_output, ffprobe_logs, ffprobe_regex, mmr, media_extractor, normalization mode, final decision).
+  3. Wrapped overlay center seek-button Row in `FittedBox` to prevent RenderFlex overflow on narrow viewports (landscape).
+  4. Reduced icon sizes (36/56) and spacing (16) for better fit.
+  5. Stale normalization temp files cleaned on each init cycle.
+- **Validation:**
+  - `flutter analyze`: 1 pre-existing deprecation info only
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.5MB)
+- **Status:** QA_PENDING
+
+## Execution 20 - Task S004M (Real Root-Cause Fix for 00:00 Timeline)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Changed `_tryNormalizeVideo` return type from `String?` to `({String path, Duration duration, String mode})?` record to carry probed duration alongside path.
+  2. `_initializePlayer` now uses `normResult.duration` (probed via FFprobe) as the source-of-truth instead of trusting `newController.value.duration` which can still be 0 after normalization.
+  3. Removed duplicate volume `IconButton` inside the vertical slider popover (lines 1052-1069 in previous version). Only the bottom-bar GestureDetector icon remains.
+  4. Late-promotion listener preserved with no-downgrade guard.
+- **Validation:**
+  - `flutter analyze`: 1 pre-existing deprecation info only
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.5MB)
+- **Status:** QA_PENDING
+
+## Execution 21 - Task S004N (Quick Resync + Fix Downloaded Video Timeline 00:00)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Applied `_isUsableDuration` gate (duration >= 1000ms) across all duration checks and parsers parsing zero/tiny values.
+  2. Integrated `_isUsableDuration` checking within `_parseDurationString` for decimal parsing formats.
+  3. Ensured sanity recovery listener verifies position against usable duration and avoids recursive loops (`_durationRecoveryInProgress`).
+  4. Preserved normalized probe durations actively against incoming controller late-evaluations.
+  5. Confirmed duplicate volume icon was already scrubbed; preserved functional mute toggles and slider overlays.
+- **Validation:**
+  - `flutter analyze`: Only 1 pre-existing deprecation notice
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING
+
+## Execution 22 - Task S004O (Fix Non-Working Seek Controls)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Add unified `_seekTo` helper logging forensics via `[SeekProbe]` and clamping reliably to video bounds.
+  2. Implement native `Slider` wrapped in `SliderTheme` for reliable timeline scrubbing, overlaying transparently over the custom PlaybackTimeline visual tracks.
+  3. Paused overlay auto-hide timer dynamically via `_isScrubbing` states injected by Slider gesture delegates (`onChangeStart`/`onChangeEnd`).
+  4. Rewired `+10s`/`-10s` buttons to call `_seekTo` directly and securely refresh UI without loopbacks.
+  5. Placed hit test blockers to ensure timeline/button gestures do not trigger overlay dismissal.
+- **Validation:**
+  - `flutter analyze`: Only 1 pre-existing deprecation notice
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

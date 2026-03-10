@@ -1,9 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:image/image.dart' as img;
 import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:ffmpeg_kit_flutter_new_min/statistics.dart';
+import '../../core/services/pro_gate.dart';
+import '../io/native_video_picker.dart';
 
 import '../../core/models/export_settings.dart';
 import 'i_video_processor.dart';
@@ -46,13 +51,15 @@ class FFmpegProcessor implements IVideoProcessor {
     return _executeCommand(command, outputPath, totalMs, onProgress);
   }
 
-  /// Export with configurable settings (resolution, FPS, quality).
+  @override
   Future<String> processExport({
     required String inputPath,
     required String outputPath,
     required ExportSettings settings,
-    Duration? trimStart,
-    Duration? trimEnd,
+    required Duration trimStart,
+    required Duration trimEnd,
+    required double playbackSpeed,
+    required ExportAspectRatio aspectRatio,
     ProgressCallback? onProgress,
   }) async {
     final outFile = File(outputPath);
@@ -60,11 +67,42 @@ class FFmpegProcessor implements IVideoProcessor {
       await outFile.delete();
     }
 
+    // Detect Audio + FPS
+    int? finalFps = settings.fps;
+    bool hasAudio = false;
+
+    try {
+      final mediaInfo = await FFprobeKit.getMediaInformation(inputPath);
+      final streams = mediaInfo.getMediaInformation()?.getStreams();
+      if (streams != null) {
+        for (final stream in streams) {
+          if (stream.getType() == 'audio') {
+            hasAudio = true;
+          }
+          if (stream.getType() == 'video') {
+            final rateStr =
+                stream.getAverageFrameRate() ?? stream.getRealFrameRate();
+            if (rateStr != null && rateStr.contains('/')) {
+              final rateParts = rateStr.split('/');
+              if (rateParts.length == 2 && rateParts[1] != '0') {
+                final sourceFps =
+                    (double.parse(rateParts[0]) / double.parse(rateParts[1]))
+                        .round();
+                if (sourceFps > 0 && finalFps != null && sourceFps < finalFps) {
+                  finalFps = sourceFps;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     final parts = <String>['-y'];
     double totalDurationSecs = 0;
 
-    // Trim parameters (optional)
-    if (trimStart != null && trimEnd != null && trimEnd > trimStart) {
+    // 1. Trim parameters
+    if (trimEnd > trimStart) {
       final startSecs = trimStart.inMilliseconds / 1000.0;
       final duration =
           (trimEnd.inMilliseconds - trimStart.inMilliseconds) / 1000.0;
@@ -73,56 +111,167 @@ class FFmpegProcessor implements IVideoProcessor {
     }
 
     parts.addAll(['-i', '"$inputPath"']);
-    parts.addAll(['-map', '0:v:0', '-map', '0:a?']);
 
-    // Auto-detect and clamp FPS if needed
-    int? finalFps = settings.fps;
-    if (finalFps != null) {
+    final bool applyWatermark = !ProGate.isPro;
+    String? watermarkPath;
+    String diagnostics = '';
+    bool useTextFallback = false;
+
+    // 2. Watermark Preflight
+    if (applyWatermark) {
       try {
-        final mediaInfo = await FFprobeKit.getMediaInformation(inputPath);
-        final streams = mediaInfo.getMediaInformation()?.getStreams();
-        if (streams != null) {
-          for (final stream in streams) {
-            if (stream.getType() == 'video') {
-              final rateStr =
-                  stream.getAverageFrameRate() ?? stream.getRealFrameRate();
-              if (rateStr != null && rateStr.contains('/')) {
-                final rateParts = rateStr.split('/');
-                if (rateParts.length == 2 && rateParts[1] != '0') {
-                  final sourceFps =
-                      (double.parse(rateParts[0]) / double.parse(rateParts[1]))
-                          .round();
-                  if (sourceFps > 0 && sourceFps < finalFps!) {
-                    finalFps = sourceFps;
-                  }
-                }
-              }
+        final ByteData data = await rootBundle.load(
+          'assets/branding/logo_mark_master_1024.png',
+        );
+        final Uint8List assetBytes = data.buffer.asUint8List();
+
+        final image = img.decodePng(assetBytes);
+        if (image == null || image.width == 0 || image.height == 0) {
+          throw Exception(
+            'Watermark preflight failed: decoded width/height is zero or null',
+          );
+        }
+
+        diagnostics += 'Watermark loaded from asset.\n';
+        diagnostics += 'Asset bytes size: ${assetBytes.length}\n';
+        diagnostics += 'Decoded dimensions: ${image.width}x${image.height}\n';
+
+        final pngBytes = img.encodePng(image);
+        final String cachePath = await NativeVideoPicker.getCachePath();
+        watermarkPath = '$cachePath/watermark_runtime.png';
+        final File wFile = File(watermarkPath);
+        await wFile.writeAsBytes(pngBytes);
+
+        final finalSize = await wFile.length();
+        if (finalSize == 0) {
+          throw Exception('Watermark preflight failed: encoded file size is 0');
+        }
+        diagnostics += 'Runtime file written to: $watermarkPath\n';
+        diagnostics += 'Runtime file size: $finalSize\n';
+
+        // Additional ffprobe check to ensure the file is readable by ffmpeg
+        final wmInfo = await FFprobeKit.getMediaInformation(watermarkPath);
+        final wmStreams = wmInfo.getMediaInformation()?.getStreams();
+        bool hasWmVideo = false;
+        if (wmStreams != null) {
+          for (final stream in wmStreams) {
+            if (stream.getType() == 'video' &&
+                stream.getWidth() != null &&
+                stream.getWidth()! > 0) {
+              hasWmVideo = true;
+              diagnostics +=
+                  'FFprobe verified watermark width: ${stream.getWidth()}\n';
               break;
             }
           }
         }
-      } catch (_) {
-        // Fallback to user-selected FPS if probing fails
+        if (!hasWmVideo) {
+          throw Exception(
+            'Watermark preflight failed: FFprobe could not read video stream from PNG',
+          );
+        }
+
+        // Use robust explicit -i input without fragile flags
+        parts.addAll(['-i', '"$watermarkPath"']);
+      } catch (e) {
+        diagnostics +=
+            'WARNING: Image watermark failed: $e. Falling back to text.\n';
+        useTextFallback = true;
       }
     }
 
-    // Video codec + quality + resolution
+    final List<String> filterSegments = [];
+    String currentVideoMap = '[v_initial]';
+
+    // Graph Start
+    filterSegments.add(
+      '[0:v:0]null$currentVideoMap',
+    ); // Just a passthrough to start naming
+    String currentAudioMap = hasAudio ? '[0:a:0]' : '';
+
+    // 3. Speed
+    if (playbackSpeed != 1.0) {
+      final videoPts = 1.0 / playbackSpeed;
+      final String nextMap = '[v_speed]';
+      filterSegments.add(
+        '$currentVideoMap'
+        'setpts=$videoPts*PTS$nextMap',
+      );
+      currentVideoMap = nextMap;
+
+      if (hasAudio) {
+        final String nextAudioMap = '[a_speed]';
+        filterSegments.add(
+          '$currentAudioMap'
+          'atempo=$playbackSpeed$nextAudioMap',
+        );
+        currentAudioMap = nextAudioMap;
+      }
+      totalDurationSecs = totalDurationSecs / playbackSpeed;
+    }
+
+    // 4. Canvas (Aspect Ratio)
+    if (aspectRatio != ExportAspectRatio.source) {
+      final String nextMap = '[v_canvas]';
+
+      // Use a generic height base like 1080 to maintain quality during intermediate.
+      final targetHeight = 1080;
+      final targetWidth = (targetHeight * aspectRatio.ratio!).round();
+      final scaleFilter =
+          'scale=$targetWidth:$targetHeight:force_original_aspect_ratio=decrease,pad=$targetWidth:$targetHeight:(ow-iw)/2:(oh-ih)/2:black';
+
+      filterSegments.add('$currentVideoMap$scaleFilter$nextMap');
+      currentVideoMap = nextMap;
+    }
+
+    // 5. Final Scale configuration from Export Settings (resolution)
+    final String nextScaleMap = '[v_scaled]';
+    filterSegments.add('$currentVideoMap${settings.scaleFilter}$nextScaleMap');
+    currentVideoMap = nextScaleMap;
+
+    // 6. Watermark overlay
+    if (applyWatermark) {
+      if (!useTextFallback) {
+        // [1:v] references the second input file
+        filterSegments.add('[1:v]scale=120:-1[wm]');
+        // Apply overlay
+        final String nextMap = '[v_out]';
+        filterSegments.add(
+          '$currentVideoMap[wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20:shortest=1$nextMap',
+        );
+        currentVideoMap = nextMap;
+      } else {
+        final String nextMap = '[v_out]';
+        // Fallback text watermark
+        filterSegments.add(
+          '$currentVideoMap'
+          'drawtext=text=\'LumaCraft\':fontcolor=white@0.5:fontsize=48:x=w-tw-20:y=h-th-20$nextMap',
+        );
+        currentVideoMap = nextMap;
+      }
+    }
+
     parts.addAll([
-      '-c:v',
-      'mpeg4',
-      '-q:v',
-      '${settings.qualityValue}',
-      settings.scaleFilter,
+      '-filter_complex',
+      '"${filterSegments.join(';')}"',
+      '-map',
+      '"$currentVideoMap"',
     ]);
+
+    if (hasAudio) {
+      parts.addAll(['-map', '"$currentAudioMap"']);
+    }
+
+    parts.addAll(['-c:v', 'mpeg4', '-q:v', '${settings.qualityValue}']);
 
     if (finalFps != null) {
       parts.addAll(['-r', '$finalFps']);
     }
 
-    // Audio
-    parts.addAll(['-c:a', 'aac', '-b:a', settings.audioBitrate]);
+    if (hasAudio) {
+      parts.addAll(['-c:a', 'aac', '-b:a', settings.audioBitrate]);
+    }
 
-    // MP4 optimization (only for MP4)
     if (settings.format == ExportFormat.mp4) {
       parts.addAll(['-movflags', '+faststart']);
     }
@@ -133,7 +282,29 @@ class FFmpegProcessor implements IVideoProcessor {
         ? (totalDurationSecs * 1000).toInt()
         : 0;
 
-    return _executeCommand(parts.join(' '), outputPath, totalMs, onProgress);
+    final commandStr = parts.join(' ');
+    debugPrint('--- FFMPEG EXPORT PROFILE ---');
+    debugPrint('Watermark details:\n$diagnostics');
+    debugPrint('hasAudio: $hasAudio');
+    debugPrint('targetFps: $finalFps');
+    debugPrint('format: ${settings.format.name}');
+    debugPrint('resolution: ${settings.resolution.label}');
+    debugPrint('command: $commandStr');
+    debugPrint('----------------------------');
+
+    try {
+      return await _executeCommand(commandStr, outputPath, totalMs, onProgress);
+    } catch (e) {
+      if (e is FFmpegException) {
+        throw FFmpegException(
+          e.message,
+          e.command,
+          e.returnCode,
+          'DIAGNOSTICS:\n$diagnostics\n=== LOG TAIL ===\n${e.logTail}',
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<String> _executeCommand(
