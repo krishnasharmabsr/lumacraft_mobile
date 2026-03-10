@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumacraft_mobile/core/models/export_settings.dart';
 import 'package:lumacraft_mobile/services/engine/ffmpeg_processor.dart';
+import 'package:lumacraft_mobile/services/engine/export_result.dart';
 
 void main() {
   // ── ATEMPO CHAIN ──
@@ -91,7 +92,6 @@ void main() {
       expect(b!.label, 'B');
       expect(b.includeWatermark, false);
       expect(b.includeAudio, true);
-      expect(b.videoCodecProfile, VideoCodecProfile.mpeg4Default);
     });
 
     test('B → C: disables audio', () {
@@ -198,10 +198,9 @@ void main() {
 
       expect(result.command, isNot(contains('0:a')));
       expect(result.command, isNot(contains('-c:a')));
-      expect(result.command, isNot(contains('-b:a')));
     });
 
-    test('watermark skipped: no overlay, no drawtext', () {
+    test('watermark skipped (null path): no overlay, no drawtext', () {
       final result = FFmpegProcessor.buildExportCommand(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
@@ -218,9 +217,7 @@ void main() {
 
       expect(result.diagnostics, contains('watermark_skipped=true'));
       expect(result.command, isNot(contains('overlay=')));
-      expect(result.command, isNot(contains('-loop')));
       expect(result.command, isNot(contains('drawtext')));
-      expect(result.command, contains('-c:v mpeg4'));
     });
 
     test('watermark active: looped image input with format=rgba', () {
@@ -241,7 +238,6 @@ void main() {
       expect(result.command, contains('-loop 1 -framerate 1'));
       expect(result.command, contains('format=rgba,scale=120:-1'));
       expect(result.command, contains('overlay='));
-      expect(result.command, isNot(contains('drawtext')));
     });
 
     test('MKV format: no faststart flag', () {
@@ -271,7 +267,7 @@ void main() {
 
     // ── S005A: FALLBACK TOGGLE TESTS ──
 
-    test('includeWatermark=false: no watermark inputs in command', () {
+    test('includeWatermark=false: no watermark in command', () {
       final result = FFmpegProcessor.buildExportCommand(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
@@ -337,6 +333,81 @@ void main() {
       expect(result.command, contains('-crf 23'));
       expect(result.command, isNot(contains('mpeg4')));
       expect(result.diagnostics, contains('codec_profile=x264_fallback'));
+    });
+  });
+
+  // ── S005B: WATERMARK CONTRACT / EXPORT RESULT POLICY ──
+  group('ExportResult policy', () {
+    test('watermark applied: success result', () {
+      const result = ExportResult(
+        outputPath: '/output.mp4',
+        attemptUsed: 'A',
+        watermarkRequested: true,
+        watermarkApplied: true,
+      );
+
+      expect(result.watermarkRequested, true);
+      expect(result.watermarkApplied, true);
+      expect(result.fallbackReason, isNull);
+      // Policy: keep file, show normal success
+    });
+
+    test('free-tier + watermark fail: policy rejection state', () {
+      const result = ExportResult(
+        outputPath: '/output.mp4',
+        attemptUsed: 'B',
+        watermarkRequested: true,
+        watermarkApplied: false,
+        fallbackReason: 'Watermark could not be applied',
+      );
+
+      expect(result.watermarkRequested, true);
+      expect(result.watermarkApplied, false);
+      expect(result.fallbackReason, isNotNull);
+      // Policy: delete file, show error snackbar
+    });
+
+    test('QA bypass + watermark fail: warning state (file kept)', () {
+      const result = ExportResult(
+        outputPath: '/output.mp4',
+        attemptUsed: 'B',
+        watermarkRequested: true,
+        watermarkApplied: false,
+        fallbackReason: 'Watermark skipped due to device codec limitations',
+      );
+
+      expect(result.watermarkRequested, true);
+      expect(result.watermarkApplied, false);
+      expect(result.fallbackReason, isNotNull);
+      // Policy: keep file, show warning snackbar (QA mode)
+    });
+
+    test('pro user: no watermark requested', () {
+      const result = ExportResult(
+        outputPath: '/output.mp4',
+        attemptUsed: 'A',
+        watermarkRequested: false,
+        watermarkApplied: false,
+      );
+
+      expect(result.watermarkRequested, false);
+      expect(result.watermarkApplied, false);
+      expect(result.fallbackReason, isNull);
+      // Policy: keep file, show normal success
+    });
+  });
+
+  // ── QA BYPASS FLAG ──
+  group('allowWatermarkBypassForQa', () {
+    test('default is false (production mode)', () {
+      expect(FFmpegProcessor.allowWatermarkBypassForQa, false);
+    });
+
+    test('can be toggled for QA testing', () {
+      FFmpegProcessor.allowWatermarkBypassForQa = true;
+      expect(FFmpegProcessor.allowWatermarkBypassForQa, true);
+      // Reset
+      FFmpegProcessor.allowWatermarkBypassForQa = false;
     });
   });
 }

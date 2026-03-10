@@ -1061,7 +1061,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final outputPath =
           '$cachePath/export_${const Uuid().v4()}.${settings.extension}';
 
-      await _processor.processExport(
+      final exportResult = await _processor.processExport(
         inputPath: _workingVideoPath,
         outputPath: outputPath,
         settings: settings,
@@ -1074,17 +1074,65 @@ class _EditorScreenState extends State<EditorScreen> {
         },
       );
 
-      final success = await _ioService.saveVideoToGallery(outputPath);
+      developer.log(
+        '[ExportResult] attempt=${exportResult.attemptUsed} '
+        'watermarkRequested=${exportResult.watermarkRequested} '
+        'watermarkApplied=${exportResult.watermarkApplied} '
+        'fallbackReason=${exportResult.fallbackReason}',
+      );
 
-      if (mounted) {
-        final fileName = outputPath.split('/').last;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? 'Exported $fileName to gallery!' : 'Export failed.',
-            ),
-          ),
+      // ── WATERMARK CONTRACT ENFORCEMENT ──
+      if (exportResult.watermarkRequested && !exportResult.watermarkApplied) {
+        if (FFmpegProcessor.allowWatermarkBypassForQa) {
+          // QA bypass: keep file but warn
+          final success = await _ioService.saveVideoToGallery(
+            exportResult.outputPath,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: Colors.orange.shade800,
+                content: Text(
+                  success
+                      ? 'Exported without watermark (device compatibility fallback).'
+                      : 'Export saved but gallery save failed.',
+                ),
+              ),
+            );
+          }
+        } else {
+          // Production mode: policy failure — delete exported file
+          try {
+            final exportedFile = File(exportResult.outputPath);
+            if (await exportedFile.exists()) {
+              await exportedFile.delete();
+            }
+          } catch (_) {}
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: Colors.red,
+                content: Text('Watermark could not be applied on this device.'),
+              ),
+            );
+          }
+        }
+      } else {
+        // Normal success path (watermark applied or not required)
+        final success = await _ioService.saveVideoToGallery(
+          exportResult.outputPath,
         );
+        if (mounted) {
+          final fileName = exportResult.outputPath.split('/').last;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                success ? 'Exported $fileName to gallery!' : 'Export failed.',
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -1420,7 +1468,8 @@ class _EditorScreenState extends State<EditorScreen> {
                                                                   constraints,
                                                                 ) {
                                                                   final trackHeight =
-                                                                      constraints.maxHeight -
+                                                                      constraints
+                                                                          .maxHeight -
                                                                       20;
                                                                   final knobBottom =
                                                                       (_volume *
@@ -1434,36 +1483,32 @@ class _EditorScreenState extends State<EditorScreen> {
                                                                     behavior:
                                                                         HitTestBehavior
                                                                             .opaque,
-                                                                    onTapDown:
-                                                                        (
-                                                                          details,
-                                                                        ) {
-                                                                          _overlayTimer
-                                                                              ?.cancel();
-                                                                          _setVolumeFromVerticalDrag(
-                                                                            localDy: details
-                                                                                .localPosition
-                                                                                .dy,
-                                                                            trackHeight:
-                                                                                constraints.maxHeight,
-                                                                          );
-                                                                          _resetOverlayTimer();
-                                                                        },
+                                                                    onTapDown: (details) {
+                                                                      _overlayTimer
+                                                                          ?.cancel();
+                                                                      _setVolumeFromVerticalDrag(
+                                                                        localDy: details
+                                                                            .localPosition
+                                                                            .dy,
+                                                                        trackHeight:
+                                                                            constraints.maxHeight,
+                                                                      );
+                                                                      _resetOverlayTimer();
+                                                                    },
                                                                     onVerticalDragStart:
-                                                                        (_) => _overlayTimer
-                                                                            ?.cancel(),
-                                                                    onVerticalDragUpdate:
                                                                         (
-                                                                          details,
-                                                                        ) {
-                                                                          _setVolumeFromVerticalDrag(
-                                                                            localDy: details
-                                                                                .localPosition
-                                                                                .dy,
-                                                                            trackHeight:
-                                                                                constraints.maxHeight,
-                                                                          );
-                                                                        },
+                                                                          _,
+                                                                        ) => _overlayTimer
+                                                                            ?.cancel(),
+                                                                    onVerticalDragUpdate: (details) {
+                                                                      _setVolumeFromVerticalDrag(
+                                                                        localDy: details
+                                                                            .localPosition
+                                                                            .dy,
+                                                                        trackHeight:
+                                                                            constraints.maxHeight,
+                                                                      );
+                                                                    },
                                                                     onVerticalDragEnd:
                                                                         (_) =>
                                                                             _resetOverlayTimer(),

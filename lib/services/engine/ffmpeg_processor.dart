@@ -12,6 +12,7 @@ import '../io/native_video_picker.dart';
 
 import '../../core/models/export_settings.dart';
 import 'i_video_processor.dart';
+import 'export_result.dart';
 import 'ffmpeg_exception.dart';
 
 /// Progress callback: receives a value from 0.0 to 1.0.
@@ -25,6 +26,10 @@ enum ExportFailureType { watermark, audio, encoder, unknown }
 enum VideoCodecProfile { mpeg4Default, x264Fallback }
 
 class FFmpegProcessor implements IVideoProcessor {
+  /// Temporary QA flag: when true, allows export even if watermark
+  /// could not be applied. Set to false for production.
+  static bool allowWatermarkBypassForQa = false;
+
   @override
   Future<String> processTrim({
     required String inputPath,
@@ -360,7 +365,7 @@ class FFmpegProcessor implements IVideoProcessor {
   }
 
   @override
-  Future<String> processExport({
+  Future<ExportResult> processExport({
     required String inputPath,
     required String outputPath,
     required ExportSettings settings,
@@ -509,18 +514,32 @@ class FFmpegProcessor implements IVideoProcessor {
 
         allDiagnostics.writeln('Attempt ${attemptConfig.label}: SUCCESS');
 
-        // Log a warning if we degraded from the original intent
-        if (attemptConfig.label != 'A') {
-          debugPrint(
-            'Export succeeded on attempt ${attemptConfig.label} '
-            '(degraded from full export)',
-          );
-          if (result.watermarkSkippedMessage != null) {
-            debugPrint(result.watermarkSkippedMessage!);
-          }
-        }
+        // Determine watermark contract state
+        final watermarkWasApplied =
+            applyWatermark &&
+            attemptConfig.includeWatermark &&
+            watermarkPath != null;
+        final String? fallbackReason = applyWatermark && !watermarkWasApplied
+            ? (result.watermarkSkippedMessage ??
+                  'Watermark could not be applied')
+            : null;
 
-        return path;
+        debugPrint(
+          'Export result: attempt=${attemptConfig.label} '
+          'watermarkRequested=$applyWatermark '
+          'watermarkApplied=$watermarkWasApplied '
+          'codec=${attemptConfig.videoCodecProfile.name} '
+          'fallbackReason=$fallbackReason',
+        );
+
+        return ExportResult(
+          outputPath: path,
+          attemptUsed: attemptConfig.label,
+          watermarkRequested: applyWatermark,
+          watermarkApplied: watermarkWasApplied,
+          fallbackReason: fallbackReason,
+          diagnostics: allDiagnostics.toString(),
+        );
       } on FFmpegException catch (e) {
         final failureType = classifyFailure(e.logTail);
         allDiagnostics.writeln(
