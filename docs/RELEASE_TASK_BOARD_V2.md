@@ -11,7 +11,10 @@
 
 - [x] S003 — Export Studio + UI Polish Foundation (MERGED)
 - [x] S003H — Brand Alignment + Export Productization + Pro Gate (MERGED)
-- [x] S004 — Editing Pack A: Speed, Aspect Ratio, Watermark + S004A/B/C/D/E (QA_PENDING)
+- [x] S004 — Editing Pack A: Speed, Aspect Ratio, Watermark (QA_PENDING)
+- [x] S004E — Editor Screen Stability (Trim Pipeline Restored, Speed Slider UX).
+- [x] S004F — Trim UX Polish (Auto-preview range, Remove separate Preview button).
+- [x] S004G — Editor Playback UX Upgrade (Playable timeline, Audio controls, Landscape UI, Icon Toolbar, Native Duration Fallback).
 
 ## Phase 3: AI Capabilities
 

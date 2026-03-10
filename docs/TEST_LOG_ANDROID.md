@@ -236,3 +236,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK
   - Manual check on trim range drag resulting in auto preview play, pausing at trim end automatically.
 - **Status:** QA_PENDING
+
+## Execution 16 - Task S004H (Editor Player Controls Overlay + Downloaded Video Duration Fix)
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Duration/timeline fix for downloaded videos: hardened `_resolveDurationViaFFprobe` with `_parseDurationString` supporting decimal seconds and sexagesimal formats.
+  2. Native Android fallback: implemented `FileInputStream(path).fd` backup in `MainActivity.kt` for `MediaMetadataRetriever` if path strings fail.
+  3. Overlay UX: refactored `EditorScreen` to nest play/pause, volume slider, and playback timeline as a tap-to-toggle overlay over the VideoPlayer.
+  4. Auto-hide functionality: overlay controls gracefully auto-hide after 2.5 seconds using Dart Timers if the video is playing.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (108.4MB)
+  - Manual verification: verified duration resolution and overlay rendering.
+- **Status:** QA_PENDING

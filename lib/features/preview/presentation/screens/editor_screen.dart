@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -13,6 +14,8 @@ import '../../../../services/io/native_video_picker.dart';
 import '../../../export/presentation/widgets/export_settings_sheet.dart';
 import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
+
+enum EditorTool { none, trim, speed, canvas }
 
 class EditorScreen extends StatefulWidget {
   final String videoPath;
@@ -38,6 +41,9 @@ class _EditorScreenState extends State<EditorScreen> {
   Duration _trimStart = Duration.zero;
   Duration _trimEnd = Duration.zero;
 
+  // --- Tool Panel state ---
+  EditorTool _activeTool = EditorTool.none;
+
   // --- Speed state (preview vs applied) ---
   double _previewSpeed = 1.0;
   double _appliedSpeed = 1.0;
@@ -46,9 +52,17 @@ class _EditorScreenState extends State<EditorScreen> {
   ExportAspectRatio _previewCanvas = ExportAspectRatio.source;
   ExportAspectRatio _appliedCanvas = ExportAspectRatio.source;
 
+  // --- Audio state ---
+  double _volume = 1.0;
+  bool _isMuted = false;
+
   // --- Processing ---
   bool _isProcessing = false;
   bool _isPreviewingTrim = false;
+
+  bool _showOverlay = true;
+  Timer? _overlayTimer;
+
   String _processingLabel = '';
   double _processingProgress = -1;
 
@@ -128,6 +142,38 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  Duration? _parseDurationString(String? durationStr) {
+    if (durationStr == null || durationStr.isEmpty) return null;
+
+    // Try decimal seconds (e.g., "21.64")
+    final secs = double.tryParse(durationStr);
+    if (secs != null && secs > 0) {
+      return Duration(milliseconds: (secs * 1000).round());
+    }
+
+    // Try sexagesimal HH:MM:SS.mmm format (e.g., "00:00:21.64")
+    final parts = durationStr.split(':');
+    if (parts.length == 3) {
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = int.tryParse(parts[1]) ?? 0;
+      final sParts = parts[2].split('.');
+      final s = int.tryParse(sParts[0]) ?? 0;
+      final ms = sParts.length > 1
+          ? int.tryParse(sParts[1].padRight(3, '0').substring(0, 3)) ?? 0
+          : 0;
+
+      final duration = Duration(
+        hours: h,
+        minutes: m,
+        seconds: s,
+        milliseconds: ms,
+      );
+      if (duration.inMilliseconds > 0) return duration;
+    }
+
+    return null;
+  }
+
   /// FFprobe fallback: tries format duration, then first video stream duration.
   Future<Duration> _resolveDurationViaFFprobe(String path) async {
     try {
@@ -136,13 +182,8 @@ class _EditorScreenState extends State<EditorScreen> {
       if (media == null) return Duration.zero;
 
       // Try format-level duration
-      final formatDur = media.getDuration();
-      if (formatDur != null) {
-        final secs = double.tryParse(formatDur);
-        if (secs != null && secs > 0) {
-          return Duration(milliseconds: (secs * 1000).round());
-        }
-      }
+      final parsedFormat = _parseDurationString(media.getDuration());
+      if (parsedFormat != null) return parsedFormat;
 
       // Try stream-level duration
       final streams = media.getStreams();
@@ -152,25 +193,51 @@ class _EditorScreenState extends State<EditorScreen> {
             final props = stream.getAllProperties();
             if (props != null) {
               final streamDur = props['duration'] ?? props['tags']?['DURATION'];
-              if (streamDur != null) {
-                final secs = double.tryParse(streamDur.toString());
-                if (secs != null && secs > 0) {
-                  return Duration(milliseconds: (secs * 1000).round());
-                }
-              }
+              final parsedStream = _parseDurationString(streamDur?.toString());
+              if (parsedStream != null) return parsedStream;
             }
           }
         }
       }
     } catch (_) {}
+
+    // Final fallback: Native Android MediaMetadataRetriever
+    try {
+      final nativeDurStr = await NativeVideoPicker.getMediaDuration(path);
+      if (nativeDurStr != null) {
+        final millis = int.tryParse(nativeDurStr);
+        if (millis != null && millis > 0) {
+          return Duration(milliseconds: millis);
+        }
+      }
+    } catch (_) {}
+
     return Duration.zero;
   }
 
   @override
   void dispose() {
+    _overlayTimer?.cancel();
     _removePreviewListener();
     _controller?.dispose();
     super.dispose();
+  }
+
+  void _resetOverlayTimer() {
+    _overlayTimer?.cancel();
+    if (_controller?.value.isPlaying == true) {
+      _overlayTimer = Timer(const Duration(milliseconds: 2500), () {
+        if (mounted) setState(() => _showOverlay = false);
+      });
+    }
+  }
+
+  void _toggleOverlay() {
+    if (_isProcessing) return;
+    setState(() {
+      _showOverlay = !_showOverlay;
+    });
+    if (_showOverlay) _resetOverlayTimer();
   }
 
   void _removePreviewListener() {
@@ -196,6 +263,24 @@ class _EditorScreenState extends State<EditorScreen> {
     });
     _controller?.setPlaybackSpeed(1.0);
     _controller?.seekTo(Duration.zero);
+  }
+
+  // ────────────────────────────────────────────────────────────
+  //  AUDIO CONTROLS
+  // ────────────────────────────────────────────────────────────
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    _controller?.setVolume(_isMuted ? 0.0 : _volume);
+  }
+
+  void _setVolume(double value) {
+    setState(() {
+      _volume = value;
+      if (value > 0) _isMuted = false;
+    });
+    _controller?.setVolume(_isMuted ? 0.0 : _volume);
   }
 
   // ────────────────────────────────────────────────────────────
@@ -393,7 +478,9 @@ class _EditorScreenState extends State<EditorScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldDark,
-      appBar: _isProcessing
+      appBar:
+          _isProcessing ||
+              MediaQuery.of(context).orientation == Orientation.landscape
           ? null
           : AppBar(
               title: const Text('LumaCraft Editor'),
@@ -413,153 +500,286 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
               ],
             ),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Column(
-              children: [
-                // ── VIDEO PREVIEW ──
-                if (isReady)
-                  Flexible(
-                    flex: 3,
-                    child: Container(
-                      color: AppColors.playerBg,
-                      alignment: Alignment.center,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          AspectRatio(
-                            aspectRatio:
-                                _previewCanvas == ExportAspectRatio.source ||
-                                    _previewCanvas.ratio == null
-                                ? ctrl.value.aspectRatio
-                                : _previewCanvas.ratio!,
-                            child: VideoPlayer(ctrl),
-                          ),
-                          Positioned.fill(
-                            child: GestureDetector(
-                              onTap: _isProcessing
-                                  ? null
-                                  : () {
-                                      _removePreviewListener();
-                                      setState(() {
-                                        ctrl.value.isPlaying
-                                            ? ctrl.pause()
-                                            : ctrl.play();
-                                      });
-                                    },
-                              behavior: HitTestBehavior.translucent,
-                              child: AnimatedOpacity(
-                                opacity: ctrl.value.isPlaying ? 0.0 : 1.0,
-                                duration: const Duration(milliseconds: 200),
-                                child: Container(
-                                  color: Colors.black38,
-                                  child: const Icon(
-                                    Icons.play_circle_fill_rounded,
-                                    color: AppColors.accent,
-                                    size: 56,
-                                  ),
+      body: OrientationBuilder(
+        builder: (context, orientation) {
+          final isLandscape = orientation == Orientation.landscape;
+
+          return Stack(
+            children: [
+              SafeArea(
+                child: Flex(
+                  direction: isLandscape ? Axis.horizontal : Axis.vertical,
+                  children: [
+                    if (isReady)
+                      Flexible(
+                        flex: isLandscape ? 5 : 3,
+                        child: GestureDetector(
+                          onTap: _toggleOverlay,
+                          child: Container(
+                            color: AppColors.playerBg,
+                            alignment: Alignment.center,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                AspectRatio(
+                                  aspectRatio:
+                                      _previewCanvas ==
+                                              ExportAspectRatio.source ||
+                                          _previewCanvas.ratio == null
+                                      ? ctrl.value.aspectRatio
+                                      : _previewCanvas.ratio!,
+                                  child: VideoPlayer(ctrl),
                                 ),
-                              ),
+                                if (_showOverlay && !_isProcessing)
+                                  Positioned.fill(
+                                    child: Container(
+                                      color: Colors.black26,
+                                      child: Stack(
+                                        children: [
+                                          Center(
+                                            child: IconButton(
+                                              iconSize: 64,
+                                              color: Colors.white,
+                                              icon: Icon(
+                                                ctrl.value.isPlaying
+                                                    ? Icons.pause_circle_filled
+                                                    : Icons.play_circle_filled,
+                                              ),
+                                              onPressed: () {
+                                                _removePreviewListener();
+                                                setState(() {
+                                                  if (ctrl.value.isPlaying) {
+                                                    ctrl.pause();
+                                                    _overlayTimer?.cancel();
+                                                  } else {
+                                                    ctrl.play();
+                                                    _resetOverlayTimer();
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        AppTheme.spacingMd,
+                                                    vertical:
+                                                        AppTheme.spacingSm,
+                                                  ),
+                                              decoration: const BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    Colors.transparent,
+                                                    Colors.black87,
+                                                  ],
+                                                ),
+                                              ),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Text(
+                                                        '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 13,
+                                                          fontFeatures: [
+                                                            FontFeature.tabularFigures(),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const Spacer(),
+                                                      IconButton(
+                                                        icon: Icon(
+                                                          _isMuted ||
+                                                                  _volume == 0
+                                                              ? Icons.volume_off
+                                                              : Icons.volume_up,
+                                                          color: Colors.white,
+                                                          size: 20,
+                                                        ),
+                                                        onPressed: _toggleMute,
+                                                      ),
+                                                      SizedBox(
+                                                        width: 80,
+                                                        child: SliderTheme(
+                                                          data:
+                                                              SliderTheme.of(
+                                                                context,
+                                                              ).copyWith(
+                                                                trackHeight: 2,
+                                                                thumbShape:
+                                                                    const RoundSliderThumbShape(
+                                                                      enabledThumbRadius:
+                                                                          6,
+                                                                    ),
+                                                                overlayShape:
+                                                                    const RoundSliderOverlayShape(
+                                                                      overlayRadius:
+                                                                          10,
+                                                                    ),
+                                                              ),
+                                                          child: Slider(
+                                                            value: _volume,
+                                                            min: 0.0,
+                                                            max: 1.0,
+                                                            activeColor:
+                                                                AppColors
+                                                                    .accent,
+                                                            inactiveColor:
+                                                                Colors.white30,
+                                                            onChanged:
+                                                                _setVolume,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  PlaybackTimeline(
+                                                    controller: ctrl,
+                                                    duration: _videoDuration,
+                                                    trimStart: _trimStart,
+                                                    trimEnd: _trimEnd,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  const Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.accent),
-                    ),
-                  ),
-
-                // ── PLAYBACK BAR ──
-                if (isReady)
-                  Container(
-                    color: AppColors.surfaceDark,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.spacingLg,
-                      vertical: AppTheme.spacingSm,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          _formatDuration(ctrl.value.position),
-                          style: const TextStyle(
+                        ),
+                      )
+                    else
+                      const Expanded(
+                        flex: 3,
+                        child: Center(
+                          child: CircularProgressIndicator(
                             color: AppColors.accent,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),
-                        const Spacer(),
-                        IconButton(
-                          icon: Icon(
-                            ctrl.value.isPlaying
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                            color: AppColors.textPrimary,
-                          ),
-                          iconSize: 28,
-                          onPressed: _isProcessing
-                              ? null
-                              : () {
-                                  _removePreviewListener();
-                                  setState(() {
-                                    ctrl.value.isPlaying
-                                        ? ctrl.pause()
-                                        : ctrl.play();
-                                  });
-                                },
-                        ),
-                        const Spacer(),
-                        Text(
-                          _formatDuration(_videoDuration),
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 13,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                // ── CONTROLS ──
-                if (isReady)
-                  Expanded(
-                    flex: 4,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spacingLg,
-                        vertical: AppTheme.spacingMd,
+                    // ── TOOLBAR ICONS ──
+                    if (isReady && !_isProcessing)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppTheme.spacingSm,
+                        ),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: AppColors.divider, width: 1),
+                            bottom: BorderSide(
+                              color: AppColors.divider,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _ToolIconButton(
+                              icon: Icons.cut,
+                              label: 'Trim',
+                              isActive: _activeTool == EditorTool.trim,
+                              onPressed: () => setState(
+                                () =>
+                                    _activeTool = _activeTool == EditorTool.trim
+                                    ? EditorTool.none
+                                    : EditorTool.trim,
+                              ),
+                            ),
+                            _ToolIconButton(
+                              icon: Icons.speed,
+                              label: 'Speed',
+                              isActive: _activeTool == EditorTool.speed,
+                              onPressed: () => setState(
+                                () => _activeTool =
+                                    _activeTool == EditorTool.speed
+                                    ? EditorTool.none
+                                    : EditorTool.speed,
+                              ),
+                            ),
+                            _ToolIconButton(
+                              icon: Icons.crop,
+                              label: 'Canvas',
+                              isActive: _activeTool == EditorTool.canvas,
+                              onPressed: () => setState(
+                                () => _activeTool =
+                                    _activeTool == EditorTool.canvas
+                                    ? EditorTool.none
+                                    : EditorTool.canvas,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildTrimCard(ctrl),
-                          const SizedBox(height: AppTheme.spacingMd),
-                          _buildSpeedCard(),
-                          const SizedBox(height: AppTheme.spacingMd),
-                          _buildCanvasCard(),
-                          const SizedBox(height: AppTheme.spacingLg),
-                          _buildExportButton(),
-                          const SizedBox(height: AppTheme.spacingLg),
-                        ],
+
+                    // ── TOOL PANEL OR SPACER ──
+                    if (isReady &&
+                        !_isProcessing &&
+                        _activeTool != EditorTool.none)
+                      Expanded(
+                        flex: 4,
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(AppTheme.spacingMd),
+                          child: Column(
+                            children: [
+                              _buildActiveToolPanel(ctrl),
+                              const SizedBox(height: AppTheme.spacingLg),
+                              _buildExportButton(),
+                              const SizedBox(height: AppTheme.spacingLg),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (isReady &&
+                        !_isProcessing &&
+                        _activeTool == EditorTool.none)
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _buildExportButton(),
+                            const SizedBox(height: AppTheme.spacingLg),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (_isProcessing)
-            ProcessingOverlay(
-              label: _processingLabel,
-              progress: _processingProgress,
-            ),
-        ],
+
+                    if (_isProcessing)
+                      const Expanded(
+                        flex: 4,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (_isProcessing)
+                ProcessingOverlay(
+                  label: _processingLabel,
+                  progress: _processingProgress,
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -649,7 +869,9 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   // ── SPEED CARD ──
-  Widget _buildSpeedCard() {
+  Widget _buildSpeedCard(VideoPlayerController ctrl) {
+    // 0 = 0.25x, 1 = 0.5x, 2 = 1.0x, 3 = 2.0x, 4 = 4.0x, 5 = 8.0x
+    final speedValues = [0.25, 0.5, 1.0, 2.0, 4.0, 8.0];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -907,6 +1129,174 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  //  ACTIVE TOOL PANEL ROUTER
+  // ────────────────────────────────────────────────────────────
+  Widget _buildActiveToolPanel(VideoPlayerController ctrl) {
+    switch (_activeTool) {
+      case EditorTool.trim:
+        return _buildTrimCard(ctrl);
+      case EditorTool.speed:
+        return _buildSpeedCard(ctrl);
+      case EditorTool.canvas:
+        return _buildCanvasCard();
+      case EditorTool.none:
+        return const SizedBox.shrink();
+    }
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+//  UI COMPONENT: TOOL ICON BUTTON
+// ────────────────────────────────────────────────────────────
+class _ToolIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onPressed;
+
+  const _ToolIconButton({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 26,
+            color: isActive ? AppColors.accent : AppColors.textSecondary,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              color: isActive ? AppColors.accent : AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+//  UI COMPONENT: PLAYBACK TIMELINE WITH TRIM HIGHLIGHT
+// ────────────────────────────────────────────────────────────
+class PlaybackTimeline extends StatelessWidget {
+  final VideoPlayerController controller;
+  final Duration duration;
+  final Duration trimStart;
+  final Duration trimEnd;
+
+  const PlaybackTimeline({
+    super.key,
+    required this.controller,
+    required this.duration,
+    required this.trimStart,
+    required this.trimEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (duration.inMilliseconds == 0) return const SizedBox(height: 16);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalMillis = duration.inMilliseconds.toDouble();
+        final startRatio = totalMillis > 0
+            ? trimStart.inMilliseconds / totalMillis
+            : 0.0;
+        final endRatio = totalMillis > 0
+            ? trimEnd.inMilliseconds / totalMillis
+            : 1.0;
+        final positionRatio = totalMillis > 0
+            ? controller.value.position.inMilliseconds / totalMillis
+            : 0.0;
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (details) {
+            final double percent =
+                (details.localPosition.dx / constraints.maxWidth).clamp(
+                  0.0,
+                  1.0,
+                );
+            controller.seekTo(
+              Duration(milliseconds: (percent * totalMillis).round()),
+            );
+          },
+          onTapDown: (details) {
+            final double percent =
+                (details.localPosition.dx / constraints.maxWidth).clamp(
+                  0.0,
+                  1.0,
+                );
+            controller.seekTo(
+              Duration(milliseconds: (percent * totalMillis).round()),
+            );
+          },
+          child: Container(
+            height: 24,
+            width: double.infinity,
+            alignment: Alignment.center,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Base track
+                Container(
+                  height: 4,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                // Trim region highlight
+                Positioned(
+                  left: startRatio * constraints.maxWidth,
+                  width:
+                      (endRatio - startRatio).clamp(0.0, 1.0) *
+                      constraints.maxWidth,
+                  child: Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                // Playhead
+                Positioned(
+                  left: (positionRatio * constraints.maxWidth) - 6,
+                  top: -4,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

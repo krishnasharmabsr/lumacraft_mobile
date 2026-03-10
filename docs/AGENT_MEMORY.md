@@ -8,7 +8,7 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F (Export Hotfix/UX/Stability).
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H (Export Hotfix/UX/Stability).
 - **Active:** S005 (Video AI Generation Foundation)
 
 ## Environment Identity
