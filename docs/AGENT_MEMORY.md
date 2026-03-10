@@ -33,3 +33,7 @@
 - **Date:** 2026-03-10
 - **Branch:** `fix/s005-export-reliability-hard-fix`
 - **Memory:** S005 started — fixing export reliability: watermark FFprobe removal, drawtext removal, atempo chaining, audio mapping fix, output directory safety.
+
+## S005D Branding Consistency
+
+- **Memory:** Unified all runtime logo references. Canonical path: `assets/branding/logo_mark_master_1024.png`. Home screen now uses Image.asset with canonical PNG. Removed stale `logo_mark.png`. See `docs/BRAND_REGISTRY.md` for full contract.

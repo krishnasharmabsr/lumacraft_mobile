@@ -1,17 +1,37 @@
 # Brand Registry
 
-## Brand Attributes
+## Canonical Master Asset
 
-- **Chosen Name:** LumaCraft
-- **Locked Date:** 2026-03-10
-- **Rule:** No rename without explicit approval from core stakeholders.
+| Asset | Path | Purpose |
+|-------|------|---------|
+| Master Logo | `assets/branding/logo_mark_master_1024.png` | Single source of truth for all runtime UI and icon generation |
+| Icon Foreground | `assets/branding/ic_launcher_foreground.png` | Android adaptive icon foreground (derived from master) |
 
-## Historical Options (Rejected)
+## Runtime UI References
 
-1. VideoFlow Studio
-2. RapidClip Mobile
-3. FreeRender AI
+| Screen | Widget | Asset Path |
+|--------|--------|------------|
+| Splash | `Image.asset` in `SplashScreen` | `assets/branding/logo_mark_master_1024.png` |
+| Home | `Image.asset` in `HomeScreen` | `assets/branding/logo_mark_master_1024.png` |
+| Export watermark | `rootBundle.load` in `FFmpegProcessor` | `assets/branding/logo_mark_master_1024.png` |
 
-## Rename History
+## Android Icon Config
 
-- **2026-03-10:** Renamed from the original bootstrap name to `LumaCraft` to better reflect the lighting (Luma) and creator-focused (Craft) nature of the application, prioritizing a premium brand feel over the more aggressive sounding "cut". GitHub repository and local folders renamed to `lumacraft_mobile`.
+Defined in `pubspec.yaml` under `flutter_launcher_icons`:
+
+- `image_path`: `assets/branding/logo_mark_master_1024.png`
+- `adaptive_icon_foreground`: `assets/branding/ic_launcher_foreground.png`
+- `adaptive_icon_background`: `#16213E`
+- `adaptive_icon_monochrome`: `assets/branding/ic_launcher_foreground.png`
+
+Generated outputs in `android/app/src/main/res/`:
+
+- `mipmap-*/ic_launcher.png` — legacy raster icons
+- `drawable-*/ic_launcher_foreground.png` — adaptive foreground
+- `drawable-*/ic_launcher_monochrome.png` — monochrome
+
+## Cleanup Log
+
+| Date | Action |
+|------|--------|
+| 2026-03-10 (S005D) | Removed legacy `assets/branding/logo_mark.png` (unreferenced in runtime code). Unified home screen to use canonical master. Fixed version badge text. |

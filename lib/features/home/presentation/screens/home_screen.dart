@@ -60,13 +60,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo area
+                  // Logo area — canonical brand mark
                   Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: AppColors.accentGradient,
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.accent.withValues(alpha: 0.3),
@@ -75,10 +74,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.movie_edit,
-                      color: AppColors.scaffoldDark,
-                      size: 40,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        'assets/branding/logo_mark_master_1024.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          decoration: BoxDecoration(
+                            gradient: AppColors.accentGradient,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.movie_edit,
+                            color: AppColors.scaffoldDark,
+                            size: 40,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingXl),
@@ -170,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Version badge
                   Text(
-                    'v2.0 • Free, No Watermarks',
+                    'v2.0 • Video Studio',
                     style: TextStyle(
                       color: AppColors.textMuted.withValues(alpha: 0.6),
                       fontSize: 12,

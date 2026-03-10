@@ -47,3 +47,8 @@
 - **Date:** 2026-03-10
 - **Branch:** `fix/s005-export-reliability-hard-fix`
 - **Focus:** Export reliability hard fix — watermark pipeline, filter graph determinism, atempo chaining, audio mapping.
+
+## S005D Branding Consistency
+
+- **Date:** 2026-03-10
+- **Focus:** Unified all runtime logo references to canonical `assets/branding/logo_mark_master_1024.png`. Removed stale `logo_mark.png`. Created `docs/BRAND_REGISTRY.md`.
