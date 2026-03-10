@@ -118,3 +118,20 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter test`: All tests passed
   - `flutter build apk --debug`: OK
 - **Status:** QA_PENDING
+
+## Execution 9 - Task S003H
+
+- **Date:** 2026-03-10
+- **Changes:**
+  1. Splash screen fixed (removed ClipOval crop, used ClipRRect mapping master icon).
+  2. Single Export CTA added to Export Studio, replacing Save Copy confusion.
+  3. Quality 0-100 slider implemented and mapped to FFmpeg q:v parameters.
+  4. MKV export format option added, removing MP4 faststart flags for MKV.
+  5. FPS Picker supports 'Source' auto-detection with FFprobe clamping safety.
+  6. Pro-Gate Scaffold implemented showing Pro badges for 4K/60fps locks.
+- **Validation:**
+  - `flutter analyze`: No issues
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** QA_PENDING

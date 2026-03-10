@@ -171,18 +171,14 @@ class _EditorScreenState extends State<EditorScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => ExportSettingsSheet(
-        hasEdits: _hasEdits,
-        onExport: (settings, saveCopy) {
-          _exportWithSettings(settings, saveCopy: saveCopy);
+        onExport: (settings) {
+          _exportWithSettings(settings);
         },
       ),
     );
   }
 
-  Future<void> _exportWithSettings(
-    ExportSettings settings, {
-    bool saveCopy = false,
-  }) async {
+  Future<void> _exportWithSettings(ExportSettings settings) async {
     setState(() {
       _isProcessing = true;
       _processingLabel = 'Exporting ${settings.resolution.label}...';
@@ -191,7 +187,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
     try {
       final cachePath = await NativeVideoPicker.getCachePath();
-      final outputPath = '$cachePath/export_${const Uuid().v4()}.mp4';
+      final outputPath =
+          '$cachePath/export_${const Uuid().v4()}.${settings.extension}';
 
       await _processor.processExport(
         inputPath: _currentVideoPath,

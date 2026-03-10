@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:ffmpeg_kit_flutter_new_min/statistics.dart';
 
@@ -74,22 +75,57 @@ class FFmpegProcessor implements IVideoProcessor {
     parts.addAll(['-i', '"$inputPath"']);
     parts.addAll(['-map', '0:v:0', '-map', '0:a?']);
 
-    // Video codec + quality + resolution + FPS
+    // Auto-detect and clamp FPS if needed
+    int? finalFps = settings.fps;
+    if (finalFps != null) {
+      try {
+        final mediaInfo = await FFprobeKit.getMediaInformation(inputPath);
+        final streams = mediaInfo.getMediaInformation()?.getStreams();
+        if (streams != null) {
+          for (final stream in streams) {
+            if (stream.getType() == 'video') {
+              final rateStr =
+                  stream.getAverageFrameRate() ?? stream.getRealFrameRate();
+              if (rateStr != null && rateStr.contains('/')) {
+                final rateParts = rateStr.split('/');
+                if (rateParts.length == 2 && rateParts[1] != '0') {
+                  final sourceFps =
+                      (double.parse(rateParts[0]) / double.parse(rateParts[1]))
+                          .round();
+                  if (sourceFps > 0 && sourceFps < finalFps!) {
+                    finalFps = sourceFps;
+                  }
+                }
+              }
+              break;
+            }
+          }
+        }
+      } catch (_) {
+        // Fallback to user-selected FPS if probing fails
+      }
+    }
+
+    // Video codec + quality + resolution
     parts.addAll([
       '-c:v',
       'mpeg4',
       '-q:v',
       '${settings.qualityValue}',
       settings.scaleFilter,
-      '-r',
-      '${settings.fps}',
     ]);
+
+    if (finalFps != null) {
+      parts.addAll(['-r', '$finalFps']);
+    }
 
     // Audio
     parts.addAll(['-c:a', 'aac', '-b:a', settings.audioBitrate]);
 
-    // MP4 optimization
-    parts.addAll(['-movflags', '+faststart']);
+    // MP4 optimization (only for MP4)
+    if (settings.format == ExportFormat.mp4) {
+      parts.addAll(['-movflags', '+faststart']);
+    }
 
     parts.add('"$outputPath"');
 

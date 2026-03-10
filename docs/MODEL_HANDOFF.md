@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002/D/E/F/G (Core pipeline) merged to main. Tagged `v2.0.0-core-trim-export`.
-- **QA_PENDING:** S003/S003A/S003B (Export Studio + UI Polish + Brand + Progress + Icons) — Dark cinematic theme, animated splash, progress bar, export settings, adaptive icon pack (all densities + monochrome).
+- **QA_PENDING:** S003/S003A/S003B/S003H — Export Studio + UI Polish + Brand + Icons + Pro gate + quality slider + MKV. Single export CTA, 4K/60fps Pro badges.
 
 ## Environment Identity
 

@@ -92,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Animated logo
+              // Animated logo — clean, no ClipOval distortion
               AnimatedBuilder(
                 animation: _logoController,
                 builder: (context, child) {
@@ -108,24 +108,30 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppColors.accentGradient,
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.4),
+                        color: AppColors.accent.withValues(alpha: 0.35),
                         blurRadius: 32,
-                        spreadRadius: 8,
+                        spreadRadius: 4,
                       ),
                     ],
                   ),
-                  child: ClipOval(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
                     child: Image.asset(
-                      'assets/branding/logo_mark.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.movie_edit,
-                        color: AppColors.scaffoldDark,
-                        size: 48,
+                      'assets/branding/logo_mark_master_1024.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        decoration: BoxDecoration(
+                          gradient: AppColors.accentGradient,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Icon(
+                          Icons.movie_edit,
+                          color: AppColors.scaffoldDark,
+                          size: 48,
+                        ),
                       ),
                     ),
                   ),
