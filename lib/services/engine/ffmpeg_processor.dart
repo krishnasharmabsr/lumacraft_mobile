@@ -17,6 +17,13 @@ import 'ffmpeg_exception.dart';
 /// Progress callback: receives a value from 0.0 to 1.0.
 typedef ProgressCallback = void Function(double progress);
 
+// ────────────────────────────────────────────────────────────
+//  FAILURE CLASSIFICATION
+// ────────────────────────────────────────────────────────────
+enum ExportFailureType { watermark, audio, encoder, unknown }
+
+enum VideoCodecProfile { mpeg4Default, x264Fallback }
+
 class FFmpegProcessor implements IVideoProcessor {
   @override
   Future<String> processTrim({
@@ -40,7 +47,6 @@ class FFmpegProcessor implements IVideoProcessor {
       await outFile.delete();
     }
 
-    // Ensure output directory exists
     final outDir = outFile.parent;
     if (!await outDir.exists()) {
       await outDir.create(recursive: true);
@@ -59,8 +65,6 @@ class FFmpegProcessor implements IVideoProcessor {
 
   // ────────────────────────────────────────────────────────────
   //  ATEMPO CHAIN BUILDER
-  //  FFmpeg atempo filter only accepts values in [0.5, 2.0].
-  //  For values outside that range, chain multiple atempo filters.
   // ────────────────────────────────────────────────────────────
   static String buildAtempoChain(double speed) {
     if (speed <= 0) return 'atempo=1.0';
@@ -93,6 +97,50 @@ class FFmpegProcessor implements IVideoProcessor {
   }
 
   // ────────────────────────────────────────────────────────────
+  //  FAILURE CLASSIFIER (pure/testable)
+  // ────────────────────────────────────────────────────────────
+  static ExportFailureType classifyFailure(String logTail) {
+    final lower = logTail.toLowerCase();
+
+    // Watermark / image input failures
+    final wmPatterns = [
+      'image2',
+      'png',
+      'overlay',
+      'input #1',
+      'could not find codec parameters',
+      'error while decoding stream #1',
+    ];
+    for (final p in wmPatterns) {
+      if (lower.contains(p)) return ExportFailureType.watermark;
+    }
+
+    // Audio mapping failures
+    final audioPatterns = [
+      'stream map',
+      'matches no streams',
+      '0:a:0',
+      'invalid input stream',
+    ];
+    for (final p in audioPatterns) {
+      if (lower.contains(p)) return ExportFailureType.audio;
+    }
+
+    // Encoder failures
+    final encoderPatterns = [
+      'error initializing output stream',
+      'unknown encoder',
+      'encoder',
+      'mpeg4',
+    ];
+    for (final p in encoderPatterns) {
+      if (lower.contains(p)) return ExportFailureType.encoder;
+    }
+
+    return ExportFailureType.unknown;
+  }
+
+  // ────────────────────────────────────────────────────────────
   //  EXPORT COMMAND BUILDER (pure/testable)
   // ────────────────────────────────────────────────────────────
   static ExportCommandResult buildExportCommand({
@@ -107,7 +155,14 @@ class FFmpegProcessor implements IVideoProcessor {
     required int? finalFps,
     required bool applyWatermark,
     required String? watermarkPath,
+    bool includeWatermark = true,
+    bool includeAudio = true,
+    VideoCodecProfile videoCodecProfile = VideoCodecProfile.mpeg4Default,
   }) {
+    final effectiveAudio = hasAudio && includeAudio;
+    final effectiveWatermark =
+        applyWatermark && watermarkPath != null && includeWatermark;
+
     final parts = <String>['-y'];
     double totalDurationSecs = 0;
     String diagnostics = '';
@@ -123,14 +178,23 @@ class FFmpegProcessor implements IVideoProcessor {
 
     parts.addAll(['-i', '"$inputPath"']);
 
-    // 2. Watermark input — looped image input (no FFprobe validation)
-    bool watermarkActive = false;
-    if (applyWatermark && watermarkPath != null) {
+    // 2. Watermark input — looped image input
+    if (effectiveWatermark) {
       parts.addAll(['-loop', '1', '-framerate', '1', '-i', '"$watermarkPath"']);
-      watermarkActive = true;
       diagnostics += 'watermark_active=true path=$watermarkPath\n';
-    } else if (applyWatermark && watermarkPath == null) {
-      diagnostics += 'watermark_skipped=true reason=watermark_path_null\n';
+    } else if (applyWatermark && !effectiveWatermark) {
+      final reason = watermarkPath == null
+          ? 'watermark_path_null'
+          : 'includeWatermark=false';
+      diagnostics += 'watermark_skipped=true reason=$reason\n';
+    }
+
+    if (!includeAudio && hasAudio) {
+      diagnostics += 'audio_skipped=true reason=includeAudio=false\n';
+    }
+
+    if (videoCodecProfile == VideoCodecProfile.x264Fallback) {
+      diagnostics += 'codec_profile=x264_fallback\n';
     }
 
     final List<String> filterSegments = [];
@@ -141,7 +205,7 @@ class FFmpegProcessor implements IVideoProcessor {
 
     // Track whether audio goes through a filter graph
     bool audioFiltered = false;
-    String currentAudioLabel = '[a_speed]';
+    const String audioLabel = '[a_speed]';
 
     // 3. Speed
     if (playbackSpeed != 1.0) {
@@ -150,9 +214,9 @@ class FFmpegProcessor implements IVideoProcessor {
       filterSegments.add('${currentVideoMap}setpts=$videoPts*PTS$nextMap');
       currentVideoMap = nextMap;
 
-      if (hasAudio) {
+      if (effectiveAudio) {
         final atempoChain = buildAtempoChain(playbackSpeed);
-        filterSegments.add('[0:a:0]$atempoChain$currentAudioLabel');
+        filterSegments.add('[0:a:0]$atempoChain$audioLabel');
         audioFiltered = true;
       }
       totalDurationSecs = playbackSpeed > 0
@@ -177,7 +241,7 @@ class FFmpegProcessor implements IVideoProcessor {
     currentVideoMap = nextScaleMap;
 
     // 6. Watermark overlay
-    if (watermarkActive) {
+    if (effectiveWatermark) {
       filterSegments.add('[1:v]format=rgba,scale=120:-1[wm]');
       const String nextMap = '[v_out]';
       filterSegments.add(
@@ -194,21 +258,36 @@ class FFmpegProcessor implements IVideoProcessor {
     ]);
 
     // Audio mapping — bare stream spec for unfiltered, label for filtered
-    if (hasAudio) {
+    if (effectiveAudio) {
       if (audioFiltered) {
-        parts.addAll(['-map', '"$currentAudioLabel"']);
+        parts.addAll(['-map', '"$audioLabel"']);
       } else {
         parts.addAll(['-map', '0:a:0']);
       }
     }
 
-    parts.addAll(['-c:v', 'mpeg4', '-q:v', '${settings.qualityValue}']);
+    // Video codec
+    switch (videoCodecProfile) {
+      case VideoCodecProfile.mpeg4Default:
+        parts.addAll(['-c:v', 'mpeg4', '-q:v', '${settings.qualityValue}']);
+      case VideoCodecProfile.x264Fallback:
+        parts.addAll([
+          '-c:v',
+          'libx264',
+          '-pix_fmt',
+          'yuv420p',
+          '-preset',
+          'veryfast',
+          '-crf',
+          '23',
+        ]);
+    }
 
     if (finalFps != null) {
       parts.addAll(['-r', '$finalFps']);
     }
 
-    if (hasAudio) {
+    if (effectiveAudio) {
       parts.addAll(['-c:a', 'aac', '-b:a', settings.audioBitrate]);
     }
 
@@ -222,11 +301,62 @@ class FFmpegProcessor implements IVideoProcessor {
         ? (totalDurationSecs * 1000).toInt()
         : 0;
 
+    // Determine if watermark was skipped for user-facing message
+    String? watermarkSkippedMessage;
+    if (applyWatermark && !effectiveWatermark) {
+      watermarkSkippedMessage =
+          'Watermark skipped due to device codec limitations';
+    }
+
     return ExportCommandResult(
       command: parts.join(' '),
       totalMs: totalMs,
       diagnostics: diagnostics,
+      watermarkSkippedMessage: watermarkSkippedMessage,
     );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  //  RETRY MATRIX DECISION (pure/testable)
+  //  Given current attempt config and failure type, returns
+  //  next attempt config, or null if all retries exhausted.
+  // ────────────────────────────────────────────────────────────
+  static ExportAttemptConfig? nextAttempt(
+    ExportAttemptConfig current,
+    ExportFailureType failureType,
+  ) {
+    // A → B: disable watermark
+    if (current.includeWatermark) {
+      return ExportAttemptConfig(
+        label: 'B',
+        includeWatermark: false,
+        includeAudio: current.includeAudio,
+        videoCodecProfile: current.videoCodecProfile,
+      );
+    }
+
+    // B → C: disable audio
+    if (current.includeAudio) {
+      return ExportAttemptConfig(
+        label: 'C',
+        includeWatermark: false,
+        includeAudio: false,
+        videoCodecProfile: current.videoCodecProfile,
+      );
+    }
+
+    // C → D: x264 fallback codec
+    if (current.videoCodecProfile == VideoCodecProfile.mpeg4Default) {
+      return ExportAttemptConfig(
+        label: 'D',
+        includeWatermark: false,
+        includeAudio: false,
+        videoCodecProfile: VideoCodecProfile.x264Fallback,
+      );
+    }
+
+    // All retries exhausted
+    return null;
   }
 
   @override
@@ -245,7 +375,6 @@ class FFmpegProcessor implements IVideoProcessor {
       await outFile.delete();
     }
 
-    // Ensure output directory exists
     final outDir = outFile.parent;
     if (!await outDir.exists()) {
       await outDir.create(recursive: true);
@@ -323,49 +452,107 @@ class FFmpegProcessor implements IVideoProcessor {
       }
     }
 
-    final result = buildExportCommand(
-      inputPath: inputPath,
-      outputPath: outputPath,
-      settings: settings,
-      trimStart: trimStart,
-      trimEnd: trimEnd,
-      playbackSpeed: playbackSpeed,
-      aspectRatio: aspectRatio,
-      hasAudio: hasAudio,
-      finalFps: finalFps,
-      applyWatermark: applyWatermark,
-      watermarkPath: watermarkPath,
+    // ────────────────────────────────────────────────────────
+    //  MULTI-ATTEMPT EXPORT EXECUTION (A → B → C → D)
+    // ────────────────────────────────────────────────────────
+    var attemptConfig = ExportAttemptConfig(
+      label: 'A',
+      includeWatermark: true,
+      includeAudio: true,
+      videoCodecProfile: VideoCodecProfile.mpeg4Default,
     );
 
-    final fullDiagnostics = '$wmDiagnostics${result.diagnostics}';
+    final allDiagnostics = StringBuffer(wmDiagnostics);
+    FFmpegException? lastError;
 
-    debugPrint('--- FFMPEG EXPORT PROFILE ---');
-    debugPrint('Diagnostics:\n$fullDiagnostics');
-    debugPrint('hasAudio: $hasAudio');
-    debugPrint('targetFps: $finalFps');
-    debugPrint('format: ${settings.format.name}');
-    debugPrint('resolution: ${settings.resolution.label}');
-    debugPrint('command: ${result.command}');
-    debugPrint('----------------------------');
-
-    try {
-      return await _executeCommand(
-        result.command,
-        outputPath,
-        result.totalMs,
-        onProgress,
+    while (true) {
+      final result = buildExportCommand(
+        inputPath: inputPath,
+        outputPath: outputPath,
+        settings: settings,
+        trimStart: trimStart,
+        trimEnd: trimEnd,
+        playbackSpeed: playbackSpeed,
+        aspectRatio: aspectRatio,
+        hasAudio: hasAudio,
+        finalFps: finalFps,
+        applyWatermark: applyWatermark,
+        watermarkPath: watermarkPath,
+        includeWatermark: attemptConfig.includeWatermark,
+        includeAudio: attemptConfig.includeAudio,
+        videoCodecProfile: attemptConfig.videoCodecProfile,
       );
-    } catch (e) {
-      if (e is FFmpegException) {
-        throw FFmpegException(
-          e.message,
-          e.command,
-          e.returnCode,
-          'DIAGNOSTICS:\n$fullDiagnostics\n=== LOG TAIL ===\n${e.logTail}',
+
+      allDiagnostics.writeln('--- Attempt ${attemptConfig.label} ---');
+      allDiagnostics.writeln(result.diagnostics);
+
+      debugPrint('--- FFMPEG EXPORT ATTEMPT ${attemptConfig.label} ---');
+      debugPrint('Diagnostics:\n${result.diagnostics}');
+      debugPrint(
+        'hasAudio: $hasAudio, includeAudio: ${attemptConfig.includeAudio}',
+      );
+      debugPrint('includeWatermark: ${attemptConfig.includeWatermark}');
+      debugPrint('codec: ${attemptConfig.videoCodecProfile.name}');
+      debugPrint('command: ${result.command}');
+
+      // Clean output file before each attempt
+      final outF = File(outputPath);
+      if (await outF.exists()) await outF.delete();
+
+      try {
+        final path = await _executeCommand(
+          result.command,
+          outputPath,
+          result.totalMs,
+          onProgress,
         );
+
+        allDiagnostics.writeln('Attempt ${attemptConfig.label}: SUCCESS');
+
+        // Log a warning if we degraded from the original intent
+        if (attemptConfig.label != 'A') {
+          debugPrint(
+            'Export succeeded on attempt ${attemptConfig.label} '
+            '(degraded from full export)',
+          );
+          if (result.watermarkSkippedMessage != null) {
+            debugPrint(result.watermarkSkippedMessage!);
+          }
+        }
+
+        return path;
+      } on FFmpegException catch (e) {
+        final failureType = classifyFailure(e.logTail);
+        allDiagnostics.writeln(
+          'Attempt ${attemptConfig.label}: FAILED '
+          '(type=$failureType, code=${e.returnCode})',
+        );
+
+        debugPrint(
+          'Export attempt ${attemptConfig.label} FAILED: '
+          'type=$failureType, code=${e.returnCode}',
+        );
+
+        lastError = e;
+
+        // Try next attempt
+        final next = nextAttempt(attemptConfig, failureType);
+        if (next == null) {
+          // All retries exhausted
+          break;
+        }
+        attemptConfig = next;
       }
-      rethrow;
     }
+
+    // All attempts failed — throw with accumulated diagnostics
+    throw FFmpegException(
+      'Export failed after all retry attempts (A/B/C/D)',
+      lastError.command,
+      lastError.returnCode,
+      'FULL DIAGNOSTICS:\n$allDiagnostics\n'
+          '=== LAST LOG TAIL ===\n${lastError.logTail}',
+    );
   }
 
   Future<String> _executeCommand(
@@ -374,18 +561,16 @@ class FFmpegProcessor implements IVideoProcessor {
     int totalDurationMs,
     ProgressCallback? onProgress,
   ) async {
-    // Use a Completer to properly wait for async execution to finish
     final completer = Completer<void>();
 
     final session = await FFmpegKit.executeAsync(
       command,
-      // Completion callback — signals that FFmpeg has finished
       (session) {
         if (!completer.isCompleted) {
           completer.complete();
         }
       },
-      null, // Log callback
+      null,
       totalDurationMs > 0 && onProgress != null
           ? (Statistics statistics) {
               final time = statistics.getTime();
@@ -397,7 +582,6 @@ class FFmpegProcessor implements IVideoProcessor {
           : null,
     );
 
-    // Wait for the completion callback to fire
     await completer.future;
 
     final returnCode = await session.getReturnCode();
@@ -417,11 +601,28 @@ class FFmpegProcessor implements IVideoProcessor {
       );
     }
 
-    // Ensure 100% on completion
     onProgress?.call(1.0);
-
     return outputPath;
   }
+}
+
+// ────────────────────────────────────────────────────────────
+//  DATA CLASSES
+// ────────────────────────────────────────────────────────────
+
+/// Configuration for a single export attempt.
+class ExportAttemptConfig {
+  final String label;
+  final bool includeWatermark;
+  final bool includeAudio;
+  final VideoCodecProfile videoCodecProfile;
+
+  const ExportAttemptConfig({
+    required this.label,
+    required this.includeWatermark,
+    required this.includeAudio,
+    required this.videoCodecProfile,
+  });
 }
 
 /// Result from [FFmpegProcessor.buildExportCommand].
@@ -429,10 +630,12 @@ class ExportCommandResult {
   final String command;
   final int totalMs;
   final String diagnostics;
+  final String? watermarkSkippedMessage;
 
   const ExportCommandResult({
     required this.command,
     required this.totalMs,
     required this.diagnostics,
+    this.watermarkSkippedMessage,
   });
 }
