@@ -35,15 +35,14 @@ class _EditorScreenState extends State<EditorScreen> {
   final MediaIoService _ioService = MediaIoService();
 
   late String _workingVideoPath;
+  late String _playbackVideoPath;
 
   // --- Timeline ---
   Duration _videoDuration = Duration.zero;
   bool _isTimelineInvalid = false;
 
-  // --- Proxy / Seek ---
-  String? _previewProxyPath;
-  Duration _previewDuration = Duration.zero;
-  double _durationRatio = 1.0;
+  // --- Playback ---
+  String _playbackSourceKind = 'working';
 
   // --- Trim state ---
   Duration _trimStart = Duration.zero;
@@ -72,14 +71,16 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _showVolumeSlider = false;
   bool _isScrubbing = false;
   bool _seekInProgress = false;
-  Duration? _queuedSeekTarget;
+  ({Duration target, String source, bool? resumePlayback})? _queuedSeekRequest;
   Duration? _pendingScrubTarget;
+  bool _resumePlaybackAfterScrub = false;
   Timer? _overlayTimer;
 
   String _processingLabel = '';
   double _processingProgress = -1;
 
   VoidCallback? _previewListener;
+  VoidCallback? _controllerListener;
 
   bool get _hasEdits {
     if (!_isUsableDuration(_videoDuration)) return false;
@@ -91,14 +92,13 @@ class _EditorScreenState extends State<EditorScreen> {
         _appliedCanvas != ExportAspectRatio.source;
   }
 
-  bool _durationRecoveryInProgress = false;
-
   bool _isUsableDuration(Duration d) => d.inMilliseconds >= 1000;
 
   @override
   void initState() {
     super.initState();
     _workingVideoPath = widget.videoPath;
+    _playbackVideoPath = widget.videoPath;
     _initializePlayer(_workingVideoPath);
   }
 
@@ -107,6 +107,20 @@ class _EditorScreenState extends State<EditorScreen> {
   // ────────────────────────────────────────────────────────────
   Future<void> _initializePlayer(String path, {bool keepEdits = false}) async {
     final oldController = _controller;
+    _removePreviewListener();
+
+    if (mounted) {
+      setState(() {
+        _isProcessing = true;
+        _processingLabel = 'Preparing playback...';
+        _processingProgress = -1;
+      });
+    }
+
+    final playbackSource = await _preparePlaybackSource(path);
+    path = playbackSource.path;
+    _playbackVideoPath = path;
+    _playbackSourceKind = playbackSource.kind;
 
     var newController = VideoPlayerController.file(File(path));
     await newController.initialize();
@@ -127,7 +141,8 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     // ── Normalization fallback if duration is still unusable ──
-    if (!_isUsableDuration(resolvedDuration)) {
+    if (playbackSource.kind == '__legacy__' &&
+        !_isUsableDuration(resolvedDuration)) {
       developer.log(
         'normalization_triggered=yes, all probes failed or returned tiny duration, attempting normalization',
         name: '[DurationProbe]',
@@ -142,7 +157,7 @@ class _EditorScreenState extends State<EditorScreen> {
         });
       }
 
-      final normResult = await _tryNormalizeVideo(path);
+      final normResult = null;
 
       if (mounted) {
         setState(() {
@@ -172,7 +187,16 @@ class _EditorScreenState extends State<EditorScreen> {
         );
       }
     } else {
-      developer.log('normalization_triggered=no', name: '[DurationProbe]');
+      developer.log(
+        'normalization_triggered=${playbackSource.kind != 'working'}, kind=${playbackSource.kind}',
+        name: '[DurationProbe]',
+      );
+    }
+
+    if (!_isUsableDuration(resolvedDuration) &&
+        _isUsableDuration(playbackSource.duration)) {
+      resolvedDuration = playbackSource.duration;
+      winningSource = playbackSource.durationSource;
     }
 
     developer.log(
@@ -195,7 +219,7 @@ class _EditorScreenState extends State<EditorScreen> {
       });
     }
 
-    await _generatePreviewProxy(_workingVideoPath);
+    // No proxy generation: UI seek math stays on the active playback source.
 
     if (mounted) {
       setState(() {
@@ -204,33 +228,11 @@ class _EditorScreenState extends State<EditorScreen> {
       });
     }
 
-    VideoPlayerController activeCtrl;
-
-    if (_previewProxyPath != null && File(_previewProxyPath!).existsSync()) {
-      newController.dispose();
-      activeCtrl = VideoPlayerController.file(File(_previewProxyPath!));
-      await activeCtrl.initialize();
-      _previewDuration = activeCtrl.value.duration;
-
-      if (_previewDuration.inMilliseconds < 1000) {
-        _previewDuration = _videoDuration;
-      }
-
-      _durationRatio =
-          _videoDuration.inMilliseconds / _previewDuration.inMilliseconds;
-      developer.log(
-        'proxy_success: working=${_videoDuration.inMilliseconds}ms, preview=${_previewDuration.inMilliseconds}ms, ratio=$_durationRatio',
-        name: '[DurationProbe]',
-      );
-    } else {
-      activeCtrl = newController;
-      _previewDuration = _videoDuration;
-      _durationRatio = 1.0;
-      developer.log(
-        'proxy_failed: falling back to original source for playback',
-        name: '[DurationProbe]',
-      );
-    }
+    final activeCtrl = newController;
+    developer.log(
+      'active playback source=$_playbackVideoPath, resolvedMs=${_videoDuration.inMilliseconds}, kind=$_playbackSourceKind',
+      name: '[DurationProbe]',
+    );
 
     final timelineInvalid = !_isUsableDuration(_videoDuration);
 
@@ -253,75 +255,12 @@ class _EditorScreenState extends State<EditorScreen> {
       });
     }
 
-    activeCtrl.addListener(() async {
-      if (!mounted) return;
-
-      final pos = activeCtrl.value.position;
-      final reportedDur = activeCtrl.value.duration;
-
-      // 1. Late promotion
-      if (!_isUsableDuration(_previewDuration) &&
-          _isUsableDuration(reportedDur)) {
-        developer.log(
-          'video_player late update: ${reportedDur.inMilliseconds}ms',
-          name: '[DurationProbe]',
-        );
-        _previewDuration = reportedDur;
-        // Recalculate ratio if proxy exists, otherwise sync working duration
-        if (_previewProxyPath == null) {
-          _videoDuration = reportedDur;
-        } else {
-          _durationRatio =
-              _videoDuration.inMilliseconds / _previewDuration.inMilliseconds;
-        }
-        _isTimelineInvalid = false;
-        if (!_isUsableDuration(_trimEnd)) {
-          _trimEnd = _videoDuration;
-        }
-        setState(() {});
-      } else {
-        setState(() {});
-      }
-
-      // 2. Position-vs-duration sanity recovery
-      if (!_durationRecoveryInProgress &&
-          _isUsableDuration(pos) &&
-          _isUsableDuration(_previewDuration) &&
-          pos.inMilliseconds > _previewDuration.inMilliseconds + 500) {
-        developer.log(
-          'sanity_recovery_triggered: pos=${pos.inMilliseconds}ms > dur=${_previewDuration.inMilliseconds}ms',
-          name: '[DurationProbe]',
-        );
-        _durationRecoveryInProgress = true;
-
-        if (_isUsableDuration(reportedDur) &&
-            reportedDur.inMilliseconds > _previewDuration.inMilliseconds) {
-          _previewDuration = reportedDur;
-          if (_previewProxyPath == null) {
-            _videoDuration = reportedDur;
-            _trimEnd = reportedDur;
-          } else {
-            _durationRatio =
-                _videoDuration.inMilliseconds / _previewDuration.inMilliseconds;
-          }
-          _isTimelineInvalid = false;
-          developer.log(
-            'sanity_recovered_from_controller',
-            name: '[DurationProbe]',
-          );
-          setState(() {});
-        } else {
-          developer.log(
-            'sanity_requires_renormalization',
-            name: '[DurationProbe]',
-          );
-          _initializePlayer(_workingVideoPath, keepEdits: true);
-        }
-      }
-    });
+    _detachControllerListener(oldController);
+    _attachControllerListener(activeCtrl);
 
     if (!timelineInvalid) {
       activeCtrl.play();
+      _resetOverlayTimer();
     }
     oldController?.dispose();
 
@@ -338,42 +277,6 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
-  Future<void> _generatePreviewProxy(String inputPath) async {
-    final cacheDir = File(inputPath).parent;
-    final uuid = const Uuid().v4().substring(0, 8);
-    final proxyPath = '${cacheDir.path}/preview_proxy_$uuid.mp4';
-
-    try {
-      final session = await FFmpegKit.execute(
-        '-y -fflags +genpts -i "$inputPath" '
-        '-map 0:v:0 -map 0:a? '
-        '-vf "scale=-2:720,format=yuv420p" '
-        '-c:v libx264 -preset ultrafast -crf 28 '
-        '-g 1 -keyint_min 1 -sc_threshold 0 '
-        '-c:a aac -b:a 96k '
-        '-movflags +faststart "$proxyPath"',
-      );
-      final rc = await session.getReturnCode();
-      if (ReturnCode.isSuccess(rc) && File(proxyPath).existsSync()) {
-        final proxyDur = await _quickProbeDuration(proxyPath);
-        if (_isUsableDuration(proxyDur)) {
-          _previewProxyPath = proxyPath;
-          return;
-        }
-        developer.log(
-          'proxy_generated_but_invalid_duration=${proxyDur.inMilliseconds}ms',
-          name: '[DurationProbe]',
-        );
-        _previewProxyPath = null;
-      } else {
-        _previewProxyPath = null;
-      }
-    } catch (e) {
-      developer.log('proxy_error: $e', name: '[DurationProbe]');
-      _previewProxyPath = null;
-    }
-  }
-
   /// Try remux first, then re-encode. Returns record with path, probed duration, and mode; or null.
   Future<({String path, Duration duration, String mode})?> _tryNormalizeVideo(
     String inputPath,
@@ -387,7 +290,8 @@ class _EditorScreenState extends State<EditorScreen> {
           .whereType<File>()
           .where((f) {
             final name = f.uri.pathSegments.last;
-            return name.startsWith('norm_') && name.endsWith('.mp4');
+            return (name.startsWith('playback_') || name.startsWith('norm_')) &&
+                name.endsWith('.mp4');
           })
           .forEach((f) {
             try {
@@ -396,8 +300,8 @@ class _EditorScreenState extends State<EditorScreen> {
           });
     } catch (_) {}
 
-    final remuxPath = '${cacheDir.path}/norm_remux_$uuid.mp4';
-    final reencPath = '${cacheDir.path}/norm_reenc_$uuid.mp4';
+    final remuxPath = '${cacheDir.path}/playback_remux_$uuid.mp4';
+    final reencPath = '${cacheDir.path}/playback_reenc_$uuid.mp4';
 
     // 1) Remux attempt
     try {
@@ -660,120 +564,264 @@ class _EditorScreenState extends State<EditorScreen> {
     return (duration: Duration.zero, source: 'none');
   }
 
+  Future<({String path, Duration duration, String durationSource, String kind})>
+  _preparePlaybackSource(String inputPath) async {
+    var resolvedDuration = await _quickProbeDuration(inputPath);
+    var durationSource = _isUsableDuration(resolvedDuration)
+        ? 'ffprobe_field'
+        : 'none';
+    var playbackPath = inputPath;
+    var playbackKind = 'working';
+
+    if (!_isUsableDuration(resolvedDuration)) {
+      final fallback = await _resolveDurationFallback(inputPath);
+      resolvedDuration = fallback.duration;
+      durationSource = fallback.source;
+    }
+
+    final shouldNormalize = _shouldNormalizePlaybackSource(
+      inputPath,
+      duration: resolvedDuration,
+      durationSource: durationSource,
+    );
+
+    developer.log(
+      'prepare path=$inputPath, durationMs=${resolvedDuration.inMilliseconds}, durationSource=$durationSource, normalize=$shouldNormalize',
+      name: '[DurationProbe]',
+    );
+
+    if (shouldNormalize) {
+      final normResult = await _tryNormalizeVideo(inputPath);
+      if (normResult != null && _isUsableDuration(normResult.duration)) {
+        playbackPath = normResult.path;
+        resolvedDuration = normResult.duration;
+        durationSource = 'normalized_probe_${normResult.mode}';
+        playbackKind = normResult.mode;
+      }
+    }
+
+    return (
+      path: playbackPath,
+      duration: resolvedDuration,
+      durationSource: durationSource,
+      kind: playbackKind,
+    );
+  }
+
+  bool _shouldNormalizePlaybackSource(
+    String path, {
+    required Duration duration,
+    required String durationSource,
+  }) {
+    if (_isEditorManagedPlaybackSource(path)) {
+      return !_isUsableDuration(duration);
+    }
+
+    final lowerPath = path.toLowerCase();
+    return !lowerPath.endsWith('.mp4') ||
+        !_isUsableDuration(duration) ||
+        durationSource != 'video_player' ||
+        lowerPath.contains('working_');
+  }
+
+  bool _isEditorManagedPlaybackSource(String path) {
+    final name = File(path).uri.pathSegments.last.toLowerCase();
+    return name.startsWith('trim_') ||
+        name.startsWith('playback_remux_') ||
+        name.startsWith('playback_reenc_') ||
+        name.startsWith('norm_') ||
+        name.startsWith('export_');
+  }
+
+  void _attachControllerListener(VideoPlayerController controller) {
+    _controllerListener = () {
+      if (!mounted) return;
+
+      final reportedDuration = controller.value.duration;
+      if (_isUsableDuration(reportedDuration) &&
+          reportedDuration.inMilliseconds > _videoDuration.inMilliseconds) {
+        developer.log(
+          'controller duration promotion: ${reportedDuration.inMilliseconds}ms',
+          name: '[DurationProbe]',
+        );
+        _videoDuration = reportedDuration;
+        if (_trimEnd > _videoDuration) {
+          _trimEnd = _videoDuration;
+        }
+        _isTimelineInvalid = false;
+      }
+
+      setState(() {});
+    };
+    controller.addListener(_controllerListener!);
+  }
+
+  void _detachControllerListener(VideoPlayerController? controller) {
+    if (_controllerListener != null && controller != null) {
+      controller.removeListener(_controllerListener!);
+    }
+    _controllerListener = null;
+  }
+
   @override
   void dispose() {
     _overlayTimer?.cancel();
     _removePreviewListener();
+    _detachControllerListener(_controller);
     _controller?.dispose();
     super.dispose();
   }
 
-  Duration _mapWorkingToPreview(Duration working) {
-    if (_durationRatio <= 0) return working;
-    return Duration(
-      milliseconds: (working.inMilliseconds / _durationRatio).round(),
-    );
+  Duration _clampToTimeline(Duration target) {
+    var clamped = target;
+    if (clamped < Duration.zero) clamped = Duration.zero;
+    if (_isUsableDuration(_videoDuration) && clamped > _videoDuration) {
+      clamped = _videoDuration;
+    }
+    return clamped;
   }
 
-  Duration _mapPreviewToWorking(Duration preview) {
-    if (_durationRatio <= 0) return preview;
-    return Duration(
-      milliseconds: (preview.inMilliseconds * _durationRatio).round(),
+  Future<bool> _waitForSeekVerification(
+    VideoPlayerController controller,
+    Duration target,
+  ) async {
+    for (int i = 0; i < 10; i++) {
+      await Future.delayed(const Duration(milliseconds: 50));
+      final diff =
+          (controller.value.position.inMilliseconds - target.inMilliseconds)
+              .abs();
+      if (diff <= 200) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Duration _nearTargetFallback(Duration target) {
+    if (target <= const Duration(milliseconds: 250)) {
+      return const Duration(milliseconds: 250);
+    }
+    final fallback = target - const Duration(milliseconds: 250);
+    return _clampToTimeline(fallback);
+  }
+
+  Future<bool> _hardReinitializeSeek(
+    Duration target, {
+    required bool resumePlayback,
+  }) async {
+    final oldController = _controller;
+    if (_playbackVideoPath.isEmpty) return false;
+
+    try {
+      final newController = VideoPlayerController.file(
+        File(_playbackVideoPath),
+      );
+      await newController.initialize();
+      await newController.setVolume(_isMuted ? 0.0 : _volume);
+      await newController.setPlaybackSpeed(_previewSpeed);
+      await newController.seekTo(target);
+
+      final verified = await _waitForSeekVerification(newController, target);
+      _detachControllerListener(oldController);
+      _attachControllerListener(newController);
+
+      if (mounted) {
+        setState(() {
+          _controller = newController;
+        });
+      } else {
+        _controller = newController;
+      }
+
+      await oldController?.dispose();
+
+      if (verified && resumePlayback) {
+        await newController.play();
+        _resetOverlayTimer();
+      }
+      return verified;
+    } catch (e) {
+      developer.log('hard_reinit_error: $e', name: '[SeekProbe]');
+      return false;
+    }
+  }
+
+  Future<bool> _runVerifiedSeek(
+    Duration target, {
+    required String source,
+    bool? resumePlayback,
+  }) async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return false;
+
+    final clampedTarget = _clampToTimeline(target);
+    final wasPlaying = controller.value.isPlaying;
+    final shouldResume = resumePlayback ?? wasPlaying;
+
+    await controller.pause();
+    await controller.seekTo(clampedTarget);
+
+    var success = await _waitForSeekVerification(controller, clampedTarget);
+    if (!success) {
+      final fallbackTarget = _nearTargetFallback(clampedTarget);
+      await controller.seekTo(fallbackTarget);
+      success = await _waitForSeekVerification(controller, fallbackTarget);
+    }
+
+    if (!success) {
+      success = await _hardReinitializeSeek(
+        clampedTarget,
+        resumePlayback: shouldResume,
+      );
+    } else if (shouldResume && _controller != null) {
+      await _controller!.play();
+      _resetOverlayTimer();
+    }
+
+    final finalPosition = _controller?.value.position ?? Duration.zero;
+    developer.log(
+      'source=$source, requestedMs=${target.inMilliseconds}, clampedMs=${clampedTarget.inMilliseconds}, finalMs=${finalPosition.inMilliseconds}, ${success ? 'success' : 'fail'}',
+      name: '[SeekProbe]',
     );
+
+    if (mounted) {
+      setState(() {});
+    }
+    return success;
   }
 
   Future<void> _seekTo(
-    Duration targetWorking, {
+    Duration target, {
     String source = '',
-    bool settle = true,
+    bool? resumePlayback,
   }) async {
     if (_controller == null || !_controller!.value.isInitialized) return;
 
-    Duration clampedWorking = targetWorking;
-    if (clampedWorking < Duration.zero) clampedWorking = Duration.zero;
-    if (clampedWorking > _videoDuration) clampedWorking = _videoDuration;
+    final request = (
+      target: _clampToTimeline(target),
+      source: source,
+      resumePlayback: resumePlayback,
+    );
 
     if (_seekInProgress) {
-      _queuedSeekTarget = clampedWorking;
+      _queuedSeekRequest = request;
       return;
     }
 
     _seekInProgress = true;
     try {
-      Duration nextTarget = clampedWorking;
-      String nextSource = source;
-
+      var nextRequest = request;
       while (true) {
-        if (_controller == null || !_controller!.value.isInitialized) break;
-
-        final targetPreviewRaw = _mapWorkingToPreview(nextTarget);
-        Duration targetPreview = targetPreviewRaw;
-        if (targetPreview < Duration.zero) targetPreview = Duration.zero;
-        if (_isUsableDuration(_previewDuration) &&
-            targetPreview > _previewDuration) {
-          targetPreview = _previewDuration;
-        }
-        final wasPlaying = _controller!.value.isPlaying;
-
-        developer.log(
-          'source=$nextSource, reqWorking=${nextTarget.inMilliseconds}ms, '
-          'targetPreview=${targetPreview.inMilliseconds}ms, settle=$settle',
-          name: '[SeekProbe]',
+        await _runVerifiedSeek(
+          nextRequest.target,
+          source: nextRequest.source,
+          resumePlayback: nextRequest.resumePlayback,
         );
 
-        if (settle && wasPlaying) {
-          await _controller!.pause();
-        }
-
-        await _controller!.seekTo(targetPreview);
-
-        bool settledOk = true;
-        if (settle) {
-          settledOk = false;
-          for (int i = 0; i < 10; i++) {
-            await Future.delayed(const Duration(milliseconds: 50));
-            if (!mounted || _controller == null) break;
-            final currentPreview = _controller!.value.position;
-            final diff =
-                (currentPreview.inMilliseconds - targetPreview.inMilliseconds)
-                    .abs();
-            if (diff < 200) {
-              settledOk = true;
-              break;
-            }
-          }
-
-          if (!settledOk && mounted && _controller != null) {
-            final fallbackPreview =
-                targetPreview > const Duration(milliseconds: 250)
-                ? targetPreview - const Duration(milliseconds: 250)
-                : Duration.zero;
-            await _controller!.seekTo(fallbackPreview);
-          }
-        }
-
-        if (mounted && _controller != null) {
-          final finalPreview = _controller!.value.position;
-          final finalWorking = _mapPreviewToWorking(finalPreview);
-          final delta =
-              finalWorking.inMilliseconds - nextTarget.inMilliseconds;
-          developer.log(
-            'seek_result: source=$nextSource, actualWorking=${finalWorking.inMilliseconds}ms, '
-            'delta=${delta}ms, settled=$settledOk',
-            name: '[SeekProbe]',
-          );
-
-          if (settle && wasPlaying) {
-            await _controller!.play();
-          }
-          setState(() {});
-        }
-
-        final queued = _queuedSeekTarget;
-        _queuedSeekTarget = null;
+        final queued = _queuedSeekRequest;
+        _queuedSeekRequest = null;
         if (queued == null) break;
-        nextTarget = queued;
-        nextSource = 'queued_seek';
+        nextRequest = queued;
       }
     } finally {
       _seekInProgress = false;
@@ -822,7 +870,9 @@ class _EditorScreenState extends State<EditorScreen> {
       _appliedCanvas = ExportAspectRatio.source;
     });
     _controller?.setPlaybackSpeed(1.0);
-    _controller?.seekTo(Duration.zero);
+    unawaited(
+      _seekTo(Duration.zero, source: 'reset_edits', resumePlayback: false),
+    );
   }
 
   // ────────────────────────────────────────────────────────────
@@ -851,22 +901,30 @@ class _EditorScreenState extends State<EditorScreen> {
     if (ctrl == null || _isTimelineInvalid) return;
 
     _removePreviewListener();
-    ctrl.seekTo(_mapWorkingToPreview(_trimStart));
-    ctrl.setPlaybackSpeed(_previewSpeed);
-    ctrl.play();
-    _isPreviewingTrim = true;
+    unawaited(
+      _seekTo(
+        _trimStart,
+        source: 'trim_preview_start',
+        resumePlayback: false,
+      ).then((_) {
+        final activeCtrl = _controller;
+        if (!mounted || activeCtrl == null || _isTimelineInvalid) return;
+        activeCtrl.setPlaybackSpeed(_previewSpeed);
+        activeCtrl.play();
+        _isPreviewingTrim = true;
 
-    _previewListener = () {
-      if (!mounted || !_isPreviewingTrim) return;
-      final posWork = _mapPreviewToWorking(ctrl.value.position);
-      if (posWork >= _trimEnd) {
-        ctrl.pause();
-        _removePreviewListener();
-        if (mounted) setState(() {});
-      }
-    };
-    ctrl.addListener(_previewListener!);
-    setState(() {});
+        _previewListener = () {
+          if (!mounted || !_isPreviewingTrim) return;
+          if (activeCtrl.value.position >= _trimEnd) {
+            activeCtrl.pause();
+            _removePreviewListener();
+            if (mounted) setState(() {});
+          }
+        };
+        activeCtrl.addListener(_previewListener!);
+        setState(() {});
+      }),
+    );
   }
 
   Future<void> _processTrim() async {
@@ -1111,12 +1169,8 @@ class _EditorScreenState extends State<EditorScreen> {
                                                     color: Colors.white,
                                                     onPressed: () async {
                                                       _removePreviewListener();
-                                                      final posWork =
-                                                          _mapPreviewToWorking(
-                                                            ctrl.value.position,
-                                                          );
                                                       await _seekTo(
-                                                        posWork -
+                                                        ctrl.value.position -
                                                             const Duration(
                                                               seconds: 10,
                                                             ),
@@ -1161,12 +1215,8 @@ class _EditorScreenState extends State<EditorScreen> {
                                                     color: Colors.white,
                                                     onPressed: () async {
                                                       _removePreviewListener();
-                                                      final posWork =
-                                                          _mapPreviewToWorking(
-                                                            ctrl.value.position,
-                                                          );
                                                       await _seekTo(
-                                                        posWork +
+                                                        ctrl.value.position +
                                                             const Duration(
                                                               seconds: 10,
                                                             ),
@@ -1251,7 +1301,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                                               width: 8,
                                                             ),
                                                             Text(
-                                                              '${_formatDuration(_mapPreviewToWorking(ctrl.value.position))} / ${_formatDuration(_videoDuration)}',
+                                                              '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
                                                               style: const TextStyle(
                                                                 color: Colors
                                                                     .white,
@@ -1268,17 +1318,19 @@ class _EditorScreenState extends State<EditorScreen> {
                                                           height: 8,
                                                         ),
                                                         PlaybackTimeline(
-                                                          currentPosition:
-                                                              _mapPreviewToWorking(
-                                                                ctrl
-                                                                    .value
-                                                                    .position,
-                                                              ),
+                                                          currentPosition: ctrl
+                                                              .value
+                                                              .position,
                                                           duration:
                                                               _videoDuration,
                                                           trimStart: _trimStart,
                                                           trimEnd: _trimEnd,
                                                           onScrubStart: () {
+                                                            _resumePlaybackAfterScrub =
+                                                                ctrl
+                                                                    .value
+                                                                    .isPlaying;
+                                                            ctrl.pause();
                                                             setState(
                                                               () =>
                                                                   _isScrubbing =
@@ -1296,7 +1348,8 @@ class _EditorScreenState extends State<EditorScreen> {
                                                               target,
                                                               source:
                                                                   'slider_scrub',
-                                                              settle: false,
+                                                              resumePlayback:
+                                                                  false,
                                                             );
                                                           },
                                                           onScrubEnd: () {
@@ -1307,13 +1360,18 @@ class _EditorScreenState extends State<EditorScreen> {
                                                                   _isScrubbing =
                                                                       false,
                                                             );
-                                                            if (target != null) {
+                                                            if (target !=
+                                                                null) {
                                                               _seekTo(
                                                                 target,
                                                                 source:
                                                                     'slider_scrub_commit',
+                                                                resumePlayback:
+                                                                    _resumePlaybackAfterScrub,
                                                               );
                                                             }
+                                                            _resumePlaybackAfterScrub =
+                                                                false;
                                                             _resetOverlayTimer();
                                                           },
                                                         ),

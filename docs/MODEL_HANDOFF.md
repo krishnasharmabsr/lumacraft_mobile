@@ -27,3 +27,16 @@
 
 - **Local Path:** `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
 - **Remote Repo:** `https://github.com/krishnasharmabsr/lumacraft_mobile`
+
+## S004Q Start
+
+- **Date:** 2026-03-10
+- **Branch:** `fix/s004p-seek-proxy-fix`
+- **Focus:** Takeover after model switch to replace proxy/ratio-based seek handling with a single playback timeline, deterministic normalized playback source, and verified centralized seek flow for scrub plus +/-10 actions.
+
+## S004Q Update
+
+- **Status:** Implemented
+- **Result:** Removed proxy timebase seek mapping from editor playback, introduced deterministic playback-source preparation with normalization for imported/problematic sources, and rewired scrub plus +/-10 to the same verified seek helper with reinit fallback.
+- **Validation:** `flutter analyze`, `flutter test`, `flutter build apk --debug`, and `flutter build apk --release` all passed on 2026-03-10.
+- **Next Step:** Manual Android QA must confirm downloaded-video scrub and +/-10 behavior on-device before merge.
