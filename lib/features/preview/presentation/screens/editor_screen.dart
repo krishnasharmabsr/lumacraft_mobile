@@ -1594,7 +1594,7 @@ class _EditorScreenState extends State<EditorScreen> {
                           ),
                         ),
                       )
-                    else
+                    else if (!_isProcessing)
                       const Expanded(
                         flex: 3,
                         child: Center(
@@ -1688,16 +1688,6 @@ class _EditorScreenState extends State<EditorScreen> {
                             _buildExportButton(),
                             const SizedBox(height: AppTheme.spacingLg),
                           ],
-                        ),
-                      ),
-
-                    if (_isProcessing)
-                      const Expanded(
-                        flex: 4,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.accent,
-                          ),
                         ),
                       ),
                   ],
