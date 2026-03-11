@@ -45,6 +45,12 @@
 - **Status:** Merged to `main`
 - **Focus:** Fixed the watermark placement logic in the export pipeline so it anchors perfectly to the edge of the visible video frame, never rendering on the black padding introduced by forcing landscape/square resolutions. Implemented using a scale -> overlay -> pad filter graph sequentially within `FFmpegProcessor`.
 
+## S008 Keep Screen Awake During Playback
+
+- **Date:** 2026-03-11
+- **Status:** Merged to `main`
+- **Focus:** Implemented screen wake-locking using `wakelock_plus`. The lock is exclusively tied to the `EditorScreen`'s active playback state, cleanly releasing the lock if paused, buffering, or if the screen is dismissed entirely.
+
 ## S005E Brand Identity Polish
 
 - **Date:** 2026-03-10

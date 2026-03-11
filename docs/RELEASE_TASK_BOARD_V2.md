@@ -27,6 +27,7 @@
 - [x] S005/C/D/E/G — Complete cumulative watermark branding & reliability fixes, branch pruned. (MERGED)
 - [x] S006 — Export Quality Presets / UI Polish (S006, S006A, S006B) (MERGED)
 - [x] S007 — Content-Anchored Watermark Positioning (S007, S007A) (MERGED)
+- [x] S008 — Keep Screen Awake During Active Video Playback (MERGED)
 
 ## Phase 3: AI Capabilities
 

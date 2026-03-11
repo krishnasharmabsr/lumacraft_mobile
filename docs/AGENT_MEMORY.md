@@ -57,3 +57,9 @@
 - **Date:** 2026-03-11
 - **Status:** Merged to `main`
 - **Memory:** Refactored filter graph in `FFmpegProcessor` to correctly anchor the watermark to the actual scaled video content boundaries, rather than the padded canvas edges. Programmatic analysis confirmed the layout protects the watermark from rendering incorrectly on letterboxes or pillarboxes across all aspect ratio transformations.
+
+## S008 Keep Screen Awake During Playback
+
+- **Date:** 2026-03-11
+- **Status:** Merged to `main`
+- **Memory:** Integrated `wakelock_plus` to automatically hold the screen awake while a video is playing in the `EditorScreen`. Wired the `WakelockPlus.enable/disable` methods directly into the `_controllerListener` driven by `_videoController.value.isPlaying` state. Ensured fallback cleanup on `dispose()` and when playback halts.
