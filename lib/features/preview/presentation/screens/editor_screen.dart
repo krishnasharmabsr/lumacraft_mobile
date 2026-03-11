@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
@@ -75,6 +76,8 @@ class _EditorScreenState extends State<EditorScreen> {
   Duration? _pendingScrubTarget;
   bool _resumePlaybackAfterScrub = false;
   Timer? _overlayTimer;
+
+  bool _isWakelockEnabled = false;
 
   String _processingLabel = '';
   String? _processingSubtitle;
@@ -658,6 +661,17 @@ class _EditorScreenState extends State<EditorScreen> {
         _isTimelineInvalid = false;
       }
 
+      final isPlaying = controller.value.isPlaying;
+      if (isPlaying && !_isWakelockEnabled) {
+        _isWakelockEnabled = true;
+        WakelockPlus.enable();
+        developer.log('Wakelock activated', name: '[Playback]');
+      } else if (!isPlaying && _isWakelockEnabled) {
+        _isWakelockEnabled = false;
+        WakelockPlus.disable();
+        developer.log('Wakelock released', name: '[Playback]');
+      }
+
       setState(() {});
     };
     controller.addListener(_controllerListener!);
@@ -676,6 +690,9 @@ class _EditorScreenState extends State<EditorScreen> {
     _removePreviewListener();
     _detachControllerListener(_controller);
     _controller?.dispose();
+    if (_isWakelockEnabled) {
+      WakelockPlus.disable();
+    }
     super.dispose();
   }
 
