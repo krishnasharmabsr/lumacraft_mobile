@@ -20,8 +20,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 (Export/UX/Stability/Landscape/Autohide).
-- **Active:** S011 (AI Feature TBD)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011.
+- **Active:** S012 (AI Feature TBD)
 
 ## Environment Identity
 
@@ -96,5 +96,11 @@
 ## S010 Playback Overlay Auto-hide
 
 - **Date:** 2026-03-11
-- **Status:** Work in Progress on `fix/playback-overlay-autohide`
+- **Status:** Merged to `main` (commit: `7f3971c`)
 - **Focus:** Implemented inactivity-based auto-hiding for editor playback controls. Controls hide after 2.5s of playing if no interaction occurs. Controls stay visible when paused. Transitions between playing/paused correctly sync overlay visibility.
+
+## S011 Editor Speed Range Expansion
+
+- **Date:** 2026-03-11
+- **Status:** Completed on `feat/s011-speed-range-025-to-30`
+- **Focus:** Expanded the editor's speed adjustment range to support 0.25x to 3.0x. Updated the `Slider` in `EditorScreen` with precise 0.25x increments (divisions: 11). Verified that `FFmpegProcessor` correctly handles the expanded range (0.25x-3.0x) for exports using chained `atempo` filters.

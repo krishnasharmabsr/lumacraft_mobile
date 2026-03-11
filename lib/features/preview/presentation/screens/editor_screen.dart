@@ -1930,7 +1930,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   style: TextStyle(color: AppColors.textMuted, fontSize: 11),
                 ),
                 Text(
-                  '8.0x',
+                  '3.0x',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 11),
                 ),
               ],
@@ -1938,8 +1938,8 @@ class _EditorScreenState extends State<EditorScreen> {
             Slider(
               value: _previewSpeed,
               min: 0.25,
-              max: 8.0,
-              divisions: 31, // 0.25 increments
+              max: 3.0,
+              divisions: 11, // 0.25 increments
               activeColor: AppColors.accent,
               inactiveColor: AppColors.divider,
               onChanged: (val) {
