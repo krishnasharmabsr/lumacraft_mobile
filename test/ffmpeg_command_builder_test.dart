@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumacraft_mobile/core/models/export_settings.dart';
+import 'package:lumacraft_mobile/core/models/video_filter.dart';
 import 'package:lumacraft_mobile/services/engine/ffmpeg_processor.dart';
 import 'package:lumacraft_mobile/services/engine/export_result.dart';
 
@@ -151,6 +152,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -172,6 +174,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 4.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -183,6 +186,57 @@ void main() {
       expect(result.command, contains('"[a_speed]"'));
     });
 
+    test('selected filter is inserted before watermark overlay and pad', () {
+      final result = FFmpegProcessor.buildExportCommand(
+        inputPath: '/input.mp4',
+        outputPath: '/output.mp4',
+        settings: baseSettings,
+        trimStart: Duration.zero,
+        trimEnd: const Duration(seconds: 10),
+        playbackSpeed: 1.0,
+        videoFilter: VideoFilter.warm,
+        aspectRatio: ExportAspectRatio.vertical,
+        hasAudio: true,
+        finalFps: 30,
+        applyWatermark: true,
+        watermarkPath: '/cache/watermark_runtime.png',
+        watermarkBackend: WatermarkBackend.png,
+      );
+
+      final filterIndex = result.command.indexOf(
+        VideoFilter.warm.ffmpegFilter!,
+      );
+      final overlayIndex = result.command.indexOf('overlay=');
+      final padIndex = result.command.indexOf('pad=');
+
+      expect(filterIndex, greaterThan(-1));
+      expect(filterIndex, lessThan(overlayIndex));
+      expect(filterIndex, lessThan(padIndex));
+      expect(result.diagnostics, contains('video_filter=Warm'));
+    });
+
+    test('original filter does not add extra FFmpeg filter segment', () {
+      final result = FFmpegProcessor.buildExportCommand(
+        inputPath: '/input.mp4',
+        outputPath: '/output.mp4',
+        settings: baseSettings,
+        trimStart: Duration.zero,
+        trimEnd: const Duration(seconds: 10),
+        playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
+        aspectRatio: ExportAspectRatio.source,
+        hasAudio: true,
+        finalFps: 30,
+        applyWatermark: false,
+        watermarkPath: null,
+      );
+
+      expect(result.command, isNot(contains('colorbalance=')));
+      expect(result.command, isNot(contains('colorchannelmixer=')));
+      expect(result.command, isNot(contains('hue=s=0')));
+      expect(result.diagnostics, contains('video_filter=Original'));
+    });
+
     test('no-audio input: no audio map or codec flags', () {
       final result = FFmpegProcessor.buildExportCommand(
         inputPath: '/input.mp4',
@@ -191,6 +245,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: false,
         finalFps: 30,
@@ -210,6 +265,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -230,6 +286,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -251,6 +308,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -286,6 +344,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -306,6 +365,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -328,6 +388,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: true,
         finalFps: 30,
@@ -349,6 +410,7 @@ void main() {
         trimStart: Duration.zero,
         trimEnd: const Duration(seconds: 10),
         playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
         aspectRatio: ExportAspectRatio.source,
         hasAudio: false,
         finalFps: 30,

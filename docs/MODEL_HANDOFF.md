@@ -104,3 +104,12 @@
 - **Date:** 2026-03-11
 - **Status:** Completed on `feat/s011-speed-range-025-to-30`
 - **Focus:** Expanded the editor's speed adjustment range to support 0.25x to 3.0x. Updated the `Slider` in `EditorScreen` with precise 0.25x increments (divisions: 11). Verified that `FFmpegProcessor` correctly handles the expanded range (0.25x-3.0x) for exports using chained `atempo` filters.
+
+## S012 Editor Filters V1
+
+- **Date:** 2026-03-11
+- **Status:** Implemented on `feat/s012-editor-filters-v1` (PR pending)
+- **Focus:** Added a Filters tool to the editor with curated presets: Original, Bright, Contrast, Warm, Cool, Vintage, and B&W. Preview is contained to the video content widget only via `ColorFiltered`, while export applies FFmpeg filter equivalents before watermark overlay and before final pad so watermark assets and black bars stay visually normal.
+- **Validation:** `flutter analyze`, `flutter test`, `flutter build apk --debug`, and `flutter build apk --release` passed on 2026-03-11.
+- **Known Gap:** Preview and export are intentionally approximate, not exact-parity; preview uses Flutter color-matrix approximations while export uses FFmpeg filters chosen to stay reasonably close.
+- **Next Step:** Manual Android QA is still required for on-device filter preview/export verification, watermark preservation, and portrait/landscape usability.

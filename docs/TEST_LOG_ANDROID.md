@@ -347,6 +347,22 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK
 - **Status:** QA_PENDING
 
+## Execution 24 - Task S012 (Editor Filters V1)
+
+- **Date:** 2026-03-11
+- **Changes:**
+  1. Added Filters tool with curated presets: Original, Bright, Contrast, Warm, Cool, Vintage, and B&W.
+  2. Filter preview is contained to video content only using Flutter color-matrix approximations; overlay controls, dim layers, and black bars remain unaffected.
+  3. Export pipeline applies the selected FFmpeg filter before watermark overlay and before final pad.
+  4. Added test coverage for filter definitions and export command ordering/hookup.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (107.0MB)
+- **Manual QA:** PENDING. On-device visual verification still required for preview fidelity, exported output, watermark preservation, black bars, and portrait/landscape usability.
+- **Status:** QA_PENDING
+
 ## Execution 23 - Task S005 (Export Reliability Hard Fix)
 
 - **Date:** 2026-03-10

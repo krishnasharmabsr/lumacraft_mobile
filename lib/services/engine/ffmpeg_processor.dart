@@ -8,6 +8,7 @@ import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:ffmpeg_kit_flutter_new_min/statistics.dart';
 import '../../core/services/pro_gate.dart';
+import '../../core/models/video_filter.dart';
 import '../io/native_video_picker.dart';
 
 import '../../core/models/export_settings.dart';
@@ -157,6 +158,7 @@ class FFmpegProcessor implements IVideoProcessor {
     required Duration trimStart,
     required Duration trimEnd,
     required double playbackSpeed,
+    required VideoFilter videoFilter,
     required ExportAspectRatio aspectRatio,
     required bool hasAudio,
     required int? finalFps,
@@ -234,6 +236,7 @@ class FFmpegProcessor implements IVideoProcessor {
     if (videoCodecProfile == VideoCodecProfile.x264Fallback) {
       diagnostics += 'codec_profile=x264_fallback\n';
     }
+    diagnostics += 'video_filter=${videoFilter.label}\n';
 
     final List<String> filterSegments = [];
     String currentVideoMap = '[v_initial]';
@@ -262,7 +265,16 @@ class FFmpegProcessor implements IVideoProcessor {
           : totalDurationSecs;
     }
 
-    // 4 & 5. Content Scale (direct to final resolution)
+    // 4. Color filter on video content only
+    if (!videoFilter.isOriginal && videoFilter.ffmpegFilter != null) {
+      const String nextMapFiltered = '[v_filtered]';
+      filterSegments.add(
+        '$currentVideoMap${videoFilter.ffmpegFilter}$nextMapFiltered',
+      );
+      currentVideoMap = nextMapFiltered;
+    }
+
+    // 5 & 6. Content Scale (direct to final resolution)
     const String nextMapScaled = '[v_scaled]';
     if (aspectRatio != ExportAspectRatio.source) {
       final targetHeight = settings.resolution.height;
@@ -280,7 +292,7 @@ class FFmpegProcessor implements IVideoProcessor {
       currentVideoMap = nextMapScaled;
     }
 
-    // 6. Watermark overlay (anchors to content box)
+    // 7. Watermark overlay (anchors to content box)
     if (effectiveWatermark) {
       filterSegments.add('[1:v]format=rgba,scale=120:-1[wm]');
       const String nextMapWm = '[v_watermarked]';
@@ -290,7 +302,7 @@ class FFmpegProcessor implements IVideoProcessor {
       currentVideoMap = nextMapWm;
     }
 
-    // 7. Final Pad (if forcing aspect ratio, pad the anchored content)
+    // 8. Final Pad (if forcing aspect ratio, pad the anchored content)
     if (aspectRatio != ExportAspectRatio.source) {
       const String nextMapPadded = '[v_padded]';
       final targetHeight = settings.resolution.height;
@@ -426,6 +438,7 @@ class FFmpegProcessor implements IVideoProcessor {
     required Duration trimStart,
     required Duration trimEnd,
     required double playbackSpeed,
+    required VideoFilter videoFilter,
     required ExportAspectRatio aspectRatio,
     ProgressCallback? onProgress,
   }) async {
@@ -556,6 +569,7 @@ class FFmpegProcessor implements IVideoProcessor {
         trimStart: trimStart,
         trimEnd: trimEnd,
         playbackSpeed: playbackSpeed,
+        videoFilter: videoFilter,
         aspectRatio: aspectRatio,
         hasAudio: hasAudio,
         finalFps: finalFps,
