@@ -1302,6 +1302,84 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  Widget _buildFilterOption(VideoFilter filter) {
+    final isSelected = _previewFilter == filter;
+    final isApplied = _appliedFilter == filter;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            setState(() => _previewFilter = filter);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            width: 112,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.accent
+                  : AppColors.cardDarkAlt.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.accent
+                    : isApplied
+                    ? AppColors.accent.withValues(alpha: 0.55)
+                    : AppColors.divider,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.22),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Icon(
+                    isApplied
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: 15,
+                    color: isSelected
+                        ? AppColors.scaffoldDark
+                        : isApplied
+                        ? AppColors.accent
+                        : AppColors.textMuted,
+                  ),
+                ),
+                Text(
+                  filter.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected
+                        ? AppColors.scaffoldDark
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ────────────────────────────────────────────────────────────
   //  BUILD
   // ────────────────────────────────────────────────────────────
@@ -1996,64 +2074,17 @@ class _EditorScreenState extends State<EditorScreen> {
               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
             const SizedBox(height: AppTheme.spacingMd),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: VideoFilter.all.map((filter) {
-                final isSelected = _previewFilter == filter;
-                final isApplied = _appliedFilter == filter;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _previewFilter = filter);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.accent
-                          : AppColors.cardDarkAlt,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.accent
-                            : isApplied
-                            ? AppColors.accent.withValues(alpha: 0.4)
-                            : AppColors.divider,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          filter.label,
-                          style: TextStyle(
-                            color: isSelected
-                                ? AppColors.scaffoldDark
-                                : AppColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w500,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (isApplied) ...[
-                          const SizedBox(width: 6),
-                          Icon(
-                            Icons.check_circle,
-                            size: 14,
-                            color: isSelected
-                                ? AppColors.scaffoldDark
-                                : AppColors.accent,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+            SizedBox(
+              height: 76,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: VideoFilter.all
+                      .map((filter) => _buildFilterOption(filter))
+                      .toList(),
+                ),
+              ),
             ),
             const SizedBox(height: AppTheme.spacingMd),
             if (hasPendingFilter)

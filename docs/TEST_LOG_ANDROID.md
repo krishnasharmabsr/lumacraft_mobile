@@ -363,6 +363,18 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
 - **Manual QA:** PENDING. On-device visual verification still required for preview fidelity, exported output, watermark preservation, black bars, and portrait/landscape usability.
 - **Status:** QA_PENDING
 
+## Execution 25 - Task S012 UI Polish (Horizontal Filter Selector)
+
+- **Date:** 2026-03-11
+- **Changes:**
+  1. Replaced the wrapped multi-row filter chip layout with a single horizontal scrollable selector.
+  2. Kept filter preview/apply/export logic unchanged while making selected and applied states clearer in a smaller vertical footprint.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+- **Manual QA:** PENDING. Need device verification for horizontal scrolling, portrait overflow, landscape usability, and post-selection apply/export behavior.
+- **Status:** QA_PENDING
+
 ## Execution 23 - Task S005 (Export Reliability Hard Fix)
 
 - **Date:** 2026-03-10

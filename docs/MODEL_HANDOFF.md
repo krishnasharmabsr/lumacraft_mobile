@@ -113,3 +113,9 @@
 - **Validation:** `flutter analyze`, `flutter test`, `flutter build apk --debug`, and `flutter build apk --release` passed on 2026-03-11.
 - **Known Gap:** Preview and export are intentionally approximate, not exact-parity; preview uses Flutter color-matrix approximations while export uses FFmpeg filters chosen to stay reasonably close.
 - **Next Step:** Manual Android QA is still required for on-device filter preview/export verification, watermark preservation, and portrait/landscape usability.
+
+## S012 Filters UI Polish
+
+- **Date:** 2026-03-11
+- **Status:** Implemented on `feat/s012-editor-filters-v1`
+- **Focus:** Replaced the wrapped multi-row filter chip layout with a single horizontal scrollable selector to reduce panel height and improve portrait usability. Selected state remains accent-filled, applied state remains marked with a check indicator, and apply/export behavior was left unchanged.

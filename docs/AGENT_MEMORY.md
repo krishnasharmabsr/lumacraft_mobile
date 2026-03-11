@@ -85,3 +85,8 @@
 - **Date:** 2026-03-11
 - **Memory:** Introduced shared `VideoFilter` definitions for preview/export, with separate preview-vs-applied filter state in `EditorScreen`. Filters preview only on the video content surface, not overlays or black bars. Export wires the applied filter through `FFmpegProcessor.buildExportCommand()` before watermark overlay and before pad.
 - **Testing:** Added export-command coverage for filter insertion/order and model coverage for curated filter selection. Manual QA is still pending for visual fidelity and UX regression checks.
+
+## S012 Filters UI Polish
+
+- **Date:** 2026-03-11
+- **Memory:** The Filters panel now uses a single horizontal scroll strip instead of a wrapping chip grid. Each option is presented as a compact fixed-width card so the panel consumes less vertical space while still preserving clear selected-vs-applied states.
