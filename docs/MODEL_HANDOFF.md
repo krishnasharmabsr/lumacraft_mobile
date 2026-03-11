@@ -20,8 +20,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B (Export/UX/Stability/Landscape).
-- **Active:** S010 (AI Feature TBD)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 (Export/UX/Stability/Landscape/Autohide).
+- **Active:** S011 (AI Feature TBD)
 
 ## Environment Identity
 
@@ -83,10 +83,18 @@
 - **Focus:** Export reliability hard fix — watermark pipeline, filter graph determinism, atempo chaining, audio mapping.
 
 ## S005G Watermark Target Port Lockup
+
 - **Date:** 2026-03-11
 - **Focus:** Safe watermark asset port. Generated vector-clean `watermark_lockup.png` applied via preflight substitution. Merged all safe S005 fallback matrix (S005A, S005B, S005C-EXEC, S005D, S005G) strictly and pruned branch history completely. `main` is now functionally verified as the pristine baseline.
 
 ## S009 Landscape Editor & Export Fixed Workspace
+
 - **Date:** 2026-03-11
 - **Status:** Merged to `main` (commit: `702a69f`)
 - **Focus:** Implemented a two-pane landscape layout for the editor. Refactored Export Studio to be responsive (centered modal in landscape, bottom sheet in portrait). Hardened orientation transitions while Export Settings are open using a pop-and-reopen safety pattern with state persistence.
+
+## S010 Playback Overlay Auto-hide
+
+- **Date:** 2026-03-11
+- **Status:** Work in Progress on `fix/playback-overlay-autohide`
+- **Focus:** Implemented inactivity-based auto-hiding for editor playback controls. Controls hide after 2.5s of playing if no interaction occurs. Controls stay visible when paused. Transitions between playing/paused correctly sync overlay visibility.

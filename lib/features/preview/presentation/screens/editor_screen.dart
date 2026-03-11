@@ -77,6 +77,7 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _resumePlaybackAfterScrub = false;
   Timer? _overlayTimer;
 
+  bool? _wasPlaying; // Track transition for auto-hide
   bool _isWakelockEnabled = false;
 
   String _processingLabel = '';
@@ -662,6 +663,24 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       final isPlaying = controller.value.isPlaying;
+
+      // --- Transition-aware Overlay Logic ---
+      if (_wasPlaying != null && _wasPlaying != isPlaying) {
+        if (isPlaying) {
+          // Paused -> Playing: If overlay is visible, start auto-hide timer
+          if (_showOverlay) {
+            _resetOverlayTimer();
+          }
+        } else {
+          // Playing -> Paused: Force overlay visible, cancel timer
+          setState(() {
+            _showOverlay = true;
+          });
+          _overlayTimer?.cancel();
+        }
+      }
+      _wasPlaying = isPlaying;
+
       if (isPlaying && !_isWakelockEnabled) {
         _isWakelockEnabled = true;
         WakelockPlus.enable();
@@ -854,6 +873,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _resetOverlayTimer() {
     _overlayTimer?.cancel();
+    if (!mounted) return;
     if (_isScrubbing) return;
     if (_controller?.value.isPlaying == true) {
       _overlayTimer = Timer(const Duration(milliseconds: 2500), () {
@@ -869,7 +889,12 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _showOverlay = !_showOverlay;
     });
-    if (_showOverlay) _resetOverlayTimer();
+
+    if (_showOverlay) {
+      _resetOverlayTimer();
+    } else {
+      _overlayTimer?.cancel();
+    }
   }
 
   void _removePreviewListener() {
