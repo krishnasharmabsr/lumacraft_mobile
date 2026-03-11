@@ -45,3 +45,9 @@
 ## S005E2 Branding Lockdown Fix
 
 - **Memory:** Enforced teal core branding color match. Hand-centered play motif via generation script. Stripped all `Icons.movie_edit` references to maintain single motif style. Added strict fallback rules to `BRAND_REGISTRY.md`.
+
+## S006 Export Quality Presets UI Revert
+
+- **Date:** 2026-03-11
+- **Status:** Merged to `main` (Pending PR approval)
+- **Memory:** Deprecated confusing 0-100 continuous quality slider. Brought in discrete bounded set of presets: Low (q:v 6), Standard (q:v 4 - Default), High (q:v 2). Updated UI widget `ExportSettingsSheet` to use premium discrete buttons matching the pro resolution locks style. Engine test assertions migrated successfully.

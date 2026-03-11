@@ -25,6 +25,7 @@
 - [x] S004Q â€” Canonical seek-flow fix merged via PR #9; PRs #4-#8 closed as superseded.
 - [x] S005 — Export Reliability Hard Fix (watermark, atempo, output directory safety).
 - [x] S005/C/D/E/G — Complete cumulative watermark branding & reliability fixes, branch pruned. (MERGED)
+- [x] S006 — Export Quality Presets UI Revert (Discrete Low, Standard, High presets).
 
 ## Phase 3: AI Capabilities
 

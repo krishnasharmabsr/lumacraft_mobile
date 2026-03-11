@@ -77,6 +77,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Timer? _overlayTimer;
 
   String _processingLabel = '';
+  String? _processingSubtitle;
   double _processingProgress = -1;
 
   VoidCallback? _previewListener;
@@ -113,6 +114,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         _isProcessing = true;
         _processingLabel = 'Preparing playback...';
+        _processingSubtitle = null;
         _processingProgress = -1;
       });
     }
@@ -153,6 +155,7 @@ class _EditorScreenState extends State<EditorScreen> {
         setState(() {
           _isProcessing = true;
           _processingLabel = 'Normalizing video...';
+          _processingSubtitle = null;
           _processingProgress = -1;
         });
       }
@@ -163,6 +166,7 @@ class _EditorScreenState extends State<EditorScreen> {
         setState(() {
           _isProcessing = false;
           _processingLabel = '';
+          _processingSubtitle = null;
         });
       }
 
@@ -215,6 +219,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         _isProcessing = true;
         _processingLabel = 'Optimizing playback...';
+        _processingSubtitle = null;
         _processingProgress = -1;
       });
     }
@@ -225,6 +230,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         _isProcessing = false;
         _processingLabel = '';
+        _processingSubtitle = null;
       });
     }
 
@@ -969,6 +975,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _isProcessing = true;
       _processingLabel = 'Trimming video...';
+      _processingSubtitle = null;
       _processingProgress = 0;
     });
 
@@ -1000,6 +1007,8 @@ class _EditorScreenState extends State<EditorScreen> {
         setState(() {
           _isProcessing = false;
           _processingProgress = -1;
+          _processingLabel = '';
+          _processingSubtitle = null;
         });
       }
     }
@@ -1052,7 +1061,9 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> _exportWithSettings(ExportSettings settings) async {
     setState(() {
       _isProcessing = true;
-      _processingLabel = 'Exporting ${settings.resolution.label}...';
+      _processingLabel = 'Preparing your video';
+      _processingSubtitle =
+          '${settings.resolution.label} • ${settings.qualityPreset.label} • ${settings.format.label}';
       _processingProgress = 0;
     });
 
@@ -1094,7 +1105,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 backgroundColor: Colors.orange.shade800,
                 content: Text(
                   success
-                      ? 'Exported without watermark (device compatibility fallback).'
+                      ? 'Video saved to your gallery'
                       : 'Export saved but gallery save failed.',
                 ),
               ),
@@ -1124,11 +1135,10 @@ class _EditorScreenState extends State<EditorScreen> {
           exportResult.outputPath,
         );
         if (mounted) {
-          final fileName = exportResult.outputPath.split('/').last;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                success ? 'Exported $fileName to gallery!' : 'Export failed.',
+                success ? 'Video saved to your gallery' : 'Export failed.',
               ),
             ),
           );
@@ -1145,6 +1155,8 @@ class _EditorScreenState extends State<EditorScreen> {
         setState(() {
           _isProcessing = false;
           _processingProgress = -1;
+          _processingLabel = '';
+          _processingSubtitle = null;
         });
       }
     }
@@ -1696,6 +1708,7 @@ class _EditorScreenState extends State<EditorScreen> {
               if (_isProcessing)
                 ProcessingOverlay(
                   label: _processingLabel,
+                  subtitle: _processingSubtitle,
                   progress: _processingProgress,
                 ),
             ],

@@ -17,7 +17,7 @@ class ExportSettingsSheet extends StatefulWidget {
 class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
   ExportResolution _resolution = ExportResolution.p720;
   int? _fps; // null = Source
-  double _quality = 65;
+  ExportQualityPreset _qualityPreset = ExportQualityPreset.standard;
   ExportFormat _format = ExportFormat.mp4;
 
   @override
@@ -81,7 +81,15 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
           const SizedBox(height: AppTheme.spacingLg),
 
           // Quality slider
-          _buildOptionRow(label: 'QUALITY', child: _buildQualitySlider()),
+          _buildOptionRow(
+            label: 'QUALITY',
+            child: _buildSegmentedControl<ExportQualityPreset>(
+              values: ExportQualityPreset.values,
+              selected: _qualityPreset,
+              labelOf: (v) => v.label,
+              onChanged: (v) => setState(() => _qualityPreset = v),
+            ),
+          ),
           const SizedBox(height: AppTheme.spacingXl),
 
           // Single Export button
@@ -109,7 +117,7 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
     return ExportSettings(
       resolution: _resolution,
       fps: _fps,
-      quality: _quality.round(),
+      qualityPreset: _qualityPreset,
       format: _format,
     );
   }
@@ -246,44 +254,6 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
           ),
         );
       }).toList(),
-    );
-  }
-
-  // --- Quality slider ---
-  Widget _buildQualitySlider() {
-    final label = _quality >= 75
-        ? 'High'
-        : _quality >= 40
-        ? 'Standard'
-        : 'Low';
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.accent,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              '${_quality.round()}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-          ],
-        ),
-        Slider(
-          value: _quality,
-          min: 0,
-          max: 100,
-          divisions: 20,
-          onChanged: (v) => setState(() => _quality = v),
-        ),
-      ],
     );
   }
 

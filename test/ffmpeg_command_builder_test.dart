@@ -139,7 +139,7 @@ void main() {
     const baseSettings = ExportSettings(
       resolution: ExportResolution.p720,
       fps: 30,
-      quality: 65,
+      qualityPreset: ExportQualityPreset.standard,
       format: ExportFormat.mp4,
     );
 
@@ -275,7 +275,7 @@ void main() {
       const mkvSettings = ExportSettings(
         resolution: ExportResolution.p720,
         fps: 30,
-        quality: 65,
+        qualityPreset: ExportQualityPreset.standard,
         format: ExportFormat.mkv,
       );
 

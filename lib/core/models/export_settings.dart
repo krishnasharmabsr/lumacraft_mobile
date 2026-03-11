@@ -1,39 +1,31 @@
+enum ExportQualityPreset {
+  low('Low', 6, '96k'),
+  standard('Standard', 4, '128k'),
+  high('High', 2, '192k');
+
+  final String label;
+  final int qv;
+  final String audioBitrate;
+
+  const ExportQualityPreset(this.label, this.qv, this.audioBitrate);
+}
+
 class ExportSettings {
   final ExportResolution resolution;
   final int? fps; // null means 'Source'
-  final int quality; // 0–100 slider value
+  final ExportQualityPreset qualityPreset;
   final ExportFormat format;
 
   const ExportSettings({
     this.resolution = ExportResolution.p720,
     this.fps, // default Source
-    this.quality = 65,
+    this.qualityPreset = ExportQualityPreset.standard,
     this.format = ExportFormat.mp4,
   });
 
   /// Returns the FFmpeg scale filter string, e.g. "-vf scale=-2:720"
   String get scaleFilter {
     return 'scale=-2:${resolution.height}';
-  }
-
-  /// Maps 0–100 quality slider to mpeg4 q:v (1=best, 10=worst).
-  int get qualityValue {
-    // 0→10 (worst), 50→5 (medium), 100→1 (best)
-    return (10 - (quality * 9 / 100)).round().clamp(1, 10);
-  }
-
-  /// Maps quality to audio bitrate.
-  String get audioBitrate {
-    if (quality >= 75) return '192k';
-    if (quality >= 40) return '128k';
-    return '96k';
-  }
-
-  /// User-friendly quality label.
-  String get qualityLabel {
-    if (quality >= 75) return 'High';
-    if (quality >= 40) return 'Standard';
-    return 'Low';
   }
 
   /// File extension.

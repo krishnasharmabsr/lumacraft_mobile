@@ -307,7 +307,7 @@ class FFmpegProcessor implements IVideoProcessor {
     // Video codec
     switch (videoCodecProfile) {
       case VideoCodecProfile.mpeg4Default:
-        parts.addAll(['-c:v', 'mpeg4', '-q:v', '${settings.qualityValue}']);
+        parts.addAll(['-c:v', 'mpeg4', '-q:v', '${settings.qualityPreset.qv}']);
       case VideoCodecProfile.x264Fallback:
         parts.addAll([
           '-c:v',
@@ -326,7 +326,12 @@ class FFmpegProcessor implements IVideoProcessor {
     }
 
     if (effectiveAudio) {
-      parts.addAll(['-c:a', 'aac', '-b:a', settings.audioBitrate]);
+      parts.addAll([
+        '-c:a',
+        'aac',
+        '-b:a',
+        settings.qualityPreset.audioBitrate,
+      ]);
     }
 
     if (settings.format == ExportFormat.mp4) {

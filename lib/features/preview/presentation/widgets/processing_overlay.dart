@@ -5,9 +5,15 @@ import '../../../../core/theme/app_theme.dart';
 /// Full-screen processing overlay with determinate progress bar.
 class ProcessingOverlay extends StatelessWidget {
   final String label;
+  final String? subtitle;
   final double progress; // 0.0 to 1.0, or -1 for indeterminate
 
-  const ProcessingOverlay({super.key, required this.label, this.progress = -1});
+  const ProcessingOverlay({
+    super.key,
+    required this.label,
+    this.subtitle,
+    this.progress = -1,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +52,20 @@ class ProcessingOverlay extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
+                textAlign: TextAlign.center,
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: AppTheme.spacingXs),
+                Text(
+                  subtitle!,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
               const SizedBox(height: AppTheme.spacingLg),
 
               // Progress bar
