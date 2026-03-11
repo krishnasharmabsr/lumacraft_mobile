@@ -79,3 +79,19 @@
 
 - **Date:** 2026-03-11
 - **Memory:** Expanded the editor's speed adjustment range to support 0.25x to 3.0x. Updated the `Slider` in `EditorScreen` with precise 0.25x increments (divisions: 11). Verified that `FFmpegProcessor` correctly handles the expanded range for exports using chained `atempo` filters.
+
+## S012 Editor Filters V1
+
+- **Date:** 2026-03-11
+- **Memory:** Introduced shared `VideoFilter` definitions for preview/export, with separate preview-vs-applied filter state in `EditorScreen`. Filters preview only on the video content surface, not overlays or black bars. Export wires the applied filter through `FFmpegProcessor.buildExportCommand()` before watermark overlay and before pad.
+- **Testing:** Added export-command coverage for filter insertion/order and model coverage for curated filter selection. Manual QA is still pending for visual fidelity and UX regression checks.
+
+## S012 Filters UI Polish
+
+- **Date:** 2026-03-11
+- **Memory:** The Filters panel now uses a single horizontal scroll strip instead of a wrapping chip grid. Each option is presented as a compact fixed-width card so the panel consumes less vertical space while still preserving clear selected-vs-applied states.
+
+## S012 Filter State Messaging Consistency
+
+- **Date:** 2026-03-11
+- **Memory:** Added `FilterPanelState` to centralize filter panel copy semantics. The UI now distinguishes previewed vs applied/export filter explicitly: `Export: ...` badge for the applied state, helper copy that references both states, and a disabled apply CTA when there is no pending preview change.

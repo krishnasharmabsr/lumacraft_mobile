@@ -10,6 +10,7 @@ import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 
 import '../../../../core/models/export_settings.dart';
+import '../../../../core/models/video_filter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/engine/ffmpeg_processor.dart';
@@ -18,8 +19,9 @@ import '../../../../services/io/native_video_picker.dart';
 import '../../../export/presentation/widgets/export_settings_sheet.dart';
 import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
+import '../models/filter_panel_state.dart';
 
-enum EditorTool { none, trim, speed, canvas }
+enum EditorTool { none, trim, filters, speed, canvas }
 
 class EditorScreen extends StatefulWidget {
   final String videoPath;
@@ -55,6 +57,10 @@ class _EditorScreenState extends State<EditorScreen> {
   // --- Speed state (preview vs applied) ---
   double _previewSpeed = 1.0;
   double _appliedSpeed = 1.0;
+
+  // --- Filter state (preview vs applied) ---
+  VideoFilter _previewFilter = VideoFilter.original;
+  VideoFilter _appliedFilter = VideoFilter.original;
 
   // --- Canvas state (preview vs applied) ---
   ExportAspectRatio _previewCanvas = ExportAspectRatio.source;
@@ -93,6 +99,7 @@ class _EditorScreenState extends State<EditorScreen> {
         _trimStart.inMilliseconds > 100 ||
         _trimEnd < _videoDuration - const Duration(milliseconds: 100);
     return isTrimmed ||
+        _appliedFilter != VideoFilter.original ||
         _appliedSpeed != 1.0 ||
         _appliedCanvas != ExportAspectRatio.source;
   }
@@ -254,6 +261,8 @@ class _EditorScreenState extends State<EditorScreen> {
         _trimEnd = _videoDuration;
         _isPreviewingTrim = false;
         if (!keepEdits) {
+          _previewFilter = VideoFilter.original;
+          _appliedFilter = VideoFilter.original;
           _previewSpeed = 1.0;
           _appliedSpeed = 1.0;
           _previewCanvas = ExportAspectRatio.source;
@@ -913,6 +922,8 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _trimStart = Duration.zero;
       _trimEnd = _videoDuration;
+      _previewFilter = VideoFilter.original;
+      _appliedFilter = VideoFilter.original;
       _previewSpeed = 1.0;
       _appliedSpeed = 1.0;
       _previewCanvas = ExportAspectRatio.source;
@@ -1106,7 +1117,8 @@ class _EditorScreenState extends State<EditorScreen> {
         builder: (ctx) => ExportSettingsSheet(
           initialSettings: _currentExportSettings,
           onSettingsChanged: (s) => _currentExportSettings = s,
-          onOrientationChangeRequested: () => _handleExportOrientationChange(ctx),
+          onOrientationChangeRequested: () =>
+              _handleExportOrientationChange(ctx),
           onExport: (settings) {
             _currentExportSettings = settings;
             _exportWithSettings(settings);
@@ -1121,7 +1133,8 @@ class _EditorScreenState extends State<EditorScreen> {
         builder: (ctx) => ExportSettingsSheet(
           initialSettings: _currentExportSettings,
           onSettingsChanged: (s) => _currentExportSettings = s,
-          onOrientationChangeRequested: () => _handleExportOrientationChange(ctx),
+          onOrientationChangeRequested: () =>
+              _handleExportOrientationChange(ctx),
           onExport: (settings) {
             _currentExportSettings = settings;
             _exportWithSettings(settings);
@@ -1167,6 +1180,7 @@ class _EditorScreenState extends State<EditorScreen> {
         trimStart: _trimStart,
         trimEnd: _trimEnd,
         playbackSpeed: _appliedSpeed,
+        videoFilter: _appliedFilter,
         aspectRatio: _appliedCanvas,
         onProgress: (p) {
           if (mounted) setState(() => _processingProgress = p);
@@ -1256,6 +1270,118 @@ class _EditorScreenState extends State<EditorScreen> {
     return '$minutes:$seconds';
   }
 
+  ColorFilter? _buildPreviewColorFilter() {
+    final matrix = _previewFilter.matrix;
+    if (matrix == null) return null;
+    return ColorFilter.matrix(matrix);
+  }
+
+  Widget _buildPreviewVideoContent(VideoPlayerController ctrl) {
+    Widget video = SizedBox(
+      width: ctrl.value.size.width,
+      height: ctrl.value.size.height,
+      child: VideoPlayer(ctrl),
+    );
+
+    final colorFilter = _buildPreviewColorFilter();
+    if (colorFilter != null) {
+      video = ColorFiltered(colorFilter: colorFilter, child: video);
+    }
+
+    return video;
+  }
+
+  void _applyFilter() {
+    if (_previewFilter == _appliedFilter) return;
+    setState(() => _appliedFilter = _previewFilter);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Filter ${_appliedFilter.label} applied.'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
+  Widget _buildFilterOption(VideoFilter filter) {
+    final isSelected = _previewFilter == filter;
+    final isApplied = _appliedFilter == filter;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            setState(() => _previewFilter = filter);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            width: 112,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.accent
+                  : AppColors.cardDarkAlt.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.accent
+                    : isApplied
+                    ? AppColors.accent.withValues(alpha: 0.55)
+                    : AppColors.divider,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.22),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Icon(
+                    isApplied
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: 15,
+                    color: isSelected
+                        ? AppColors.scaffoldDark
+                        : isApplied
+                        ? AppColors.accent
+                        : AppColors.textMuted,
+                  ),
+                ),
+                Text(
+                  filter.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected
+                        ? AppColors.scaffoldDark
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ────────────────────────────────────────────────────────────
   //  BUILD
   // ────────────────────────────────────────────────────────────
@@ -1316,7 +1442,15 @@ class _EditorScreenState extends State<EditorScreen> {
                                           _previewCanvas.ratio == null
                                       ? ctrl.value.aspectRatio
                                       : _previewCanvas.ratio!,
-                                  child: VideoPlayer(ctrl),
+                                  child: Container(
+                                    color: Colors.black,
+                                    alignment: Alignment.center,
+                                    child: FittedBox(
+                                      fit: BoxFit.contain,
+                                      clipBehavior: Clip.hardEdge,
+                                      child: _buildPreviewVideoContent(ctrl),
+                                    ),
+                                  ),
                                 ),
                                 if (_showOverlay && !_isProcessing)
                                   Positioned.fill(
@@ -1710,7 +1844,10 @@ class _EditorScreenState extends State<EditorScreen> {
                         child: Container(
                           decoration: const BoxDecoration(
                             border: Border(
-                              left: BorderSide(color: AppColors.divider, width: 1),
+                              left: BorderSide(
+                                color: AppColors.divider,
+                                width: 1,
+                              ),
                             ),
                           ),
                           child: Column(
@@ -1718,10 +1855,14 @@ class _EditorScreenState extends State<EditorScreen> {
                             children: [
                               if (isReady && !_isProcessing)
                                 _buildToolbarSection(),
-                              if (isReady && !_isProcessing && _activeTool != EditorTool.none)
+                              if (isReady &&
+                                  !_isProcessing &&
+                                  _activeTool != EditorTool.none)
                                 Expanded(
                                   child: SingleChildScrollView(
-                                    padding: const EdgeInsets.all(AppTheme.spacingMd),
+                                    padding: const EdgeInsets.all(
+                                      AppTheme.spacingMd,
+                                    ),
                                     child: _buildActiveToolPanel(ctrl),
                                   ),
                                 )
@@ -1729,7 +1870,9 @@ class _EditorScreenState extends State<EditorScreen> {
                                 const Spacer(),
                               if (isReady && !_isProcessing)
                                 Padding(
-                                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                                  padding: const EdgeInsets.all(
+                                    AppTheme.spacingMd,
+                                  ),
                                   child: _buildExportButton(),
                                 ),
                             ],
@@ -1738,10 +1881,11 @@ class _EditorScreenState extends State<EditorScreen> {
                       )
                     else ...[
                       // ── PORTRAIT TOOLBAR & PANELS ──
-                      if (isReady && !_isProcessing)
-                        _buildToolbarSection(),
+                      if (isReady && !_isProcessing) _buildToolbarSection(),
 
-                      if (isReady && !_isProcessing && _activeTool != EditorTool.none)
+                      if (isReady &&
+                          !_isProcessing &&
+                          _activeTool != EditorTool.none)
                         Expanded(
                           flex: 4,
                           child: SingleChildScrollView(
@@ -1756,14 +1900,18 @@ class _EditorScreenState extends State<EditorScreen> {
                             ),
                           ),
                         )
-                      else if (isReady && !_isProcessing && _activeTool == EditorTool.none)
+                      else if (isReady &&
+                          !_isProcessing &&
+                          _activeTool == EditorTool.none)
                         Expanded(
                           flex: 4,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.spacingMd,
+                                ),
                                 child: _buildExportButton(),
                               ),
                               const SizedBox(height: AppTheme.spacingLg),
@@ -1872,6 +2020,118 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   // ── SPEED CARD ──
+  Widget _buildFiltersCard() {
+    final filterPanelState = FilterPanelState(
+      previewedFilter: _previewFilter,
+      appliedFilter: _appliedFilter,
+    );
+    final hasPendingFilter = filterPanelState.hasPendingChanges;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.auto_fix_high_rounded,
+                  color: AppColors.accent,
+                  size: 18,
+                ),
+                const SizedBox(width: AppTheme.spacingSm),
+                const Text(
+                  'Filters',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _appliedFilter != VideoFilter.original
+                        ? AppColors.accent.withValues(alpha: 0.15)
+                        : AppColors.cardDarkAlt,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  ),
+                  child: Text(
+                    filterPanelState.appliedBadgeLabel,
+                    style: TextStyle(
+                      color: _appliedFilter != VideoFilter.original
+                          ? AppColors.accent
+                          : AppColors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            const Text(
+              'Preview is approximate in-editor; export uses FFmpeg filter equivalents.',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+            const SizedBox(height: AppTheme.spacingMd),
+            SizedBox(
+              height: 76,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: VideoFilter.all
+                      .map((filter) => _buildFilterOption(filter))
+                      .toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingMd),
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+              child: Text(
+                filterPanelState.statusText,
+                style: TextStyle(
+                  color: hasPendingFilter
+                      ? AppColors.textSecondary
+                      : AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: hasPendingFilter
+                      ? FontWeight.w500
+                      : FontWeight.w400,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: (_isProcessing || !hasPendingFilter)
+                    ? null
+                    : _applyFilter,
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                label: Text(filterPanelState.applyButtonLabel),
+                style: FilledButton.styleFrom(
+                  backgroundColor: hasPendingFilter
+                      ? AppColors.accent
+                      : AppColors.cardDarkAlt,
+                  foregroundColor: hasPendingFilter
+                      ? AppColors.scaffoldDark
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSpeedCard(VideoPlayerController ctrl) {
     return Card(
       child: Padding(
@@ -2169,6 +2429,16 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
           _ToolIconButton(
+            icon: Icons.auto_fix_high_rounded,
+            label: 'Filters',
+            isActive: _activeTool == EditorTool.filters,
+            onPressed: () => setState(
+              () => _activeTool = _activeTool == EditorTool.filters
+                  ? EditorTool.none
+                  : EditorTool.filters,
+            ),
+          ),
+          _ToolIconButton(
             icon: Icons.crop,
             label: 'Canvas',
             isActive: _activeTool == EditorTool.canvas,
@@ -2190,6 +2460,8 @@ class _EditorScreenState extends State<EditorScreen> {
     switch (_activeTool) {
       case EditorTool.trim:
         return _buildTrimCard(ctrl);
+      case EditorTool.filters:
+        return _buildFiltersCard();
       case EditorTool.speed:
         return _buildSpeedCard(ctrl);
       case EditorTool.canvas:
