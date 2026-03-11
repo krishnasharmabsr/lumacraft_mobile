@@ -28,6 +28,7 @@
 - [x] S006 — Export Quality Presets / UI Polish (S006, S006A, S006B) (MERGED)
 - [x] S007 — Content-Anchored Watermark Positioning (S007, S007A) (MERGED)
 - [x] S008 — Keep Screen Awake During Active Video Playback (MERGED)
+- [x] S009 — Landscape Editor & Export Fixed Workspace (S009, S009A, S009B) (MERGED)
 
 ## Phase 3: AI Capabilities
 

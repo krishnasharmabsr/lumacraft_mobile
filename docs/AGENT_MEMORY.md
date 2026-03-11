@@ -8,8 +8,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O (Export Hotfix/UX/Stability/Duration/Seek).
-- **Active:** S005 (Video AI Generation Foundation)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B (Export/UX/Stability/Landscape).
+- **Active:** S010 (AI Feature TBD)
 
 ## Environment Identity
 
@@ -59,7 +59,11 @@
 - **Memory:** Refactored filter graph in `FFmpegProcessor` to correctly anchor the watermark to the actual scaled video content boundaries, rather than the padded canvas edges. Programmatic analysis confirmed the layout protects the watermark from rendering incorrectly on letterboxes or pillarboxes across all aspect ratio transformations.
 
 ## S008 Keep Screen Awake During Playback
-
 - **Date:** 2026-03-11
 - **Status:** Merged to `main`
 - **Memory:** Integrated `wakelock_plus` to automatically hold the screen awake while a video is playing in the `EditorScreen`. Wired the `WakelockPlus.enable/disable` methods directly into the `_controllerListener` driven by `_videoController.value.isPlaying` state. Ensured fallback cleanup on `dispose()` and when playback halts.
+
+## S009 Landscape Editor & Responsive Export
+- **Date:** 2026-03-11
+- **Status:** Merged to `main`
+- **Memory:** Redesigned Landscape Editor to use a 2-pane layout (left: video/timeline, right: tool dock). Fixed Export Settings to use a constrained centered dialog in landscape. Implemented a robust orientation transition handler in `EditorScreen` that pops and re-opens the settings surface with state persistence to prevent visual corruption on rotation.
