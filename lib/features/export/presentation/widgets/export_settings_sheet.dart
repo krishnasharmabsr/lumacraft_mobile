@@ -6,109 +6,211 @@ import '../../../../core/theme/app_theme.dart';
 
 /// Bottom sheet for configuring export settings before saving.
 class ExportSettingsSheet extends StatefulWidget {
+  final ExportSettings initialSettings;
+  final void Function(ExportSettings settings) onSettingsChanged;
   final void Function(ExportSettings settings) onExport;
+  final VoidCallback onOrientationChangeRequested;
 
-  const ExportSettingsSheet({super.key, required this.onExport});
+  const ExportSettingsSheet({
+    super.key,
+    required this.initialSettings,
+    required this.onSettingsChanged,
+    required this.onExport,
+    required this.onOrientationChangeRequested,
+  });
 
   @override
   State<ExportSettingsSheet> createState() => _ExportSettingsSheetState();
 }
 
 class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
-  ExportResolution _resolution = ExportResolution.p720;
-  int? _fps; // null = Source
-  ExportQualityPreset _qualityPreset = ExportQualityPreset.standard;
-  ExportFormat _format = ExportFormat.mp4;
+  late ExportResolution _resolution;
+  int? _fps;
+  late ExportQualityPreset _qualityPreset;
+  late ExportFormat _format;
+  Orientation? _lastOrientation;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolution = widget.initialSettings.resolution;
+    _fps = widget.initialSettings.fps;
+    _qualityPreset = widget.initialSettings.qualityPreset;
+    _format = widget.initialSettings.format;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newOrientation = MediaQuery.of(context).orientation;
+    if (_lastOrientation != null && _lastOrientation != newOrientation) {
+      // Small delay to let the orientation change settle before triggering re-open
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onOrientationChangeRequested();
+      });
+    }
+    _lastOrientation = newOrientation;
+  }
+
+  void _notifyChange() {
+    widget.onSettingsChanged(_buildSettings());
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXl),
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
+
+    if (isLandscape) {
+      return _buildLandscapeLayout();
+    }
+    return _buildPortraitLayout();
+  }
+
+  Widget _buildPortraitLayout() {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppTheme.radiusXl),
+          ),
         ),
-      ),
-      padding: const EdgeInsets.fromLTRB(
-        AppTheme.spacingLg,
-        AppTheme.spacingSm,
-        AppTheme.spacingLg,
-        AppTheme.spacingXl,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: AppTheme.spacingLg),
-            decoration: BoxDecoration(
-              color: AppColors.textMuted,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          // Title
-          const Text(
-            'Export Studio',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingXl),
-
-          // Resolution
-          _buildOptionRow(label: 'RESOLUTION', child: _buildResolutionPicker()),
-          const SizedBox(height: AppTheme.spacingLg),
-
-          // Format
-          _buildOptionRow(
-            label: 'FORMAT',
-            child: _buildSegmentedControl<ExportFormat>(
-              values: ExportFormat.values,
-              selected: _format,
-              labelOf: (v) => v.label,
-              onChanged: (v) => setState(() => _format = v),
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingLg),
-
-          // FPS
-          _buildOptionRow(label: 'FPS', child: _buildFpsPicker()),
-          const SizedBox(height: AppTheme.spacingLg),
-
-          // Quality slider
-          _buildOptionRow(
-            label: 'QUALITY',
-            child: _buildSegmentedControl<ExportQualityPreset>(
-              values: ExportQualityPreset.values,
-              selected: _qualityPreset,
-              labelOf: (v) => v.label,
-              onChanged: (v) => setState(() => _qualityPreset = v),
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingXl),
-
-          // Single Export button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                widget.onExport(_buildSettings());
-              },
-              icon: const Icon(Icons.save_alt_rounded, size: 18),
-              label: const Text('Export'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.spacingLg,
+          AppTheme.spacingSm,
+          AppTheme.spacingLg,
+          AppTheme.spacingXl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: AppTheme.spacingLg),
+              decoration: BoxDecoration(
+                color: AppColors.textMuted,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
+            _buildHeader(),
+            const SizedBox(height: AppTheme.spacingXl),
+            Flexible(child: _buildSettingsList()),
+            const SizedBox(height: AppTheme.spacingXl),
+            _buildExportButton(),
+            SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLandscapeLayout() {
+    // Landscape uses a centered constrained panel/dialog style
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 500),
+        margin: const EdgeInsets.all(AppTheme.spacingLg),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: AppTheme.spacingLg),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: _buildSettingsList(),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingLg),
+                _buildExportButton(),
+              ],
+            ),
           ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return const Text(
+      'Export Studio',
+      style: TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
+  Widget _buildSettingsList() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Resolution
+        _buildOptionRow(label: 'RESOLUTION', child: _buildResolutionPicker()),
+        const SizedBox(height: AppTheme.spacingLg),
+
+        // Format
+        _buildOptionRow(
+          label: 'FORMAT',
+          child: _buildSegmentedControl<ExportFormat>(
+            values: ExportFormat.values,
+            selected: _format,
+            labelOf: (v) => v.label,
+            onChanged: (v) => setState(() => _format = v),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingLg),
+
+        // FPS
+        _buildOptionRow(label: 'FPS', child: _buildFpsPicker()),
+        const SizedBox(height: AppTheme.spacingLg),
+
+        // Quality slider
+        _buildOptionRow(
+          label: 'QUALITY',
+          child: _buildSegmentedControl<ExportQualityPreset>(
+            values: ExportQualityPreset.values,
+            selected: _qualityPreset,
+            labelOf: (v) => v.label,
+            onChanged: (v) => setState(() => _qualityPreset = v),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExportButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: () {
+          Navigator.pop(context);
+          widget.onExport(_buildSettings());
+        },
+        icon: const Icon(Icons.save_alt_rounded, size: 18),
+        label: const Text('Export'),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
       ),
     );
   }
@@ -136,6 +238,8 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
                 _showProDialog();
               } else {
                 setState(() => _resolution = res);
+                _notifyChange();
+
               }
             },
             child: Container(
@@ -204,6 +308,8 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
                 _showProDialog();
               } else {
                 setState(() => _fps = fps);
+                _notifyChange();
+
               }
             },
             child: Container(

@@ -1064,15 +1064,61 @@ class _EditorScreenState extends State<EditorScreen> {
   // ────────────────────────────────────────────────────────────
   //  EXPORT
   // ────────────────────────────────────────────────────────────
+  // --- Export Settings state ---
+  ExportSettings _currentExportSettings = const ExportSettings();
+  bool _isExportSheetOpen = false;
+  bool _isReopeningExportSheet = false;
+
   void _showExportSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => ExportSettingsSheet(
-        onExport: (settings) => _exportWithSettings(settings),
-      ),
-    );
+    if (_isReopeningExportSheet) return;
+    _isExportSheetOpen = true;
+
+    final orientation = MediaQuery.of(context).orientation;
+    if (orientation == Orientation.landscape) {
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) => ExportSettingsSheet(
+          initialSettings: _currentExportSettings,
+          onSettingsChanged: (s) => _currentExportSettings = s,
+          onOrientationChangeRequested: () => _handleExportOrientationChange(ctx),
+          onExport: (settings) {
+            _currentExportSettings = settings;
+            _exportWithSettings(settings);
+          },
+        ),
+      ).then((_) => _isExportSheetOpen = false);
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => ExportSettingsSheet(
+          initialSettings: _currentExportSettings,
+          onSettingsChanged: (s) => _currentExportSettings = s,
+          onOrientationChangeRequested: () => _handleExportOrientationChange(ctx),
+          onExport: (settings) {
+            _currentExportSettings = settings;
+            _exportWithSettings(settings);
+          },
+        ),
+      ).then((_) => _isExportSheetOpen = false);
+    }
+  }
+
+  void _handleExportOrientationChange(BuildContext dialogContext) {
+    if (!_isExportSheetOpen || _isReopeningExportSheet) return;
+
+    _isReopeningExportSheet = true;
+    Navigator.of(dialogContext).pop();
+
+    // Small delay to ensure the pop animation and orientation change settle
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _isReopeningExportSheet = false;
+        _showExportSheet();
+      }
+    });
   }
 
   Future<void> _exportWithSettings(ExportSettings settings) async {
@@ -1633,92 +1679,73 @@ class _EditorScreenState extends State<EditorScreen> {
                         ),
                       ),
 
-                    // ── TOOLBAR ICONS ──
-                    if (isReady && !_isProcessing)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppTheme.spacingSm,
-                        ),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            top: BorderSide(color: AppColors.divider, width: 1),
-                            bottom: BorderSide(
-                              color: AppColors.divider,
-                              width: 1,
+                    if (isLandscape)
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              left: BorderSide(color: AppColors.divider, width: 1),
                             ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _ToolIconButton(
-                              icon: Icons.cut,
-                              label: 'Trim',
-                              isActive: _activeTool == EditorTool.trim,
-                              onPressed: () => setState(
-                                () =>
-                                    _activeTool = _activeTool == EditorTool.trim
-                                    ? EditorTool.none
-                                    : EditorTool.trim,
-                              ),
-                            ),
-                            _ToolIconButton(
-                              icon: Icons.speed,
-                              label: 'Speed',
-                              isActive: _activeTool == EditorTool.speed,
-                              onPressed: () => setState(
-                                () => _activeTool =
-                                    _activeTool == EditorTool.speed
-                                    ? EditorTool.none
-                                    : EditorTool.speed,
-                              ),
-                            ),
-                            _ToolIconButton(
-                              icon: Icons.crop,
-                              label: 'Canvas',
-                              isActive: _activeTool == EditorTool.canvas,
-                              onPressed: () => setState(
-                                () => _activeTool =
-                                    _activeTool == EditorTool.canvas
-                                    ? EditorTool.none
-                                    : EditorTool.canvas,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    // ── TOOL PANEL OR SPACER ──
-                    if (isReady &&
-                        !_isProcessing &&
-                        _activeTool != EditorTool.none)
-                      Expanded(
-                        flex: 4,
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(AppTheme.spacingMd),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _buildActiveToolPanel(ctrl),
-                              const SizedBox(height: AppTheme.spacingLg),
-                              _buildExportButton(),
-                              const SizedBox(height: AppTheme.spacingLg),
+                              if (isReady && !_isProcessing)
+                                _buildToolbarSection(),
+                              if (isReady && !_isProcessing && _activeTool != EditorTool.none)
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.all(AppTheme.spacingMd),
+                                    child: _buildActiveToolPanel(ctrl),
+                                  ),
+                                )
+                              else
+                                const Spacer(),
+                              if (isReady && !_isProcessing)
+                                Padding(
+                                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                                  child: _buildExportButton(),
+                                ),
                             ],
                           ),
                         ),
                       )
-                    else if (isReady &&
-                        !_isProcessing &&
-                        _activeTool == EditorTool.none)
-                      Expanded(
-                        flex: 4,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            _buildExportButton(),
-                            const SizedBox(height: AppTheme.spacingLg),
-                          ],
+                    else ...[
+                      // ── PORTRAIT TOOLBAR & PANELS ──
+                      if (isReady && !_isProcessing)
+                        _buildToolbarSection(),
+
+                      if (isReady && !_isProcessing && _activeTool != EditorTool.none)
+                        Expanded(
+                          flex: 4,
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(AppTheme.spacingMd),
+                            child: Column(
+                              children: [
+                                _buildActiveToolPanel(ctrl),
+                                const SizedBox(height: AppTheme.spacingLg),
+                                _buildExportButton(),
+                                const SizedBox(height: AppTheme.spacingLg),
+                              ],
+                            ),
+                          ),
+                        )
+                      else if (isReady && !_isProcessing && _activeTool == EditorTool.none)
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+                                child: _buildExportButton(),
+                              ),
+                              const SizedBox(height: AppTheme.spacingLg),
+                            ],
+                          ),
                         ),
-                      ),
+                    ],
                   ],
                 ),
               ),
@@ -2078,6 +2105,56 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  //  TOOLBAR SECTION
+  // ────────────────────────────────────────────────────────────
+  Widget _buildToolbarSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.divider, width: 1),
+          bottom: BorderSide(color: AppColors.divider, width: 1),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _ToolIconButton(
+            icon: Icons.cut,
+            label: 'Trim',
+            isActive: _activeTool == EditorTool.trim,
+            onPressed: () => setState(
+              () => _activeTool = _activeTool == EditorTool.trim
+                  ? EditorTool.none
+                  : EditorTool.trim,
+            ),
+          ),
+          _ToolIconButton(
+            icon: Icons.speed,
+            label: 'Speed',
+            isActive: _activeTool == EditorTool.speed,
+            onPressed: () => setState(
+              () => _activeTool = _activeTool == EditorTool.speed
+                  ? EditorTool.none
+                  : EditorTool.speed,
+            ),
+          ),
+          _ToolIconButton(
+            icon: Icons.crop,
+            label: 'Canvas',
+            isActive: _activeTool == EditorTool.canvas,
+            onPressed: () => setState(
+              () => _activeTool = _activeTool == EditorTool.canvas
+                  ? EditorTool.none
+                  : EditorTool.canvas,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
