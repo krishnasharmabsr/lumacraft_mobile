@@ -90,3 +90,8 @@
 
 - **Date:** 2026-03-11
 - **Memory:** The Filters panel now uses a single horizontal scroll strip instead of a wrapping chip grid. Each option is presented as a compact fixed-width card so the panel consumes less vertical space while still preserving clear selected-vs-applied states.
+
+## S012 Filter State Messaging Consistency
+
+- **Date:** 2026-03-11
+- **Memory:** Added `FilterPanelState` to centralize filter panel copy semantics. The UI now distinguishes previewed vs applied/export filter explicitly: `Export: ...` badge for the applied state, helper copy that references both states, and a disabled apply CTA when there is no pending preview change.

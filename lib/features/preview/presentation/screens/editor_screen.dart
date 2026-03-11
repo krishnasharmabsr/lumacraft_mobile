@@ -19,6 +19,7 @@ import '../../../../services/io/native_video_picker.dart';
 import '../../../export/presentation/widgets/export_settings_sheet.dart';
 import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
+import '../models/filter_panel_state.dart';
 
 enum EditorTool { none, trim, filters, speed, canvas }
 
@@ -1291,6 +1292,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _applyFilter() {
+    if (_previewFilter == _appliedFilter) return;
     setState(() => _appliedFilter = _previewFilter);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2019,7 +2021,11 @@ class _EditorScreenState extends State<EditorScreen> {
 
   // ── SPEED CARD ──
   Widget _buildFiltersCard() {
-    final hasPendingFilter = _previewFilter != _appliedFilter;
+    final filterPanelState = FilterPanelState(
+      previewedFilter: _previewFilter,
+      appliedFilter: _appliedFilter,
+    );
+    final hasPendingFilter = filterPanelState.hasPendingChanges;
 
     return Card(
       child: Padding(
@@ -2056,7 +2062,7 @@ class _EditorScreenState extends State<EditorScreen> {
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: Text(
-                    _appliedFilter.label,
+                    filterPanelState.appliedBadgeLabel,
                     style: TextStyle(
                       color: _appliedFilter != VideoFilter.original
                           ? AppColors.accent
@@ -2087,27 +2093,29 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
             ),
             const SizedBox(height: AppTheme.spacingMd),
-            if (hasPendingFilter)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
-                child: Text(
-                  'Previewing ${_previewFilter.label}. Apply to include it in export.',
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                  ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+              child: Text(
+                filterPanelState.statusText,
+                style: TextStyle(
+                  color: hasPendingFilter
+                      ? AppColors.textSecondary
+                      : AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: hasPendingFilter
+                      ? FontWeight.w500
+                      : FontWeight.w400,
                 ),
               ),
+            ),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _isProcessing ? null : _applyFilter,
+                onPressed: (_isProcessing || !hasPendingFilter)
+                    ? null
+                    : _applyFilter,
                 icon: const Icon(Icons.check_circle_outline, size: 18),
-                label: Text(
-                  _previewFilter == VideoFilter.original
-                      ? 'Apply Original'
-                      : 'Apply Filter',
-                ),
+                label: Text(filterPanelState.applyButtonLabel),
                 style: FilledButton.styleFrom(
                   backgroundColor: hasPendingFilter
                       ? AppColors.accent

@@ -375,6 +375,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
 - **Manual QA:** PENDING. Need device verification for horizontal scrolling, portrait overflow, landscape usability, and post-selection apply/export behavior.
 - **Status:** QA_PENDING
 
+## Execution 26 - Task S012 Filter State Messaging Consistency
+
+- **Date:** 2026-03-11
+- **Changes:**
+  1. Centralized filter panel messaging state into a dedicated `FilterPanelState` model.
+  2. Updated the Filters pill to show explicit export semantics (`Export: <filter>`).
+  3. Updated helper text and apply CTA so previewed vs applied state is always described consistently.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+- **Manual QA:** PENDING. Need on-device verification that selected card, export pill, helper text, and apply CTA remain consistent while previewing one filter, applying it, and returning to Original.
+- **Status:** QA_PENDING
+
 ## Execution 23 - Task S005 (Export Reliability Hard Fix)
 
 - **Date:** 2026-03-10

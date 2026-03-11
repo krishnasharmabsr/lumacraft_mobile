@@ -119,3 +119,10 @@
 - **Date:** 2026-03-11
 - **Status:** Implemented on `feat/s012-editor-filters-v1`
 - **Focus:** Replaced the wrapped multi-row filter chip layout with a single horizontal scrollable selector to reduce panel height and improve portrait usability. Selected state remains accent-filled, applied state remains marked with a check indicator, and apply/export behavior was left unchanged.
+
+## S012 Filter State Messaging Consistency
+
+- **Date:** 2026-03-11
+- **Status:** Implemented on `feat/s012-editor-filters-v1`
+- **Root Cause:** The Filters panel exposed preview and applied/export state from separate UI elements without labeling them explicitly enough. The top pill represented the applied/export filter while the helper text represented the previewed filter, which could appear contradictory during QA even when the underlying state was correct.
+- **Fix:** Introduced a shared `FilterPanelState` model so the top pill, helper text, and apply CTA are derived from one preview-vs-applied source of truth. The pill now reads `Export: ...`, helper text always states both preview and export semantics, and the apply button disables once preview already matches export.
