@@ -22,7 +22,7 @@ typedef ProgressCallback = void Function(double progress);
 // ────────────────────────────────────────────────────────────
 //  FAILURE CLASSIFICATION
 // ────────────────────────────────────────────────────────────
-enum ExportFailureType { watermark, audio, encoder, unknown }
+enum ExportFailureType { watermark, audio, encoder, filter, unknown }
 
 enum VideoCodecProfile { mpeg4Default, x264Fallback }
 
@@ -143,6 +143,17 @@ class FFmpegProcessor implements IVideoProcessor {
     ];
     for (final p in encoderPatterns) {
       if (lower.contains(p)) return ExportFailureType.encoder;
+    }
+
+    // Filter failures
+    final filterPatterns = [
+      'no such filter',
+      'error initializing filter',
+      'error initializing complex filter',
+      'filtergraph',
+    ];
+    for (final p in filterPatterns) {
+      if (lower.contains(p)) return ExportFailureType.filter;
     }
 
     return ExportFailureType.unknown;
@@ -395,6 +406,11 @@ class FFmpegProcessor implements IVideoProcessor {
     ExportAttemptConfig current,
     ExportFailureType failureType,
   ) {
+    // Explicitly fail fast for errors that watermark/encoder fallbacks won't logically fix
+    if (failureType == ExportFailureType.filter) {
+      return null;
+    }
+
     // A (png/audio) → B (raw/audio)
     if (current.label == 'A') {
       return ExportAttemptConfig(

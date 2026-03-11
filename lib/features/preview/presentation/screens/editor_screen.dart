@@ -1960,6 +1960,24 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
                 const Spacer(),
+                if (!_isTimelineInvalid && (_trimStart != Duration.zero || _trimEnd != _videoDuration))
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                         _trimStart = Duration.zero;
+                         _trimEnd = _videoDuration;
+                      });
+                      _previewTrim();
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: AppColors.error,
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Reset Trim'),
+                  ),
                 if (_isTimelineInvalid)
                   const Text(
                     '⚠ Unavailable',
@@ -2050,6 +2068,23 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
                 const Spacer(),
+                if (_appliedFilter != VideoFilter.original || _previewFilter != VideoFilter.original)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _previewFilter = VideoFilter.original;
+                        _appliedFilter = VideoFilter.original;
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: AppColors.error,
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Reset Filter'),
+                  ),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -2156,6 +2191,24 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
                 const Spacer(),
+                if (_appliedSpeed != 1.0 || _previewSpeed != 1.0)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                         _previewSpeed = 1.0;
+                         _appliedSpeed = 1.0;
+                      });
+                      _controller?.setPlaybackSpeed(1.0);
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: AppColors.error,
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Reset Speed'),
+                  ),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -2264,6 +2317,23 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
                 const Spacer(),
+                if (_appliedCanvas != ExportAspectRatio.source || _previewCanvas != ExportAspectRatio.source)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _previewCanvas = ExportAspectRatio.source;
+                        _appliedCanvas = ExportAspectRatio.source;
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: AppColors.error,
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    child: const Text('Reset Canvas'),
+                  ),
                 if (_appliedCanvas != ExportAspectRatio.source)
                   Container(
                     padding: const EdgeInsets.symmetric(

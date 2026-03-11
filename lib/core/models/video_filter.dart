@@ -8,7 +8,7 @@ class VideoFilter {
   static const original = VideoFilter(label: 'Original');
   static const bright = VideoFilter(
     label: 'Bright',
-    ffmpegFilter: 'eq=brightness=0.06',
+    ffmpegFilter: 'colorlevels=rimin=-0.06:gimin=-0.06:bimin=-0.06:rimax=0.94:gimax=0.94:bimax=0.94',
     matrix: [
       1.0,
       0,
@@ -34,7 +34,7 @@ class VideoFilter {
   );
   static const contrast = VideoFilter(
     label: 'Contrast',
-    ffmpegFilter: 'eq=contrast=1.3',
+    ffmpegFilter: 'colorlevels=rimin=0.115:gimin=0.115:bimin=0.115:rimax=0.885:gimax=0.885:bimax=0.885',
     matrix: [
       1.3,
       0,
