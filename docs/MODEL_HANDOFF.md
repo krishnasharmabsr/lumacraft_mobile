@@ -20,8 +20,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011.
-- **Active:** S012 (AI Feature TBD)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C.
+- **Active:** Next phase features pending
 
 ## Environment Identity
 
@@ -126,3 +126,11 @@
 - **Root Cause:** The Filters panel exposed preview and applied/export state from separate UI elements without labeling them explicitly enough. The top pill represented the applied/export filter while the helper text represented the previewed filter, which could appear contradictory during QA even when the underlying state was correct.
 - **Fix:** Introduced a shared `FilterPanelState` model so the top pill, helper text, and apply CTA are derived from one preview-vs-applied source of truth. The pill now reads `Export: ...`, helper text always states both preview and export semantics, and the apply button disables once preview already matches export.
 
+## S012A/B/C Follow-up Fixes
+
+- **Date:** 2026-03-11
+- **Status:** Merged to `main`
+- **Focus:** 
+  - **S012A:** Clarified Filter Behavior Contract so filters do not stack and global reset correctly restores them.
+  - **S012B:** Fixed `Bright` and `Contrast` export failure caused by missing `eq` filter in FFmpegKit; replaced with robust `colorlevels` calculation and corrected false fallback logic in `FFmpegProcessor`.
+  - **S012C:** Implemented tool-scoped UI reset buttons inside Trim, Canvas, Filter, and Speed panels for precision UX alongside the `Reset All` global option.

@@ -29,7 +29,7 @@
 - [x] S007 — Content-Anchored Watermark Positioning (S007, S007A) (MERGED)
 - [x] S008 — Keep Screen Awake During Active Video Playback (MERGED)
 - [x] S009 — Landscape Editor & Export Fixed Workspace (S009, S009A, S009B) (MERGED)
-- [x] S012 - Filters V1 implemented on branch (QA_PENDING)
+- [x] S012 - Filters V1 implemented and fixes merged to main (MERGED)
 
 ## Phase 3: AI Capabilities
 

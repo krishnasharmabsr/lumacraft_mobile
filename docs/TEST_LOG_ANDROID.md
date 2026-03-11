@@ -360,8 +360,8 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter test`: All tests passed
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (107.0MB)
-- **Manual QA:** PENDING. On-device visual verification still required for preview fidelity, exported output, watermark preservation, black bars, and portrait/landscape usability.
-- **Status:** QA_PENDING
+- **Manual QA:** APPROVED.
+- **Status:** APPROVED
 
 ## Execution 25 - Task S012 UI Polish (Horizontal Filter Selector)
 
@@ -372,8 +372,8 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
 - **Validation:**
   - `flutter analyze`: No issues found
   - `flutter test`: All tests passed
-- **Manual QA:** PENDING. Need device verification for horizontal scrolling, portrait overflow, landscape usability, and post-selection apply/export behavior.
-- **Status:** QA_PENDING
+- **Manual QA:** APPROVED.
+- **Status:** APPROVED
 
 ## Execution 26 - Task S012 Filter State Messaging Consistency
 
@@ -385,8 +385,8 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
 - **Validation:**
   - `flutter analyze`: No issues found
   - `flutter test`: All tests passed
-- **Manual QA:** PENDING. Need on-device verification that selected card, export pill, helper text, and apply CTA remain consistent while previewing one filter, applying it, and returning to Original.
-- **Status:** QA_PENDING
+- **Manual QA:** APPROVED.
+- **Status:** APPROVED
 
 ## Execution 23 - Task S005 (Export Reliability Hard Fix)
 
