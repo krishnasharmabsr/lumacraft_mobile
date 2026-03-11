@@ -411,3 +411,18 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (108.5MB)
 - **Status:** QA_PENDING
+
+## Execution 27 - Task S013 (RevenueCat Freemium Foundation)
+
+- **Date:** 2026-03-11
+- **Changes:**
+  1. Integrated `purchases_flutter` for RevenueCat.
+  2. Implemented `AppConfig` and `RevenueCatService` to manage real entitlements and debug overrides (`DEV_FORCE_PRO`).
+  3. Created minimalist `PaywallSheet` bottom sheet which triggers when a free user interacts with Pro features (1080p, 4K, 60fps).
+  4. Ensured `ProGate` reflects real entitlement state via active listeners avoiding legacy hardcoded gates.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (110.0MB)
+- **Status:** QA_PENDING

@@ -1,0 +1,8 @@
+Analyzing lumacraft_mobile...                                   
+
+   info - 'purchasePackage' is deprecated and shouldn't be used. Use purchase(PurchaseParams) - lib\core\services\revenuecat_service.dart:80:44 - deprecated_member_use
+  error - The argument type 'PurchaseResult' can't be assigned to the parameter type 'CustomerInfo'.  - lib\core\services\revenuecat_service.dart:81:24 - argument_type_not_assignable
+  error - Target of URI doesn't exist: '../../monetization/presentation/screens/paywall_sheet.dart' - lib\features\export\presentation\widgets\export_settings_sheet.dart:7:8 - uri_does_not_exist
+  error - Undefined name 'PaywallSheet' - lib\features\export\presentation\widgets\export_settings_sheet.dart:369:11 - undefined_identifier
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\monetization\presentation\screens\paywall_sheet.dart:180:29 - deprecated_member_use
+

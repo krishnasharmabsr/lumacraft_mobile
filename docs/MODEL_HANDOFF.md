@@ -20,7 +20,7 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C.
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013.
 - **Active:** Next phase features pending
 
 ## Environment Identity
@@ -134,3 +134,9 @@
   - **S012A:** Clarified Filter Behavior Contract so filters do not stack and global reset correctly restores them.
   - **S012B:** Fixed `Bright` and `Contrast` export failure caused by missing `eq` filter in FFmpegKit; replaced with robust `colorlevels` calculation and corrected false fallback logic in `FFmpegProcessor`.
   - **S012C:** Implemented tool-scoped UI reset buttons inside Trim, Canvas, Filter, and Speed panels for precision UX alongside the `Reset All` global option.
+
+## S013 RevenueCat Freemium Foundation
+
+- **Date:** 2026-03-11
+- **Branch:** `feat/s013-revenuecat-freemium-foundation`
+- **Focus:** Implemented robust freemium gating via RevenueCat. Replaced hardcoded checks with dynamic entitlement verifications, and introduced a minimalist `PaywallSheet` UI for converting free users trying to access 1080p, 4K, and 60 FPS options. Re-verified compile safety with `purchases_flutter` v9 syntax and configured safe build-time properties.
