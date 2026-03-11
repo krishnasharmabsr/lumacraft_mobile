@@ -39,6 +39,12 @@
 - **Status:** Merged to `main`
 - **Focus:** Replaced the freeform quality slider in Export Studio with discrete `Low`, `Standard`, and `High` presets. Mapped output behavior strictly to stable codecs (`mpeg4: q:v` of 6, 4, 2 respectively mapped to audio bitrates of 96k, 128k, 192k) inside `FFmpegProcessor`. UI was updated to a premium segmented control style. Also refined the export processing overlay and success snackbars (S006A and S006B).
 
+## S007 Content-Anchored Watermark
+
+- **Date:** 2026-03-11
+- **Status:** Merged to `main`
+- **Focus:** Fixed the watermark placement logic in the export pipeline so it anchors perfectly to the edge of the visible video frame, never rendering on the black padding introduced by forcing landscape/square resolutions. Implemented using a scale -> overlay -> pad filter graph sequentially within `FFmpegProcessor`.
+
 ## S005E Brand Identity Polish
 
 - **Date:** 2026-03-10

@@ -26,6 +26,7 @@
 - [x] S005 — Export Reliability Hard Fix (watermark, atempo, output directory safety).
 - [x] S005/C/D/E/G — Complete cumulative watermark branding & reliability fixes, branch pruned. (MERGED)
 - [x] S006 — Export Quality Presets / UI Polish (S006, S006A, S006B) (MERGED)
+- [x] S007 — Content-Anchored Watermark Positioning (S007, S007A) (MERGED)
 
 ## Phase 3: AI Capabilities
 

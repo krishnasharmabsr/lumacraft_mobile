@@ -51,3 +51,9 @@
 - **Date:** 2026-03-11
 - **Status:** Merged to `main`
 - **Memory:** Deprecated confusing 0-100 continuous quality slider. Brought in discrete bounded set of presets: Low (q:v 6), Standard (q:v 4 - Default), High (q:v 2). Updated UI widget `ExportSettingsSheet` to use premium discrete buttons matching the pro resolution locks style. Engine test assertions migrated successfully.
+
+## S007 Content-Anchored Watermark
+
+- **Date:** 2026-03-11
+- **Status:** Merged to `main`
+- **Memory:** Refactored filter graph in `FFmpegProcessor` to correctly anchor the watermark to the actual scaled video content boundaries, rather than the padded canvas edges. Programmatic analysis confirmed the layout protects the watermark from rendering incorrectly on letterboxes or pillarboxes across all aspect ratio transformations.
