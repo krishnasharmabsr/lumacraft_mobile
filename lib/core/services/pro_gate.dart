@@ -1,6 +1,6 @@
 import '../config/app_config.dart';
 
-/// Pro feature gate — local abstraction for premium features.
+/// Pro feature gate - local abstraction for premium features.
 /// Connected to RevenueCat for production entitlement.
 class ProGate {
   ProGate._();
