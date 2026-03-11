@@ -49,5 +49,5 @@
 ## S006 Export Quality Presets UI Revert
 
 - **Date:** 2026-03-11
-- **Status:** Merged to `main` (Pending PR approval)
+- **Status:** Merged to `main`
 - **Memory:** Deprecated confusing 0-100 continuous quality slider. Brought in discrete bounded set of presets: Low (q:v 6), Standard (q:v 4 - Default), High (q:v 2). Updated UI widget `ExportSettingsSheet` to use premium discrete buttons matching the pro resolution locks style. Engine test assertions migrated successfully.

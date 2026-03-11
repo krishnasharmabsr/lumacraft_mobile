@@ -33,10 +33,11 @@
 - **Date:** 2026-03-10
 - **Focus:** Unified all runtime logo references to canonical `assets/branding/logo_mark_master_1024.png`. Removed stale `logo_mark.png`. Created `docs/BRAND_REGISTRY.md`.
 
-## S006 Export Quality Presets UI Revert
+## S006 Export Quality Presets & UI Polish
 
 - **Date:** 2026-03-11
-- **Focus:** Replaced the freeform quality slider in Export Studio with discrete `Low`, `Standard`, and `High` presets. Mapped output behavior strictly to stable codecs (`mpeg4: q:v` of 6, 4, 2 respectively mapped to audio bitrates of 96k, 128k, 192k) inside `FFmpegProcessor`. UI was updated to a premium segmented control style, removing ambiguous continuous integer states.
+- **Status:** Merged to `main`
+- **Focus:** Replaced the freeform quality slider in Export Studio with discrete `Low`, `Standard`, and `High` presets. Mapped output behavior strictly to stable codecs (`mpeg4: q:v` of 6, 4, 2 respectively mapped to audio bitrates of 96k, 128k, 192k) inside `FFmpegProcessor`. UI was updated to a premium segmented control style. Also refined the export processing overlay and success snackbars (S006A and S006B).
 
 ## S005E Brand Identity Polish
 
