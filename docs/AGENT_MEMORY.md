@@ -8,8 +8,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 (Export/UX/Stability/Landscape/Autohide).
-- **Active:** S011 (AI Feature TBD)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 (Export/UX/Stability/Landscape/Autohide/Speed).
+- **Active:** S012 (AI Feature TBD)
 
 ## Environment Identity
 
@@ -74,3 +74,8 @@
 
 - **Date:** 2026-03-11
 - **Memory:** Fixed the issue where playback controls stayed visible indefinitely. Implemented a 2.5s auto-hide timer active only during playback. Used a `_wasPlaying` transition tracker in the video listener to ensure controls appear when pausing and start hiding when playing. Tapping while playing toggles visibility and resets/cancels timers as needed.
+
+## S011 Editor Speed Range Expansion
+
+- **Date:** 2026-03-11
+- **Memory:** Expanded the editor's speed adjustment range to support 0.25x to 3.0x. Updated the `Slider` in `EditorScreen` with precise 0.25x increments (divisions: 11). Verified that `FFmpegProcessor` correctly handles the expanded range for exports using chained `atempo` filters.
