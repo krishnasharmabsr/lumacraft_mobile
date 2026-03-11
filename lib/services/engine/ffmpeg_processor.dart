@@ -262,30 +262,45 @@ class FFmpegProcessor implements IVideoProcessor {
           : totalDurationSecs;
     }
 
-    // 4. Canvas (Aspect Ratio)
+    // 4 & 5. Content Scale (direct to final resolution)
+    const String nextMapScaled = '[v_scaled]';
     if (aspectRatio != ExportAspectRatio.source) {
-      const String nextMap = '[v_canvas]';
-      final targetHeight = 1080;
-      final targetWidth = (targetHeight * aspectRatio.ratio!).round();
-      final scaleFilter =
-          'scale=$targetWidth:$targetHeight:force_original_aspect_ratio=decrease,pad=$targetWidth:$targetHeight:(ow-iw)/2:(oh-ih)/2:black';
-      filterSegments.add('$currentVideoMap$scaleFilter$nextMap');
-      currentVideoMap = nextMap;
+      final targetHeight = settings.resolution.height;
+      int targetWidth = (targetHeight * aspectRatio.ratio!).round();
+      if (targetWidth % 2 != 0) targetWidth += 1;
+
+      final scaleContent =
+          'scale=$targetWidth:$targetHeight:force_original_aspect_ratio=decrease';
+      filterSegments.add('$currentVideoMap$scaleContent$nextMapScaled');
+      currentVideoMap = nextMapScaled;
+    } else {
+      filterSegments.add(
+        '$currentVideoMap${settings.scaleFilter}$nextMapScaled',
+      );
+      currentVideoMap = nextMapScaled;
     }
 
-    // 5. Final Scale from Export Settings (resolution)
-    const String nextScaleMap = '[v_scaled]';
-    filterSegments.add('$currentVideoMap${settings.scaleFilter}$nextScaleMap');
-    currentVideoMap = nextScaleMap;
-
-    // 6. Watermark overlay
+    // 6. Watermark overlay (anchors to content box)
     if (effectiveWatermark) {
       filterSegments.add('[1:v]format=rgba,scale=120:-1[wm]');
-      const String nextMap = '[v_out]';
+      const String nextMapWm = '[v_watermarked]';
       filterSegments.add(
-        '$currentVideoMap[wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20:shortest=1$nextMap',
+        '$currentVideoMap[wm]overlay=main_w-overlay_w-20:main_h-overlay_h-20:shortest=1$nextMapWm',
       );
-      currentVideoMap = nextMap;
+      currentVideoMap = nextMapWm;
+    }
+
+    // 7. Final Pad (if forcing aspect ratio, pad the anchored content)
+    if (aspectRatio != ExportAspectRatio.source) {
+      const String nextMapPadded = '[v_padded]';
+      final targetHeight = settings.resolution.height;
+      int targetWidth = (targetHeight * aspectRatio.ratio!).round();
+      if (targetWidth % 2 != 0) targetWidth += 1;
+
+      final padFilter =
+          'pad=$targetWidth:$targetHeight:(ow-iw)/2:(oh-ih)/2:black';
+      filterSegments.add('$currentVideoMap$padFilter$nextMapPadded');
+      currentVideoMap = nextMapPadded;
     }
 
     parts.addAll([
