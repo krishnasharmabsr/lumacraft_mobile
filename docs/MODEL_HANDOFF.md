@@ -21,7 +21,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013 + S014.
-- **Active:** Next phase features pending
+- **Active:** S015 Paywall Polish on `feat/s015-paywall-polish` (pending review / not merged)
 
 ## Environment Identity
 
@@ -156,3 +156,10 @@
 - **Status:** Merged to `main`
 - **Focus:** Added AdMob foundation with build-time config via `String.fromEnvironment(...)`, Android manifest placeholder wiring for AdMob app ID, and a dedicated `AdMobService` with safe no-op fallback when config is missing. Implemented only one placement for V1: export-complete interstitial after successful gallery save.
 - **Contract:** Free users can load/show the export interstitial when available. Pro users bypass AdMob initialization, loading, and showing entirely via `ProGate.isPro`.
+
+## S015 Paywall Polish + Real Package Presentation
+
+- **Date:** 2026-03-12
+- **Status:** Implemented on `feat/s015-paywall-polish` (pending review / not merged)
+- **Focus:** Rebuilt the paywall into a premium dark-sheet layout with stronger hierarchy, benefit blocks, real package cards, and a CTA/footer zone. Real RevenueCat offerings are presented through package-selection cards with yearly prioritized and visually highlighted when both yearly and monthly exist.
+- **Fallback:** Missing offerings remain safe: no fake pricing is shown, restore stays visible, and the unavailable state stays polished with retry.

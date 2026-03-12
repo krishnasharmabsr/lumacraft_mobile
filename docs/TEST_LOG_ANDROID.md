@@ -469,3 +469,18 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter test`: All tests passed
   - `flutter build apk --release`: OK (114.2MB)
 - **Status:** MERGED
+
+## Execution 31 - Task S015 (Paywall Polish + Real Package Presentation)
+
+- **Date:** 2026-03-12
+- **Changes:**
+  1. Rebuilt the paywall into a premium dark-sheet layout with stronger hierarchy, benefit rows, package selection cards, and a more explicit CTA/footer section.
+  2. Added real package presentation via `PaywallPackageCatalog`, prioritizing yearly and monthly when present and highlighting yearly as `Best Value`.
+  3. Preserved safe fallback behavior when offerings are unavailable: no fake pricing, polished unavailable card, retry path, and visible restore.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (114.2MB)
+- **Manual QA:** PENDING. Need verification that locked-feature paywall entry, live package cards, unavailable fallback, CTA updates, restore visibility, and free/pro behavior all read clearly on-device.
+- **Status:** QA_PENDING
