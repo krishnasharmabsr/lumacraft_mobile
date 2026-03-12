@@ -426,3 +426,16 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --debug`: OK
   - `flutter build apk --release`: OK (110.0MB)
 - **Status:** QA_PENDING
+
+## Execution 28 - Task S013 Merge / FPS Export Approval
+
+- **Date:** 2026-03-12
+- **Changes:**
+  1. Manual QA approved RevenueCat freemium foundation on `feat/s013-revenuecat-freemium-foundation`.
+  2. Verified explicit FPS export contract fix: `Source` preserves source FPS, while explicit `24`, `30`, and `60` are honored during export.
+  3. Merged the approved S013 branch into `main` and updated docs to reflect the post-merge state.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --release`: OK
+- **Status:** MERGED

@@ -8,8 +8,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C.
-- **Active:** S013 RevenueCat Freemium Foundation on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013.
+- **Active:** Next phase features pending
 
 ## Environment Identity
 
@@ -104,8 +104,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C.
-- **Active:** S013 RevenueCat Freemium Foundation on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013.
+- **Active:** Next phase features pending
 
 ## Environment Identity
 
@@ -204,8 +204,8 @@
 ## S013 RevenueCat Freemium Foundation
 
 - **Date:** 2026-03-11
-- **Status:** In progress on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
-- **Memory:** Replaced dummy `ProGate.isPro` with a robust `RevenueCatService`. Wired UI feature locks (1080p, 4K, 60fps) to trigger a dynamic `PaywallSheet` instead of just returning false or showing a snackbar. Added `DEV_FORCE_PRO` mechanism using `--dart-define` to facilitate local testing without processing mock purchases or polluting the store API.
+- **Status:** Merged to `main`
+- **Memory:** Replaced dummy `ProGate.isPro` with a robust `RevenueCatService`. Wired UI feature locks (1080p, 4K, 60fps) to trigger a dynamic `PaywallSheet` instead of just returning false or showing a snackbar. Added `DEV_FORCE_PRO` via `String.fromEnvironment(...)` for debug testing, and merged free/pro export gating plus watermark behavior against live entitlement state.
 
 ## S013B Honor Explicit FPS Selection in Export
 

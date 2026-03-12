@@ -39,7 +39,7 @@
 
 ## Phase 4: Monetization & Release
 
-- [ ] S013 - RevenueCat Freemium Foundation (branch in progress; pending review)
+- [x] S013 - RevenueCat Freemium Foundation (MERGED)
 - [ ] AdMob integration
 - [ ] Play Billing setup
 - [ ] Release hardening & diagnostics
