@@ -439,3 +439,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter test`: All tests passed
   - `flutter build apk --release`: OK
 - **Status:** MERGED
+
+## Execution 29 - Task S014 (AdMob Foundation + No Ads for Pro)
+
+- **Date:** 2026-03-12
+- **Changes:**
+  1. Added `google_mobile_ads` foundation with `AdMobService` and runtime config via `String.fromEnvironment(...)`.
+  2. Implemented a single interstitial placement after successful export save flow only.
+  3. Suppressed all ad initialization/loading/showing for Pro users via `ProGate.isPro`.
+  4. Added safe fallback behavior: release builds with missing config disable ads cleanly, while debug builds can use Google test IDs for validation.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (114.2MB)
+- **Manual QA:** PENDING. Need verification for missing-config no-crash path, free export interstitial attempt, Pro suppression, silent failure path, and RevenueCat coexistence.
+- **Status:** QA_PENDING

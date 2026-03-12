@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/services/admob_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/revenuecat_service.dart';
 import 'features/splash/splash_screen.dart';
@@ -6,6 +7,7 @@ import 'features/splash/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RevenueCatService.init();
+  await AdMobService.init();
   runApp(const LumaCraftApp());
 }
 

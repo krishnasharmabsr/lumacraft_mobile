@@ -21,7 +21,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013.
-- **Active:** Next phase features pending
+- **Active:** S014 AdMob Foundation on `feat/s014-admob-foundation` (pending review / not merged)
 
 ## Environment Identity
 
@@ -149,3 +149,10 @@
 - **Root Cause:** `FFmpegProcessor.processExport()` probed source FPS and clamped any explicit user-selected `30` or `60` FPS back down to the lower source FPS before command construction. On 24 FPS inputs, both `30` and `60` therefore collapsed back to `24`.
 - **Fix:** Removed source-FPS clamping from export preparation and added an explicit `fps=` stage in the FFmpeg filter graph for non-`Source` selections, while still emitting `-r <selected>` on output. `Source` mode still omits both and preserves the original timestamps.
 - **Validation:** `flutter analyze`, `flutter test`, `flutter build apk --debug`, and `flutter build apk --release` passed on 2026-03-12.
+
+## S014 AdMob Foundation + No Ads for Pro
+
+- **Date:** 2026-03-12
+- **Status:** Implemented on `feat/s014-admob-foundation` (pending review / not merged)
+- **Focus:** Added AdMob foundation with build-time config via `String.fromEnvironment(...)`, Android manifest placeholder wiring for AdMob app ID, and a dedicated `AdMobService` with safe no-op fallback when config is missing. Implemented only one placement for V1: export-complete interstitial after successful gallery save.
+- **Contract:** Free users can load/show the export interstitial when available. Pro users bypass AdMob initialization, loading, and showing entirely via `ProGate.isPro`.

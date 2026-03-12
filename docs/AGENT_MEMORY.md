@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013.
-- **Active:** Next phase features pending
+- **Active:** S014 AdMob Foundation on `feat/s014-admob-foundation` (pending review / not merged)
 
 ## Environment Identity
 
@@ -105,7 +105,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013.
-- **Active:** Next phase features pending
+- **Active:** S014 AdMob Foundation on `feat/s014-admob-foundation` (pending review / not merged)
 
 ## Environment Identity
 
@@ -211,3 +211,8 @@
 
 - **Date:** 2026-03-12
 - **Memory:** Explicit 24/30/60 FPS export choices are now honored as requested. The export path no longer clamps selected FPS down to the source video FPS, and non-`Source` selections now add an explicit `fps=` filter plus output `-r` to force the requested encode rate. `Source` still preserves original FPS behavior.
+
+## S014 AdMob Foundation + No Ads for Pro
+
+- **Date:** 2026-03-12
+- **Memory:** Added `AdMobService` and AdMob build-time config to support a single export-complete interstitial placement. Ads are suppressed completely for Pro users through `ProGate.isPro`. Missing config falls back to a clean no-op path in release and uses Google test IDs in debug for safe validation.
