@@ -1,9 +1,37 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+fun dartDefine(key: String): String? {
+    val encodedDefines = project.findProperty("dart-defines") as String? ?: return null
+    return encodedDefines
+        .split(",")
+        .asSequence()
+        .mapNotNull { encoded ->
+            runCatching {
+                String(Base64.getDecoder().decode(encoded))
+            }.getOrNull()
+        }
+        .mapNotNull { decoded ->
+            val separatorIndex = decoded.indexOf("=")
+            if (separatorIndex == -1) {
+                null
+            } else {
+                decoded.substring(0, separatorIndex) to decoded.substring(separatorIndex + 1)
+            }
+        }
+        .firstOrNull { (name, _) -> name == key }
+        ?.second
+        ?.takeIf { it.isNotBlank() }
+}
+
+val adMobAppId =
+    dartDefine("ADMOB_ANDROID_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
 
 android {
     namespace = "com.lumacraft.studio"
@@ -28,6 +56,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["ADMOB_APP_ID"] = adMobAppId
     }
 
     buildTypes {
