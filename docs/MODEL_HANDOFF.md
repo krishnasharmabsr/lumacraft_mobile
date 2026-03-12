@@ -21,7 +21,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C.
-- **Active:** Next phase features pending
+- **Active:** S013 RevenueCat Freemium Foundation on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
 
 ## Environment Identity
 
@@ -134,3 +134,17 @@
   - **S012A:** Clarified Filter Behavior Contract so filters do not stack and global reset correctly restores them.
   - **S012B:** Fixed `Bright` and `Contrast` export failure caused by missing `eq` filter in FFmpegKit; replaced with robust `colorlevels` calculation and corrected false fallback logic in `FFmpegProcessor`.
   - **S012C:** Implemented tool-scoped UI reset buttons inside Trim, Canvas, Filter, and Speed panels for precision UX alongside the `Reset All` global option.
+
+## S013 RevenueCat Freemium Foundation
+
+- **Date:** 2026-03-11
+- **Branch:** `feat/s013-revenuecat-freemium-foundation`
+- **Focus:** Implemented robust freemium gating via RevenueCat. Replaced hardcoded checks with dynamic entitlement verifications, and introduced a minimalist `PaywallSheet` UI for converting free users trying to access 1080p, 4K, and 60 FPS options. Re-verified compile safety with `purchases_flutter` v9 syntax and configured safe build-time properties.
+
+## S013B Honor Explicit FPS Selection in Export
+
+- **Date:** 2026-03-12
+- **Status:** Implemented on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
+- **Root Cause:** `FFmpegProcessor.processExport()` probed source FPS and clamped any explicit user-selected `30` or `60` FPS back down to the lower source FPS before command construction. On 24 FPS inputs, both `30` and `60` therefore collapsed back to `24`.
+- **Fix:** Removed source-FPS clamping from export preparation and added an explicit `fps=` stage in the FFmpeg filter graph for non-`Source` selections, while still emitting `-r <selected>` on output. `Source` mode still omits both and preserves the original timestamps.
+- **Validation:** `flutter analyze`, `flutter test`, `flutter build apk --debug`, and `flutter build apk --release` passed on 2026-03-12.

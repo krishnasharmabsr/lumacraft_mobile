@@ -3,6 +3,7 @@ import '../../../../core/models/export_settings.dart';
 import '../../../../core/services/pro_gate.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../monetization/presentation/screens/paywall_sheet.dart';
 
 /// Bottom sheet for configuring export settings before saving.
 class ExportSettingsSheet extends StatefulWidget {
@@ -363,19 +364,11 @@ class _ExportSettingsSheetState extends State<ExportSettingsSheet> {
     );
   }
 
-  void _showProDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Pro feature — billing coming in an upcoming task.',
-        ),
-        backgroundColor: AppColors.warning,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        ),
-      ),
-    );
+  Future<void> _showProDialog() async {
+    await PaywallSheet.show(context);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Widget _buildOptionRow({required String label, required Widget child}) {

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/revenuecat_service.dart';
 import 'features/splash/splash_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await RevenueCatService.init();
   runApp(const LumaCraftApp());
 }
 

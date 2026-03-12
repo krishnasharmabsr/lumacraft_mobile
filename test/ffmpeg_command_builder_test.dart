@@ -237,6 +237,48 @@ void main() {
       expect(result.diagnostics, contains('video_filter=Original'));
     });
 
+    test('explicit fps adds fps filter and output flag', () {
+      final result = FFmpegProcessor.buildExportCommand(
+        inputPath: '/input.mp4',
+        outputPath: '/output.mp4',
+        settings: baseSettings,
+        trimStart: Duration.zero,
+        trimEnd: const Duration(seconds: 10),
+        playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
+        aspectRatio: ExportAspectRatio.source,
+        hasAudio: true,
+        finalFps: 60,
+        applyWatermark: false,
+        watermarkPath: null,
+      );
+
+      expect(result.command, contains('fps=60'));
+      expect(result.command, contains('-r 60'));
+      expect(result.diagnostics, contains('output_fps=60'));
+    });
+
+    test('source fps mode keeps original timestamps without fps filter', () {
+      final result = FFmpegProcessor.buildExportCommand(
+        inputPath: '/input.mp4',
+        outputPath: '/output.mp4',
+        settings: baseSettings,
+        trimStart: Duration.zero,
+        trimEnd: const Duration(seconds: 10),
+        playbackSpeed: 1.0,
+        videoFilter: VideoFilter.original,
+        aspectRatio: ExportAspectRatio.source,
+        hasAudio: true,
+        finalFps: null,
+        applyWatermark: false,
+        watermarkPath: null,
+      );
+
+      expect(result.command, isNot(contains('fps=')));
+      expect(result.command, isNot(contains('-r ')));
+      expect(result.diagnostics, contains('output_fps=source'));
+    });
+
     test('no-audio input: no audio map or codec flags', () {
       final result = FFmpegProcessor.buildExportCommand(
         inputPath: '/input.mp4',

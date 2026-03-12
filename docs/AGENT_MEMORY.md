@@ -8,8 +8,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C (Filters V1, Behavior, Export Fixes, Reset UX).
-- **Active:** Next phase features pending
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C.
+- **Active:** S013 RevenueCat Freemium Foundation on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
 
 ## Environment Identity
 
@@ -104,8 +104,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C (Filters V1, Behavior, Export Fixes, Reset UX).
-- **Active:** Next phase features pending
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C.
+- **Active:** S013 RevenueCat Freemium Foundation on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
 
 ## Environment Identity
 
@@ -200,3 +200,14 @@
   - **S012A:** Clarified Filter Behavior Contract so filters do not stack and global reset correctly restores them.
   - **S012B:** Fixed `Bright` and `Contrast` export failure caused by missing `eq` filter in FFmpegKit; replaced with robust `colorlevels` calculation and corrected false fallback logic in `FFmpegProcessor`.
   - **S012C:** Implemented tool-scoped UI reset buttons inside Trim, Canvas, Filter, and Speed panels for precision UX alongside the `Reset All` global option.
+
+## S013 RevenueCat Freemium Foundation
+
+- **Date:** 2026-03-11
+- **Status:** In progress on `feat/s013-revenuecat-freemium-foundation` (pending review / not merged)
+- **Memory:** Replaced dummy `ProGate.isPro` with a robust `RevenueCatService`. Wired UI feature locks (1080p, 4K, 60fps) to trigger a dynamic `PaywallSheet` instead of just returning false or showing a snackbar. Added `DEV_FORCE_PRO` mechanism using `--dart-define` to facilitate local testing without processing mock purchases or polluting the store API.
+
+## S013B Honor Explicit FPS Selection in Export
+
+- **Date:** 2026-03-12
+- **Memory:** Explicit 24/30/60 FPS export choices are now honored as requested. The export path no longer clamps selected FPS down to the source video FPS, and non-`Source` selections now add an explicit `fps=` filter plus output `-r` to force the requested encode rate. `Source` still preserves original FPS behavior.

@@ -1,11 +1,23 @@
-/// Pro feature gate — local abstraction for premium features.
-/// In this baseline version, isPro is always false.
-/// Will be connected to Play Billing in a future task.
+import '../config/app_config.dart';
+
+/// Pro feature gate - local abstraction for premium features.
+/// Connected to RevenueCat for production entitlement.
 class ProGate {
   ProGate._();
 
+  static bool _revenueCatEntitled = false;
+
   /// Whether the user has Pro access.
-  static bool isPro = false;
+  /// Includes a strict debug-only QA override if enabled.
+  static bool get isPro {
+    if (AppConfig.isDevProOverrideEnabled) return true;
+    return _revenueCatEntitled;
+  }
+
+  /// Updates the raw revenue cat entitlement status (called by RevenueCatService).
+  static set isPro(bool value) {
+    _revenueCatEntitled = value;
+  }
 
   /// Returns true if the feature requires Pro and user is not Pro.
   static bool isLocked(ProFeature feature) {
