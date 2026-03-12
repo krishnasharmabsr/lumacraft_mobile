@@ -40,7 +40,7 @@
 ## Phase 4: Monetization & Release
 
 - [x] S013 - RevenueCat Freemium Foundation (MERGED)
-- [ ] S014 - AdMob Foundation + No Ads for Pro (branch in progress; pending review)
+- [x] S014 - AdMob Foundation + No Ads for Pro (MERGED)
 - [ ] AdMob integration
 - [ ] Play Billing setup
 - [ ] Release hardening & diagnostics

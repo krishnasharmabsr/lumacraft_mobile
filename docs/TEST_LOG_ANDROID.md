@@ -455,3 +455,17 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK (114.2MB)
 - **Manual QA:** PENDING. Need verification for missing-config no-crash path, free export interstitial attempt, Pro suppression, silent failure path, and RevenueCat coexistence.
 - **Status:** QA_PENDING
+
+## Execution 30 - Task S014 Merge Approval
+
+- **Date:** 2026-03-12
+- **Changes:**
+  1. Manual QA approved S014 on `feat/s014-admob-foundation`.
+  2. Confirmed free users can receive post-export interstitial attempts, while Pro users see no ads.
+  3. Confirmed missing-config fallback remains safe and export flow stays intact.
+  4. Merged S014 into `main` and updated baseline docs.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --release`: OK (114.2MB)
+- **Status:** MERGED
