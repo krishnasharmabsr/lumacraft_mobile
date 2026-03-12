@@ -20,8 +20,8 @@
 
 ## Task Tracking
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013 + S014.
-- **Active:** S015 Paywall Polish on `feat/s015-paywall-polish` (pending review / not merged)
+- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013 + S014 + S015.
+- **Active:** Next phase features pending
 
 ## Environment Identity
 
@@ -160,6 +160,6 @@
 ## S015 Paywall Polish + Real Package Presentation
 
 - **Date:** 2026-03-12
-- **Status:** Implemented on `feat/s015-paywall-polish` (pending review / not merged)
+- **Status:** Merged to `main`
 - **Focus:** Rebuilt the paywall into a premium dark-sheet layout with stronger hierarchy, benefit blocks, real package cards, and a CTA/footer zone. Real RevenueCat offerings are presented through package-selection cards with yearly prioritized and visually highlighted when both yearly and monthly exist.
 - **Fallback:** Missing offerings remain safe: no fake pricing is shown, restore stays visible, and the unavailable state stays polished with retry.

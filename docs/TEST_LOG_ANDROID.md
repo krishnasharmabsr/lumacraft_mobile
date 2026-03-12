@@ -484,3 +484,16 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK (114.2MB)
 - **Manual QA:** PENDING. Need verification that locked-feature paywall entry, live package cards, unavailable fallback, CTA updates, restore visibility, and free/pro behavior all read clearly on-device.
 - **Status:** QA_PENDING
+
+## Execution 32 - Task S015 Merge Approval
+
+- **Date:** 2026-03-12
+- **Changes:**
+  1. Manual QA approved S015 on `feat/s015-paywall-polish`.
+  2. Approved polished unavailable-state path even without live store offerings configured yet.
+  3. Merged S015 into `main` and updated baseline docs.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --release`: OK (114.2MB)
+- **Status:** MERGED
