@@ -223,3 +223,9 @@
 - **Date:** 2026-03-12
 - **Status:** Merged to `main`
 - **Memory:** Reworked `PaywallSheet` into a production-oriented monetization surface with a polished benefits section, live package cards, explicit monthly/yearly focus, and a CTA that follows the selected package. Added `PaywallPackageCatalog` helper to rank/label packages and keep fake pricing out of the unavailable state.
+
+## S016 Restore Purchases Feedback + Paywall Copy Cleanup
+
+- **Date:** 2026-03-12
+- **Status:** In progress on `fix/s016-restore-feedback-paywall-copy`
+- **Memory:** Restore UX is now typed instead of bool-only. `RevenueCatService.restorePurchases()` returns `restored`, `noPurchasesFound`, or `failed`, which lets `PaywallSheet` show explicit feedback instead of a silent no-op. The paywall now uses a dedicated restore-loading state (`Restoring...`) and the pricing helper copy no longer exposes RevenueCat vendor wording.

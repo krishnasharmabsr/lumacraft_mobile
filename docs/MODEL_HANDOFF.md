@@ -163,3 +163,11 @@
 - **Status:** Merged to `main`
 - **Focus:** Rebuilt the paywall into a premium dark-sheet layout with stronger hierarchy, benefit blocks, real package cards, and a CTA/footer zone. Real RevenueCat offerings are presented through package-selection cards with yearly prioritized and visually highlighted when both yearly and monthly exist.
 - **Fallback:** Missing offerings remain safe: no fake pricing is shown, restore stays visible, and the unavailable state stays polished with retry.
+
+## S016 Restore Purchases Feedback + Paywall Copy Cleanup
+
+- **Date:** 2026-03-12
+- **Status:** In progress on `fix/s016-restore-feedback-paywall-copy`
+- **Focus:** Refined the paywall restore path so it no longer silently no-ops. `RevenueCatService.restorePurchases()` now returns typed restore outcomes for restored entitlement, no purchases found, and failure. `PaywallSheet` now exposes a distinct restore-loading state, explicit user-facing feedback for each restore result, and cleaned the pricing helper copy to remove vendor wording.
+- **Validation:** `flutter analyze`, `flutter test`, `flutter build apk --debug`, and `flutter build apk --release` passed on 2026-03-12.
+- **QA Pending:** On-device verification still needed for restore loading, restore success with existing entitlement, neutral no-purchases-found messaging, failure messaging, and the updated plan-pricing copy.

@@ -497,3 +497,20 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter test`: All tests passed
   - `flutter build apk --release`: OK (114.2MB)
 - **Status:** MERGED
+
+## Execution 33 - Task S016 (Restore Purchases Feedback + Paywall Copy Cleanup)
+
+- **Date:** 2026-03-12
+- **Changes:**
+  1. Refactored `RevenueCatService.restorePurchases()` to return typed outcomes for `restored`, `noPurchasesFound`, and `failed` instead of collapsing all non-success cases into `false`.
+  2. Updated `PaywallSheet` to show a dedicated restore-loading state (`Restoring...`) and explicit feedback for restore success, no previous purchases found, and restore failure.
+  3. Replaced vendor-facing paywall copy `Store pricing is shown live from RevenueCat and your app store.` with `Plans and pricing update automatically for your region.`
+  4. Added widget coverage for cleaned paywall copy, restore loading behavior, no-purchases feedback, and restore failure feedback.
+- **Validation:**
+  - `git status --short`: clean before task after restoring line-ending-only generated-file noise on `macos/Flutter/GeneratedPluginRegistrant.swift`
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (114.2MB)
+- **Manual QA:** PENDING. Need device verification for paywall open flow, updated copy visibility, restore loading state, success with existing entitlement, neutral no-purchases-found messaging, and failure no-crash behavior.
+- **Status:** QA_PENDING

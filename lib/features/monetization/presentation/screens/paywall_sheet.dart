@@ -7,7 +7,18 @@ import '../models/paywall_package_option.dart';
 
 /// Bottom sheet presented when a user attempts to access a Pro feature.
 class PaywallSheet extends StatefulWidget {
-  const PaywallSheet({super.key});
+  const PaywallSheet({
+    super.key,
+    this.initialPackages,
+    this.loadOfferings,
+    this.purchasePackage,
+    this.restorePurchases,
+  });
+
+  final List<Package>? initialPackages;
+  final Future<Offerings?> Function()? loadOfferings;
+  final Future<bool> Function(Package package)? purchasePackage;
+  final Future<RestorePurchasesResult> Function()? restorePurchases;
 
   /// Displays the paywall sheet.
   static Future<void> show(BuildContext context) {
@@ -28,30 +39,37 @@ class _PaywallSheetState extends State<PaywallSheet> {
   Package? _selectedPackage;
   bool _isLoading = true;
   bool _isPurchasing = false;
+  bool _isRestoring = false;
+
+  bool get _isBusy => _isPurchasing || _isRestoring;
 
   @override
   void initState() {
     super.initState();
+    final initialPackages = widget.initialPackages;
+    if (initialPackages != null) {
+      _applyPackages(initialPackages);
+      return;
+    }
     _fetchOfferings();
   }
 
   Future<void> _fetchOfferings() async {
-    final offerings = await RevenueCatService.getOfferings();
+    final loadOfferings =
+        widget.loadOfferings ?? RevenueCatService.getOfferings;
+    final offerings = await loadOfferings();
     if (mounted) {
       final availablePackages =
           offerings?.current?.availablePackages ?? const <Package>[];
-      final options = PaywallPackageCatalog.build(availablePackages);
-      setState(() {
-        _packageOptions = options;
-        _selectedPackage = PaywallPackageCatalog.preferredSelection(options);
-        _isLoading = false;
-      });
+      _applyPackages(availablePackages);
     }
   }
 
   Future<void> _purchasePackage(Package package) async {
+    final purchasePackage =
+        widget.purchasePackage ?? RevenueCatService.purchasePackage;
     setState(() => _isPurchasing = true);
-    final success = await RevenueCatService.purchasePackage(package);
+    final success = await purchasePackage(package);
     if (!mounted) return;
     setState(() => _isPurchasing = false);
 
@@ -65,21 +83,53 @@ class _PaywallSheetState extends State<PaywallSheet> {
   }
 
   Future<void> _restorePurchases() async {
-    setState(() => _isPurchasing = true);
-    final success = await RevenueCatService.restorePurchases();
-    if (!mounted) return;
-    setState(() => _isPurchasing = false);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final restorePurchases =
+        widget.restorePurchases ?? RevenueCatService.restorePurchases;
 
-    if (success) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Purchases restored successfully!')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No active purchases found to restore.')),
-      );
+    setState(() => _isRestoring = true);
+    final result = await restorePurchases();
+    if (!mounted) return;
+    setState(() => _isRestoring = false);
+
+    messenger.hideCurrentSnackBar();
+
+    switch (result.status) {
+      case RestorePurchasesStatus.restored:
+        navigator.pop();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Purchases restored. Pro is now active.'),
+          ),
+        );
+        break;
+      case RestorePurchasesStatus.noPurchasesFound:
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('No previous purchases were found for this account.'),
+          ),
+        );
+        break;
+      case RestorePurchasesStatus.failed:
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not restore purchases right now. Please try again.',
+            ),
+          ),
+        );
+        break;
     }
+  }
+
+  void _applyPackages(List<Package> packages) {
+    final options = PaywallPackageCatalog.build(packages);
+    setState(() {
+      _packageOptions = options;
+      _selectedPackage = PaywallPackageCatalog.preferredSelection(options);
+      _isLoading = false;
+    });
   }
 
   @override
@@ -179,7 +229,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
         ),
         IconButton(
           icon: const Icon(Icons.close, color: AppColors.textSecondary),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _isBusy ? null : () => Navigator.of(context).pop(),
         ),
       ],
     );
@@ -269,7 +319,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
         ),
         const SizedBox(height: AppTheme.spacingSm),
         const Text(
-          'Store pricing is shown live from RevenueCat and your app store.',
+          'Plans and pricing update automatically for your region.',
           style: TextStyle(color: AppColors.textMuted, fontSize: 12),
         ),
         const SizedBox(height: AppTheme.spacingMd),
@@ -289,6 +339,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),
           onTap: _isPurchasing
+              ? null
+              : _isRestoring
               ? null
               : () => setState(() => _selectedPackage = option.package),
           child: AnimatedContainer(
@@ -446,6 +498,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
           OutlinedButton.icon(
             onPressed: _isLoading || _isPurchasing
                 ? null
+                : _isRestoring
+                ? null
                 : () {
                     setState(() => _isLoading = true);
                     _fetchOfferings();
@@ -477,7 +531,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           FilledButton(
-            onPressed: (_isPurchasing || ctaPackage == null)
+            onPressed: (_isBusy || ctaPackage == null)
                 ? null
                 : () => _purchasePackage(ctaPackage),
             style: FilledButton.styleFrom(
@@ -508,18 +562,33 @@ class _PaywallSheetState extends State<PaywallSheet> {
             children: [
               Expanded(
                 child: TextButton(
-                  onPressed: _isPurchasing ? null : _restorePurchases,
-                  child: const Text(
-                    'Restore Purchases',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
+                  onPressed: _isBusy ? null : _restorePurchases,
+                  child: _isRestoring
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: AppTheme.spacingSm),
+                            Text(
+                              'Restoring...',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        )
+                      : const Text(
+                          'Restore Purchases',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
                 ),
               ),
               Expanded(
                 child: TextButton(
-                  onPressed: _isPurchasing
-                      ? null
-                      : () => Navigator.of(context).pop(),
+                  onPressed: _isBusy ? null : () => Navigator.of(context).pop(),
                   child: const Text(
                     'Not now',
                     style: TextStyle(color: AppColors.textMuted),
