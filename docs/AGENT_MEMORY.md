@@ -9,7 +9,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013 + S014.
-- **Active:** Next phase features pending
+- **Active:** S015 Paywall Polish on `feat/s015-paywall-polish` (pending review / not merged)
 
 ## Environment Identity
 
@@ -105,7 +105,7 @@
 ## Task Tracking
 
 - **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013 + S014.
-- **Active:** Next phase features pending
+- **Active:** S015 Paywall Polish on `feat/s015-paywall-polish` (pending review / not merged)
 
 ## Environment Identity
 
@@ -217,3 +217,8 @@
 - **Date:** 2026-03-12
 - **Status:** Merged to `main`
 - **Memory:** Added `AdMobService` and AdMob build-time config to support a single export-complete interstitial placement. Ads are suppressed completely for Pro users through `ProGate.isPro`. Missing config falls back to a clean no-op path in release and uses Google test IDs in debug for safe validation.
+
+## S015 Paywall Polish + Real Package Presentation
+
+- **Date:** 2026-03-12
+- **Memory:** Reworked `PaywallSheet` into a production-oriented monetization surface with a polished benefits section, live package cards, explicit monthly/yearly focus, and a CTA that follows the selected package. Added `PaywallPackageCatalog` helper to rank/label packages and keep fake pricing out of the unavailable state.

@@ -41,6 +41,7 @@
 
 - [x] S013 - RevenueCat Freemium Foundation (MERGED)
 - [x] S014 - AdMob Foundation + No Ads for Pro (MERGED)
+- [ ] S015 - Paywall Polish + Real Package Presentation (branch in progress; pending review)
 - [ ] AdMob integration
 - [ ] Play Billing setup
 - [ ] Release hardening & diagnostics
