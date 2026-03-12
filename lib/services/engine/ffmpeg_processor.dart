@@ -248,6 +248,7 @@ class FFmpegProcessor implements IVideoProcessor {
       diagnostics += 'codec_profile=x264_fallback\n';
     }
     diagnostics += 'video_filter=${videoFilter.label}\n';
+    diagnostics += 'output_fps=${finalFps ?? 'source'}\n';
 
     final List<String> filterSegments = [];
     String currentVideoMap = '[v_initial]';
@@ -285,7 +286,14 @@ class FFmpegProcessor implements IVideoProcessor {
       currentVideoMap = nextMapFiltered;
     }
 
-    // 5 & 6. Content Scale (direct to final resolution)
+    // 5. Explicit FPS selection (Source keeps original timestamps)
+    if (finalFps != null) {
+      const String nextMapFps = '[v_fps]';
+      filterSegments.add('${currentVideoMap}fps=$finalFps$nextMapFps');
+      currentVideoMap = nextMapFps;
+    }
+
+    // 6 & 7. Content Scale (direct to final resolution)
     const String nextMapScaled = '[v_scaled]';
     if (aspectRatio != ExportAspectRatio.source) {
       final targetHeight = settings.resolution.height;
@@ -303,7 +311,7 @@ class FFmpegProcessor implements IVideoProcessor {
       currentVideoMap = nextMapScaled;
     }
 
-    // 7. Watermark overlay (anchors to content box)
+    // 8. Watermark overlay (anchors to content box)
     if (effectiveWatermark) {
       filterSegments.add('[1:v]format=rgba,scale=120:-1[wm]');
       const String nextMapWm = '[v_watermarked]';
@@ -313,7 +321,7 @@ class FFmpegProcessor implements IVideoProcessor {
       currentVideoMap = nextMapWm;
     }
 
-    // 8. Final Pad (if forcing aspect ratio, pad the anchored content)
+    // 9. Final Pad (if forcing aspect ratio, pad the anchored content)
     if (aspectRatio != ExportAspectRatio.source) {
       const String nextMapPadded = '[v_padded]';
       final targetHeight = settings.resolution.height;
@@ -468,7 +476,7 @@ class FFmpegProcessor implements IVideoProcessor {
       await outDir.create(recursive: true);
     }
 
-    // Detect Audio + FPS
+    // Detect Audio only. Explicit FPS selection must be honored as-is.
     int? finalFps = settings.fps;
     bool hasAudio = false;
 
@@ -479,21 +487,6 @@ class FFmpegProcessor implements IVideoProcessor {
         for (final stream in streams) {
           if (stream.getType() == 'audio') {
             hasAudio = true;
-          }
-          if (stream.getType() == 'video') {
-            final rateStr =
-                stream.getAverageFrameRate() ?? stream.getRealFrameRate();
-            if (rateStr != null && rateStr.contains('/')) {
-              final rateParts = rateStr.split('/');
-              if (rateParts.length == 2 && rateParts[1] != '0') {
-                final sourceFps =
-                    (double.parse(rateParts[0]) / double.parse(rateParts[1]))
-                        .round();
-                if (sourceFps > 0 && finalFps != null && sourceFps < finalFps) {
-                  finalFps = sourceFps;
-                }
-              }
-            }
           }
         }
       }
