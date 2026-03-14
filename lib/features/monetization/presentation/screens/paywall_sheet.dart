@@ -75,9 +75,12 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
     if (success) {
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Purchase successful. Pro is now active.')),
+        _showResultDialog(
+          title: 'Purchase Successful',
+          message: 'Your Pro subscription is now active.',
+          onDismiss: () {
+            if (mounted) Navigator.of(context).pop();
+          },
         );
       }
     } else {
@@ -90,7 +93,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
     }
   }
 
-  void _showResultDialog({required String title, required String message}) {
+  void _showResultDialog({
+    required String title,
+    required String message,
+    VoidCallback? onDismiss,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -157,7 +164,10 @@ class _PaywallSheetState extends State<PaywallSheet> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    if (onDismiss != null) onDismiss();
+                  },
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.cardDarkAlt,
                     foregroundColor: AppColors.textPrimary,
@@ -186,11 +196,12 @@ class _PaywallSheetState extends State<PaywallSheet> {
     switch (result.status) {
       case RestorePurchasesStatus.restored:
         if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Purchases restored. Pro is now active.'),
-            ),
+          _showResultDialog(
+            title: 'Purchases Restored',
+            message: 'Your Pro subscription has been successfully restored.',
+            onDismiss: () {
+              if (mounted) Navigator.of(context).pop();
+            },
           );
         }
         break;
