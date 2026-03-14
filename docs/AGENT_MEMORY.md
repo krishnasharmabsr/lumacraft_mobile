@@ -1,237 +1,158 @@
 # Agent Memory Context
 
-## Critical constraints
+## Repo Identity
 
-- This project must remain completely independent of legacy code.
-- Dependencies should not rely on heavy native code that has paid processing walls.
-- Error handling must gracefully scale to low-end devices without crashing the main thread.
+- Project: `lumacraft_mobile`
+- Local path: `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
+- Remote: `https://github.com/krishnasharmabsr/lumacraft_mobile`
+- Expected resume point: clean `main`
 
-## Task Tracking
+## Current Stable Baseline
 
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013 + S014 + S015.
-- **Active:** Next phase features pending
+The app is no longer in early pipeline stabilization. Current `main` includes:
 
-## Environment Identity
+- editor playback with overlay auto-hide
+- trim / speed / canvas / filters
+- export studio with locked pro options
+- stable watermark logic anchored to visible content
+- landscape editor split layout
+- landscape-safe export settings flow
+- explicit FPS export honoring selected `24 / 30 / 60`
+- RevenueCat freemium foundation
+- AdMob post-export interstitial foundation
+- paywall polish with live package cards
+- restore purchase feedback dialogs
+- signed release AAB prep
+- `version: 1.0.0+3`
 
-- **Local Path:** `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
-- **Remote Repo:** `https://github.com/krishnasharmabsr/lumacraft_mobile`
+## Hard Product Contracts
 
-## S004Q Start
+### Free tier
 
-- **Date:** 2026-03-10
-- **Branch:** `fix/s004p-seek-proxy-fix`
-- **Memory:** Manual QA still reports failed scrub and +/-10 seeks on downloaded videos despite valid duration. Current task is to remove dual-timebase seek math, promote a normalized playback source, and harden verified seek execution without touching export/watermark.
+- max resolution: `720p`
+- max FPS: `30`
+- watermark remains
+- ads may show after successful export
 
-## S004Q Update
+### Pro tier
 
-- **Status:** Code fix merged to `main` via PR `#9`.
-- **Memory:** Editor playback now uses a single active playback source; imported/problematic files are normalized once for playback, and scrub plus +/-10 both route through the same verified seek path with retry and hard reinit fallback.
-- **PR State:** PRs `#4` to `#8` were closed as superseded by the canonical cumulative merge in PR `#9`.
+- `1080p`
+- `4K`
+- `60 FPS`
+- no watermark
+- no ads
 
-## S005 Watermark Fallbacks & S005G Merge
+### Editing contract
 
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Completed cumulative reliability fix. Replaced fragile `ffmpeg` PNG decode step with a multi-attempt raw RGBA stream matrix fallback. Removed `ffmpeg` drawtext to guarantee asset rendering. Safely integrated production premium `watermark_lockup.png` cleanly on top without corrupting rules. Cleaned up multiple redundant experimental branches (S005E, S005F, S005). `main` is validated and strictly clean for subsequent phases.
+- filters do not stack
+- filters are independent from trim/speed/canvas
+- tool-level reset affects only that tool
+- `Reset All` restores the entire edit state
+- `Source` FPS preserves source rate
+- explicit FPS choices must not clamp back to the source rate
 
-## S005D Branding Consistency
+## Recent Merged Tasks
 
-- **Memory:** Unified all runtime logo references. Canonical path: `assets/branding/logo_mark_master_1024.png`. Home screen now uses Image.asset with canonical PNG. Removed stale `logo_mark.png`. See `docs/BRAND_REGISTRY.md` for full contract.
+### S013
 
-## S005E Brand Identity Polish
+- RevenueCat freemium gating
+- build-time config
+- debug-only `DEV_FORCE_PRO`
 
-- **Memory:** Regenerated pristine vector-based PNGs without checkerboard artifacts. Regenerated adaptive Android icons using `flutter_launcher_icons`. Polished splash animation duration to 1.5s total. Branch: `feat/s005e-brand-identity-polish`.
+### S014
 
-## S005E2 Branding Lockdown Fix
+- AdMob service foundation
+- export-complete interstitial only
+- Pro suppresses all ads
 
-- **Memory:** Enforced teal core branding color match. Hand-centered play motif via generation script. Stripped all `Icons.movie_edit` references to maintain single motif style. Added strict fallback rules to `BRAND_REGISTRY.md`.
+### S015
 
-## S006 Export Quality Presets UI Revert
+- premium paywall layout
+- package selection cards
+- yearly emphasis
 
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Deprecated confusing 0-100 continuous quality slider. Brought in discrete bounded set of presets: Low (q:v 6), Standard (q:v 4 - Default), High (q:v 2). Updated UI widget `ExportSettingsSheet` to use premium discrete buttons matching the pro resolution locks style. Engine test assertions migrated successfully.
+### S016
 
-## S007 Content-Anchored Watermark
+- restore-purchase feedback states improved
+- paywall copy cleaned to remove backend wording
 
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Refactored filter graph in `FFmpegProcessor` to correctly anchor the watermark to the actual scaled video content boundaries, rather than the padded canvas edges. Programmatic analysis confirmed the layout protects the watermark from rendering incorrectly on letterboxes or pillarboxes across all aspect ratio transformations.
+### S017
 
-## S008 Keep Screen Awake During Playback
+- snackbars replaced with explicit dialogs for purchase/restore results
+- Android release signing configured
+- signed AAB built
+- version bumped to `1.0.0+3`
 
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Integrated `wakelock_plus` to automatically hold the screen awake while a video is playing in the `EditorScreen`. Wired the `WakelockPlus.enable/disable` methods directly into the `_controllerListener` driven by `_videoController.value.isPlaying` state. Ensured fallback cleanup on `dispose()` and when playback halts.
+## Build / Config Memory
 
-## S009 Landscape Editor & Responsive Export
+Public app-side config:
 
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Redesigned Landscape Editor to use a 2-pane layout (left: video/timeline, right: tool dock). Fixed Export Settings to use a constrained centered dialog in landscape. Implemented a robust orientation transition handler in `EditorScreen` that pops and re-opens the settings surface with state persistence to prevent visual corruption on rotation.
+- `RC_ANDROID_KEY`
+- `ADMOB_ANDROID_APP_ID`
+- `ADMOB_INTERSTITIAL_EXPORT_ID`
+- `DEV_FORCE_PRO` for debug only
 
-## S010 Playback Overlay Auto-hide
+Never bundle:
 
-- **Date:** 2026-03-11
-- **Memory:** Fixed the issue where playback controls stayed visible indefinitely. Implemented a 2.5s auto-hide timer active only during playback. Used a `_wasPlaying` transition tracker in the video listener to ensure controls appear when pausing and start hiding when playing. Tapping while playing toggles visibility and resets/cancels timers as needed.
+- RevenueCat secret keys
+- Play service-account credentials
+- keystore secrets
+- admin credentials
 
-## S011 Editor Speed Range Expansion
+## External Platform State
 
-- **Date:** 2026-03-11
-- **Memory:** Expanded the editor's speed adjustment range to support 0.25x to 3.0x. Updated the `Slider` in `EditorScreen` with precise 0.25x increments (divisions: 11). Verified that `FFmpegProcessor` correctly handles the expanded range for exports using chained `atempo` filters.
-
-## S012 Editor Filters V1
-
-- **Date:** 2026-03-11
-- **Memory:** Introduced shared `VideoFilter` definitions for preview/export, with separate preview-vs-applied filter state in `EditorScreen`. Filters preview only on the video content surface, not overlays or black bars. Export wires the applied filter through `FFmpegProcessor.buildExportCommand()` before watermark overlay and before pad.
-- **Testing:** Added export-command coverage for filter insertion/order and model coverage for curated filter selection. Manual QA is still pending for visual fidelity and UX regression checks.
-
-## S012 Filters UI Polish
-
-- **Date:** 2026-03-11
-- **Memory:** The Filters panel now uses a single horizontal scroll strip instead of a wrapping chip grid. Each option is presented as a compact fixed-width card so the panel consumes less vertical space while still preserving clear selected-vs-applied states.
-
-## S012 Filter State Messaging Consistency
-
-- **Date:** 2026-03-11
-# Agent Memory Context
-
-## Critical constraints
-
-- This project must remain completely independent of legacy code.
-- Dependencies should not rely on heavy native code that has paid processing walls.
-- Error handling must gracefully scale to low-end devices without crashing the main thread.
-
-## Task Tracking
-
-- **Completed:** S001 + S001B + S002 + S003/A/B/H + S004 + S004A/B/C/D/E/F/G/H/I/K/L/M/N/O + S005/A/B/C/D/E/G + S006/A/B + S007/A + S008 + S009/A/B + S010 + S011 + S012/A/B/C + S013 + S014 + S015.
-- **Active:** Next phase features pending
-
-## Environment Identity
-
-- **Local Path:** `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
-- **Remote Repo:** `https://github.com/krishnasharmabsr/lumacraft_mobile`
-
-## S004Q Start
-
-- **Date:** 2026-03-10
-- **Branch:** `fix/s004p-seek-proxy-fix`
-- **Memory:** Manual QA still reports failed scrub and +/-10 seeks on downloaded videos despite valid duration. Current task is to remove dual-timebase seek math, promote a normalized playback source, and harden verified seek execution without touching export/watermark.
-
-## S004Q Update
-
-- **Status:** Code fix merged to `main` via PR `#9`.
-- **Memory:** Editor playback now uses a single active playback source; imported/problematic files are normalized once for playback, and scrub plus +/-10 both route through the same verified seek path with retry and hard reinit fallback.
-- **PR State:** PRs `#4` to `#8` were closed as superseded by the canonical cumulative merge in PR `#9`.
-
-## S005 Watermark Fallbacks & S005G Merge
-
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Completed cumulative reliability fix. Replaced fragile `ffmpeg` PNG decode step with a multi-attempt raw RGBA stream matrix fallback. Removed `ffmpeg` drawtext to guarantee asset rendering. Safely integrated production premium `watermark_lockup.png` cleanly on top without corrupting rules. Cleaned up multiple redundant experimental branches (S005E, S005F, S005). `main` is validated and strictly clean for subsequent phases.
-
-## S005D Branding Consistency
-
-- **Memory:** Unified all runtime logo references. Canonical path: `assets/branding/logo_mark_master_1024.png`. Home screen now uses Image.asset with canonical PNG. Removed stale `logo_mark.png`. See `docs/BRAND_REGISTRY.md` for full contract.
-
-## S005E Brand Identity Polish
-
-- **Memory:** Regenerated pristine vector-based PNGs without checkerboard artifacts. Regenerated adaptive Android icons using `flutter_launcher_icons`. Polished splash animation duration to 1.5s total. Branch: `feat/s005e-brand-identity-polish`.
-
-## S005E2 Branding Lockdown Fix
-
-- **Memory:** Enforced teal core branding color match. Hand-centered play motif via generation script. Stripped all `Icons.movie_edit` references to maintain single motif style. Added strict fallback rules to `BRAND_REGISTRY.md`.
-
-## S006 Export Quality Presets UI Revert
-
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Deprecated confusing 0-100 continuous quality slider. Brought in discrete bounded set of presets: Low (q:v 6), Standard (q:v 4 - Default), High (q:v 2). Updated UI widget `ExportSettingsSheet` to use premium discrete buttons matching the pro resolution locks style. Engine test assertions migrated successfully.
-
-## S007 Content-Anchored Watermark
-
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Refactored filter graph in `FFmpegProcessor` to correctly anchor the watermark to the actual scaled video content boundaries, rather than the padded canvas edges. Programmatic analysis confirmed the layout protects the watermark from rendering incorrectly on letterboxes or pillarboxes across all aspect ratio transformations.
-
-## S008 Keep Screen Awake During Playback
-
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Integrated `wakelock_plus` to automatically hold the screen awake while a video is playing in the `EditorScreen`. Wired the `WakelockPlus.enable/disable` methods directly into the `_controllerListener` driven by `_videoController.value.isPlaying` state. Ensured fallback cleanup on `dispose()` and when playback halts.
-
-## S009 Landscape Editor & Responsive Export
-
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Redesigned Landscape Editor to use a 2-pane layout (left: video/timeline, right: tool dock). Fixed Export Settings to use a constrained centered dialog in landscape. Implemented a robust orientation transition handler in `EditorScreen` that pops and re-opens the settings surface with state persistence to prevent visual corruption on rotation.
-
-## S010 Playback Overlay Auto-hide
-
-- **Date:** 2026-03-11
-- **Memory:** Fixed the issue where playback controls stayed visible indefinitely. Implemented a 2.5s auto-hide timer active only during playback. Used a `_wasPlaying` transition tracker in the video listener to ensure controls appear when pausing and start hiding when playing. Tapping while playing toggles visibility and resets/cancels timers as needed.
-
-## S011 Editor Speed Range Expansion
-
-- **Date:** 2026-03-11
-- **Memory:** Expanded the editor's speed adjustment range to support 0.25x to 3.0x. Updated the `Slider` in `EditorScreen` with precise 0.25x increments (divisions: 11). Verified that `FFmpegProcessor` correctly handles the expanded range for exports using chained `atempo` filters.
-
-## S012 Editor Filters V1
-
-- **Date:** 2026-03-11
-- **Memory:** Introduced shared `VideoFilter` definitions for preview/export, with separate preview-vs-applied filter state in `EditorScreen`. Filters preview only on the video content surface, not overlays or black bars. Export wires the applied filter through `FFmpegProcessor.buildExportCommand()` before watermark overlay and before pad.
-- **Testing:** Added export-command coverage for filter insertion/order and model coverage for curated filter selection. Manual QA is still pending for visual fidelity and UX regression checks.
-
-## S012 Filters UI Polish
-
-- **Date:** 2026-03-11
-- **Memory:** The Filters panel now uses a single horizontal scroll strip instead of a wrapping chip grid. Each option is presented as a compact fixed-width card so the panel consumes less vertical space while still preserving clear selected-vs-applied states.
-
-## S012 Filter State Messaging Consistency
-
-- **Date:** 2026-03-11
-- **Fix:** Introduced a shared `FilterPanelState` model so the top pill, helper text, and apply CTA are derived from one preview-vs-applied source of truth. The pill now reads `Export: ...`, helper text always states both preview and export semantics, and the apply button disables once preview already matches export.
-
-## S012A/B/C Follow-up Fixes
-
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:**
-  - **S012A:** Clarified Filter Behavior Contract so filters do not stack and global reset correctly restores them.
-  - **S012B:** Fixed `Bright` and `Contrast` export failure caused by missing `eq` filter in FFmpegKit; replaced with robust `colorlevels` calculation and corrected false fallback logic in `FFmpegProcessor`.
-  - **S012C:** Implemented tool-scoped UI reset buttons inside Trim, Canvas, Filter, and Speed panels for precision UX alongside the `Reset All` global option.
-
-## S013 RevenueCat Freemium Foundation
-
-- **Date:** 2026-03-11
-- **Status:** Merged to `main`
-- **Memory:** Replaced dummy `ProGate.isPro` with a robust `RevenueCatService`. Wired UI feature locks (1080p, 4K, 60fps) to trigger a dynamic `PaywallSheet` instead of just returning false or showing a snackbar. Added `DEV_FORCE_PRO` via `String.fromEnvironment(...)` for debug testing, and merged free/pro export gating plus watermark behavior against live entitlement state.
-
-## S013B Honor Explicit FPS Selection in Export
-
-- **Date:** 2026-03-12
-- **Memory:** Explicit 24/30/60 FPS export choices are now honored as requested. The export path no longer clamps selected FPS down to the source video FPS, and non-`Source` selections now add an explicit `fps=` filter plus output `-r` to force the requested encode rate. `Source` still preserves original FPS behavior.
-
-## S014 AdMob Foundation + No Ads for Pro
-
-- **Date:** 2026-03-12
-- **Status:** Merged to `main`
-- **Memory:** Added `AdMobService` and AdMob build-time config to support a single export-complete interstitial placement. Ads are suppressed completely for Pro users through `ProGate.isPro`. Missing config falls back to a clean no-op path in release and uses Google test IDs in debug for safe validation.
-
-## S015 Paywall Polish + Real Package Presentation
-
-- **Date:** 2026-03-12
-- **Status:** Merged to `main`
-- **Memory:** Reworked `PaywallSheet` into a production-oriented monetization surface with a polished benefits section, live package cards, explicit monthly/yearly focus, and a CTA that follows the selected package. Added `PaywallPackageCatalog` helper to rank/label packages and keep fake pricing out of the unavailable state.
-
-## S016 Restore Purchases Feedback + Paywall Copy Cleanup
-
-- **Date:** 2026-03-12
-- **Status:** Merged to `main`
-- **Memory:** Restore UX is now typed instead of bool-only. `RevenueCatService.restorePurchases()` returns `restored`, `noPurchasesFound`, or `failed`, which lets `PaywallSheet` show explicit feedback instead of a silent no-op. The paywall now uses a dedicated restore-loading state (`Restoring...`) and the pricing helper copy no longer exposes RevenueCat vendor wording.
-
-## S017 Restore Purchase Feedback Visibility
-
-- **Date:** 2026-03-14
-- **Status:** Merged to `main`
-- **Memory:** Replaced hidden `SnackBar` feedback on the Paywall with explicit custom `Dialog` overlays for "No Purchases Found", "Restore Failed", and "Restore/Purchase Successful". This prevents the UI from appearing stuck after the "Restoring..." state completes and ensures success messages aren't hidden by the modal route popping. Built signed AAB with AdMob test IDs, prod RevenueCat key, and bumped `versionCode` to `3` (`1.0.0+3`).
+### RevenueCat
+
+- project exists
+- entitlement identifier: `pro`
+- offering identifier: `default`
+- real Play-backed products are now linked
+- active package structure:
+  - `$rc_monthly`
+  - `$rc_annual`
+- current subscription pricing baseline:
+  - monthly: `249`
+  - yearly: `1499`
+- internal-test purchase and restore flows have already been validated with Google Play test cards
+- RevenueCat sandbox updates correctly during internal testing
+
+### AdMob
+
+- Android app registered
+- App ID created
+- export interstitial ad unit created
+- review is still in progress
+- live serving may remain limited until production listing / review state is complete
+
+### Play Console
+
+- developer verification complete
+- payment profile complete
+- internal testing track active with `12` testers
+- real Play subscription products / base plans created
+- release signing and signed bundle prep already exist locally
+
+## Current Release Readiness Reality
+
+What is ready:
+
+- signed AAB generation
+- freemium gating
+- paywall flow
+- real store-backed purchase flow in internal testing
+- real store-backed restore flow in internal testing
+- Pro suppression of ads
+- Pro watermark removal
+- Play internal testing in progress
+
+What is still external/platform-dependent:
+
+- AdMob full review / live serving
+- privacy / store listing completion
+
+## Reference Files
+
+- `docs/MODEL_HANDOFF.md`
+- `docs/RELEASE_TASK_BOARD_V2.md`
+- `docs/PLATFORM_ONBOARDING_CHECKLIST.md`
+- `docs/TEST_LOG_ANDROID.md`

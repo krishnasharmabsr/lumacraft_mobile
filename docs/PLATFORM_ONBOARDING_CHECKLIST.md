@@ -18,11 +18,15 @@ This is the shared reference for:
 
 ## Current Status
 
-- Play Console developer account: in progress
-- App entry in Play Console: blocked until account verification completes
-- RevenueCat project: pending
-- AdMob app setup: pending
-- Production release AAB: not ready yet
+- Play Console developer account: fully verified
+- Play Console app entry: created
+- Play internal testing: active with 12 testers
+- RevenueCat project: created
+- RevenueCat entitlement / offering: created and linked to real Play subscriptions
+- AdMob app setup: created
+- AdMob App ID + export interstitial unit: created
+- AdMob review: still in progress pending production listing state
+- Production release AAB: signed local artifact already prepared
 
 ## 1. Google Play Console
 
@@ -64,6 +68,9 @@ This is the shared reference for:
 
 - Create offering for Pro access
 - Link Play subscription/in-app product(s) to the offering
+- Current linked pricing baseline:
+  - monthly: `249`
+  - yearly: `1499`
 - Confirm entitlement mapping unlocks:
   - 1080p export
   - 4K export
@@ -157,6 +164,11 @@ Rules:
 - Use RevenueCat real offering setup
 - Test purchase flow
 - Test restore purchases
+- Internal test result:
+  - purchase: passed
+  - restore: passed
+  - Pro ads-off: passed
+  - Pro watermark-off: passed
 
 ## 6. Release Readiness Gate
 
@@ -178,15 +190,16 @@ Do not call the Android build production-ready until all are true:
 Update this section as platform work progresses.
 
 - [ ] Play Console identity approved
-- [ ] Play Console app entry created
-- [ ] Play internal testing track created
-- [ ] RevenueCat project created
-- [ ] RevenueCat entitlement `pro` created
-- [ ] RevenueCat offering linked to Play products
-- [ ] AdMob account created
-- [ ] AdMob app registered
-- [ ] AdMob App ID created
-- [ ] Ad unit IDs created
+- [x] Play Console identity approved
+- [x] Play Console app entry created
+- [x] Play internal testing track created
+- [x] RevenueCat project created
+- [x] RevenueCat entitlement `pro` created
+- [x] RevenueCat offering linked to Play products
+- [x] AdMob account created
+- [x] AdMob app registered
+- [x] AdMob App ID created
+- [x] Ad unit IDs created
 - [ ] Privacy policy published
 - [ ] Release config values ready for injection
 
