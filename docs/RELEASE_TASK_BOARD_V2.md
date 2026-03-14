@@ -42,6 +42,7 @@
 - [x] S013 - RevenueCat Freemium Foundation (MERGED)
 - [x] S014 - AdMob Foundation + No Ads for Pro (MERGED)
 - [x] S015 - Paywall Polish + Real Package Presentation (MERGED)
+- [x] S016/S017 - Restore Purchases Feedback + Paywall UX Polish (MERGED)
 - [ ] AdMob integration
-- [ ] Play Billing setup
-- [ ] Release hardening & diagnostics
+- [x] Play Billing setup (RevenueCat)
+- [x] Release hardening & diagnostics (Signed AAB 1.0.0+3)

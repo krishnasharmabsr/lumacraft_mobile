@@ -233,5 +233,5 @@
 ## S017 Restore Purchase Feedback Visibility
 
 - **Date:** 2026-03-14
-- **Status:** Completed on `fix/s017-restore-purchase-hang` (Pending Merge)
-- **Memory:** Replaced hidden `SnackBar` feedback on the Paywall with explicit `AlertDialog` overlays for "No Purchases Found" and "Restore Failed", preventing the UI from appearing stuck after the "Restoring..." state completes. For successful restores, the modal is popped first before showing the feedback. Built signed AAB with AdMob test IDs and prod RevenueCat key.
+- **Status:** Merged to `main`
+- **Memory:** Replaced hidden `SnackBar` feedback on the Paywall with explicit custom `Dialog` overlays for "No Purchases Found", "Restore Failed", and "Restore/Purchase Successful". This prevents the UI from appearing stuck after the "Restoring..." state completes and ensures success messages aren't hidden by the modal route popping. Built signed AAB with AdMob test IDs, prod RevenueCat key, and bumped `versionCode` to `3` (`1.0.0+3`).
