@@ -74,17 +74,41 @@ class _PaywallSheetState extends State<PaywallSheet> {
     setState(() => _isPurchasing = false);
 
     if (success) {
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Purchase successful. Pro is now active.')),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Purchase unsuccessful or cancelled.')),
-      );
+      if (mounted) {
+        _showResultDialog(
+          title: 'Purchase issue',
+          message: 'The purchase was unsuccessful or cancelled. Please try again.',
+        );
+      }
     }
   }
 
+  void _showResultDialog({required String title, required String message}) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+        backgroundColor: AppColors.cardDarkAlt,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLg)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK', style: TextStyle(color: AppColors.accent)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _restorePurchases() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
     final restorePurchases =
         widget.restorePurchases ?? RevenueCatService.restorePurchases;
 
@@ -93,32 +117,32 @@ class _PaywallSheetState extends State<PaywallSheet> {
     if (!mounted) return;
     setState(() => _isRestoring = false);
 
-    messenger.hideCurrentSnackBar();
-
     switch (result.status) {
       case RestorePurchasesStatus.restored:
-        navigator.pop();
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Purchases restored. Pro is now active.'),
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Purchases restored. Pro is now active.'),
+            ),
+          );
+        }
         break;
       case RestorePurchasesStatus.noPurchasesFound:
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('No previous purchases were found for this account.'),
-          ),
-        );
+        if (mounted) {
+          _showResultDialog(
+            title: 'No Purchases Found',
+            message: 'We could not find any previous active subscriptions for this store account.',
+          );
+        }
         break;
       case RestorePurchasesStatus.failed:
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Could not restore purchases right now. Please try again.',
-            ),
-          ),
-        );
+        if (mounted) {
+          _showResultDialog(
+            title: 'Restore Failed',
+            message: 'Could not restore purchases right now. Please check your connection and try again.',
+          );
+        }
         break;
     }
   }
