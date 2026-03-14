@@ -227,5 +227,11 @@
 ## S016 Restore Purchases Feedback + Paywall Copy Cleanup
 
 - **Date:** 2026-03-12
-- **Status:** In progress on `fix/s016-restore-feedback-paywall-copy`
+- **Status:** Merged to `main`
 - **Memory:** Restore UX is now typed instead of bool-only. `RevenueCatService.restorePurchases()` returns `restored`, `noPurchasesFound`, or `failed`, which lets `PaywallSheet` show explicit feedback instead of a silent no-op. The paywall now uses a dedicated restore-loading state (`Restoring...`) and the pricing helper copy no longer exposes RevenueCat vendor wording.
+
+## S017 Restore Purchase Feedback Visibility
+
+- **Date:** 2026-03-14
+- **Status:** Completed on `fix/s017-restore-purchase-hang` (Pending Merge)
+- **Memory:** Replaced hidden `SnackBar` feedback on the Paywall with explicit `AlertDialog` overlays for "No Purchases Found" and "Restore Failed", preventing the UI from appearing stuck after the "Restoring..." state completes. For successful restores, the modal is popped first before showing the feedback. Built signed AAB with AdMob test IDs and prod RevenueCat key.
