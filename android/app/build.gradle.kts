@@ -33,10 +33,26 @@ fun dartDefine(key: String): String? {
 val adMobAppId =
     dartDefine("ADMOB_ANDROID_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
 
+val keystoreProperties = java.util.Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
 android {
     namespace = "com.lumacraft.studio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
+            val storeFileProperty = keystoreProperties["storeFile"] as String?
+            storeFile = storeFileProperty?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String?
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -61,8 +77,8 @@ android {
 
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Signing with the release keys.
+            signingConfig = signingConfigs.getByName("release")
 
             // Disable R8 shrinking to preserve Flutter plugin Pigeon channels.
             // Flutter plugins use Pigeon-generated platform channels that R8
