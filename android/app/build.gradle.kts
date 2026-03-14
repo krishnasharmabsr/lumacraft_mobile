@@ -1,4 +1,5 @@
 import java.util.Base64
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -33,7 +34,7 @@ fun dartDefine(key: String): String? {
 val adMobAppId =
     dartDefine("ADMOB_ANDROID_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
 
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(keystorePropertiesFile.inputStream())
@@ -60,7 +61,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
