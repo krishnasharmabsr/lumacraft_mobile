@@ -132,6 +132,20 @@ Never bundle:
 - real Play subscription products / base plans created
 - release signing and signed bundle prep already exist locally
 
+### Public legal site
+
+- separate public repo exists for legal/compliance pages: `krishnasharmabsr/lumacraft-legal`
+- public-facing document owner name: `Krishna Kant`
+- support contact: `lumacraftstudio.support@gmail.com`
+- legal page files prepared in that repo:
+  - `index.html`
+  - `privacy.html`
+  - `terms.html`
+- expected policy URLs:
+  - `https://krishnasharmabsr.github.io/lumacraft-legal/privacy.html`
+  - `https://krishnasharmabsr.github.io/lumacraft-legal/terms.html`
+- if GitHub Pages is not yet enabled/live, treat public policy hosting as still pending for release readiness
+
 ## Current Release Readiness Reality
 
 What is ready:
@@ -148,6 +162,7 @@ What is ready:
 What is still external/platform-dependent:
 
 - AdMob full review / live serving
+- public legal-page hosting / privacy policy URL activation
 - privacy / store listing completion
 
 ## Reference Files

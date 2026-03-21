@@ -45,6 +45,7 @@
 - [x] RevenueCat linked to real Play products
 - [ ] AdMob app fully reviewed / linked to Play listing
 - [ ] Privacy policy + store disclosures finalized
+- [ ] Public legal pages live and linked
 - [x] Final internal-test monetization QA on store-backed products
 
 ## Phase 4 - Nice-to-Have Product Expansion
@@ -55,7 +56,7 @@
 
 ## Immediate Next Priorities
 
-1. Complete store listing / compliance materials
+1. Publish legal pages and finalize store listing / compliance materials
 2. Finish AdMob review / Play listing linkage for live serving readiness
 3. Validate production-path monetization again once the production listing state allows it
 4. Prepare production rollout checklist after internal testing sign-off

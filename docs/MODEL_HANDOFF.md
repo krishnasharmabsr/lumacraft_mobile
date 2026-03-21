@@ -126,6 +126,19 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - account/app review is still in progress
 - live serving may remain limited until production listing/review state is complete
 
+### Public legal site
+
+- separate public repo prepared for legal pages: `krishnasharmabsr/lumacraft-legal`
+- developer/legal name used in public documents: `Krishna Kant`
+- support email used in public documents: `lumacraftstudio.support@gmail.com`
+- legal pages prepared:
+  - `privacy.html`
+  - `terms.html`
+- expected GitHub Pages URLs:
+  - `https://krishnasharmabsr.github.io/lumacraft-legal/privacy.html`
+  - `https://krishnasharmabsr.github.io/lumacraft-legal/terms.html`
+- Play Console privacy policy field should point to the `privacy.html` URL once GitHub Pages is enabled and live
+
 ## Public Build-Time Config
 
 These values are safe to inject into app builds:
@@ -157,7 +170,7 @@ Priority should stay on release productization, not random feature expansion:
 
 1. Play Console completion and internal testing
 2. finish AdMob review / production linkage
-3. privacy / policy / store listing readiness
+3. legal-page publishing and store listing / compliance readiness
 4. production rollout readiness after internal test sign-off
 
 ## Related References

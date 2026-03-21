@@ -27,6 +27,10 @@ This is the shared reference for:
 - AdMob App ID + export interstitial unit: created
 - AdMob review: still in progress pending production listing state
 - Production release AAB: signed local artifact already prepared
+- Public legal-site repo: created as `krishnasharmabsr/lumacraft-legal`
+- Public legal-page owner/contact:
+  - developer name: `Krishna Kant`
+  - support email: `lumacraftstudio.support@gmail.com`
 
 ## 1. Google Play Console
 
@@ -113,6 +117,21 @@ Recommended first rollout:
 - Set up `app-ads.txt`
 - Prepare privacy policy ad disclosures
 - Confirm user consent flow requirements
+
+## 3B. Public Legal Pages
+
+### Repo / hosting plan
+
+- Dedicated public repo: `krishnasharmabsr/lumacraft-legal`
+- Expected GitHub Pages URLs:
+  - `https://krishnasharmabsr.github.io/lumacraft-legal/privacy.html`
+  - `https://krishnasharmabsr.github.io/lumacraft-legal/terms.html`
+
+### Document identity
+
+- Developer name on legal pages: `Krishna Kant`
+- Support contact on legal pages: `lumacraftstudio.support@gmail.com`
+- Privacy Policy URL in Play Console should point to `privacy.html`
 
 ### App integration values
 
@@ -201,6 +220,8 @@ Update this section as platform work progresses.
 - [x] AdMob App ID created
 - [x] Ad unit IDs created
 - [ ] Privacy policy published
+- [ ] Terms page published
+- [ ] GitHub Pages enabled and legal URLs live
 - [ ] Release config values ready for injection
 
 ## 8. Notes for Future Agent Work
