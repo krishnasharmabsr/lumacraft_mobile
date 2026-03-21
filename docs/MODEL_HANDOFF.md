@@ -101,6 +101,13 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - updated the displayed elapsed and total playback strings in `EditorScreen` and `TrimCard` to accurately reflect the _effective_ edited duration based on the active `speed` state
 - isolated the scaling exclusively to the Presentation layer via the `_formatDuration` utility, ensuring zero regression impact to global trim bounds, underlying export logic, or scrubber integrity
 
+### S019 - Export Success Ad Sequencing
+
+- extracted the S017 premium dialog into a centralized `PremiumResultDialog`
+- removed legacy transient snackbars from the editor export flow
+- wrapped the AdMob interstitial presentation inside a `Completer<void>` that resolutely blocks until the ad is fully dismissed by the user
+- explicitly sequenced the presentation layer securely so the `PremiumResultDialog` appears immediately and only after the ad sequence completes
+
 ## Known External Platform State
 
 ### Play Console

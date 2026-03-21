@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/revenuecat_service.dart';
 import '../models/paywall_package_option.dart';
+import '../../../../core/presentation/widgets/premium_result_dialog.dart';
 
 /// Bottom sheet presented when a user attempts to access a Pro feature.
 class PaywallSheet extends StatefulWidget {
@@ -75,7 +76,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
     if (success) {
       if (mounted) {
-        _showResultDialog(
+        PremiumResultDialog.show(
+          context,
           title: 'Purchase Successful',
           message: 'Your Pro subscription is now active.',
           onDismiss: () {
@@ -85,7 +87,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
       }
     } else {
       if (mounted) {
-        _showResultDialog(
+        PremiumResultDialog.show(
+          context,
           title: 'Purchase issue',
           message: 'The purchase was unsuccessful or cancelled. Please try again.',
         );
@@ -93,96 +96,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
     }
   }
 
-  void _showResultDialog({
-    required String title,
-    required String message,
-    VoidCallback? onDismiss,
-  }) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          padding: const EdgeInsets.all(AppTheme.spacingXl),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.cardDark,
-                AppColors.cardDarkAlt.withValues(alpha: 0.96),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            border: Border.all(color: AppColors.divider),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 24,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.info_outline_rounded,
-                  color: AppColors.accent,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(height: AppTheme.spacingLg),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: AppTheme.spacingXl),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    if (onDismiss != null) onDismiss();
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.cardDarkAlt,
-                    foregroundColor: AppColors.textPrimary,
-                    side: const BorderSide(color: AppColors.divider),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('Got it'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Future<void> _restorePurchases() async {
     final restorePurchases =
@@ -196,7 +110,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
     switch (result.status) {
       case RestorePurchasesStatus.restored:
         if (mounted) {
-          _showResultDialog(
+          PremiumResultDialog.show(
+            context,
             title: 'Purchases Restored',
             message: 'Your Pro subscription has been successfully restored.',
             onDismiss: () {
@@ -207,17 +122,19 @@ class _PaywallSheetState extends State<PaywallSheet> {
         break;
       case RestorePurchasesStatus.noPurchasesFound:
         if (mounted) {
-          _showResultDialog(
+          PremiumResultDialog.show(
+            context,
             title: 'No Purchases Found',
-            message: 'We could not find any previous active subscriptions for this store account.',
+            message: 'No previous purchases were found for this account.',
           );
         }
         break;
       case RestorePurchasesStatus.failed:
         if (mounted) {
-          _showResultDialog(
+          PremiumResultDialog.show(
+            context,
             title: 'Restore Failed',
-            message: 'Could not restore purchases right now. Please check your connection and try again.',
+            message: 'Could not restore purchases right now. Please try again.',
           );
         }
         break;

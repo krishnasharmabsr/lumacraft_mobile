@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
@@ -157,12 +158,36 @@ class AdMobService {
     _exportInterstitial = null;
     if (ad == null) return;
 
+    final completer = Completer<void>();
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        developer.log(
+          '[AdMob] Export interstitial dismissed.',
+          name: 'Monetization',
+        );
+        ad.dispose();
+        preloadExportInterstitial();
+        if (!completer.isCompleted) completer.complete();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        developer.log(
+          '[AdMob] Export interstitial failed to show: $error',
+          name: 'Monetization',
+        );
+        ad.dispose();
+        preloadExportInterstitial();
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
+
     try {
       developer.log(
         '[AdMob] Showing export interstitial.',
         name: 'Monetization',
       );
       await ad.show();
+      await completer.future;
     } catch (e) {
       developer.log(
         '[AdMob] Export interstitial show error: $e',
@@ -171,6 +196,7 @@ class AdMobService {
       );
       ad.dispose();
       await preloadExportInterstitial();
+      if (!completer.isCompleted) completer.complete();
     }
   }
 

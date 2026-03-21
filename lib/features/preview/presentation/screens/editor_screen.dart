@@ -13,6 +13,7 @@ import '../../../../core/models/export_settings.dart';
 import '../../../../core/models/video_filter.dart';
 import '../../../../core/services/admob_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/presentation/widgets/premium_result_dialog.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../services/engine/ffmpeg_processor.dart';
 import '../../../../services/io/media_io_service.dart';
@@ -1203,19 +1204,25 @@ class _EditorScreenState extends State<EditorScreen> {
             exportResult.outputPath,
           );
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.orange.shade800,
-                content: Text(
-                  success
-                      ? 'Video saved to your gallery'
-                      : 'Export saved but gallery save failed.',
+            if (success) {
+              await AdMobService.maybeShowExportInterstitial(
+                saveSucceeded: true,
+              );
+              if (mounted) {
+                PremiumResultDialog.show(
+                  context,
+                  title: 'Video saved to gallery',
+                  message: 'Export saved but watermark bypassed for QA.',
+                );
+              }
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: Colors.orange.shade800,
+                  content: const Text('Export saved but gallery save failed.'),
                 ),
-              ),
-            );
-            unawaited(
-              AdMobService.maybeShowExportInterstitial(saveSucceeded: success),
-            );
+              );
+            }
           }
         } else {
           // Production mode: policy failure — delete exported file
@@ -1241,16 +1248,24 @@ class _EditorScreenState extends State<EditorScreen> {
           exportResult.outputPath,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                success ? 'Video saved to your gallery' : 'Export failed.',
+          if (success) {
+            await AdMobService.maybeShowExportInterstitial(
+              saveSucceeded: true,
+            );
+            if (mounted) {
+              PremiumResultDialog.show(
+                context,
+                title: 'Video saved to gallery',
+                message: 'Your edited video has been successfully exported.',
+              );
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Export failed.'),
               ),
-            ),
-          );
-          unawaited(
-            AdMobService.maybeShowExportInterstitial(saveSucceeded: success),
-          );
+            );
+          }
         }
       }
     } catch (e) {

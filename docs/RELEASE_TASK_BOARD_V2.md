@@ -33,6 +33,7 @@
 - [x] S015 - paywall polish + real package presentation
 - [x] S016 - restore feedback + paywall copy cleanup
 - [x] S017 - visible restore/purchase dialogs + release signing prep
+- [x] S019 - replace export success snackbar with sequenced ad dialog
 
 ## Phase 3 - Release Productization
 

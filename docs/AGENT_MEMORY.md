@@ -89,6 +89,12 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - introduced display-only `speed` parameter to `_formatDuration` to mathematically scale the duration before string interpolation
 - preserved native timestamp integrity for all trim bounds, timeline scrubber logic, and FFmpeg export configurations
 
+### S019
+
+- extracted the premium dialog into a reusable `PremiumResultDialog` component
+- enforced structural async execution sequencing using a `Completer` for `AdMobService`
+- permanently deleted legacy snackbars from export completion output in favor of blocking dialogs
+
 ## Build / Config Memory
 
 Public app-side config:
