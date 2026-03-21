@@ -23,6 +23,7 @@
 - [x] Speed range expansion
 - [x] Filters V1
 - [x] Filter follow-up fixes and reset contract
+- [x] S018 - Editor speed effective duration display
 
 ## Phase 2 - Monetization Foundation
 
