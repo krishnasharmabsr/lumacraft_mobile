@@ -8,6 +8,7 @@ class TrimControls extends StatelessWidget {
   final Function(Duration)? onStartChanged;
   final Function(Duration)? onEndChanged;
   final Function(Duration, Duration)? onChangeEnd;
+  final double speed;
 
   const TrimControls({
     super.key,
@@ -17,6 +18,7 @@ class TrimControls extends StatelessWidget {
     this.onStartChanged,
     this.onEndChanged,
     this.onChangeEnd,
+    this.speed = 1.0,
   });
 
   @override
@@ -89,6 +91,9 @@ class TrimControls extends StatelessWidget {
   }
 
   String _formatDuration(Duration duration) {
+    if (speed != 1.0 && speed > 0.0) {
+      duration = Duration(milliseconds: (duration.inMilliseconds / speed).round());
+    }
     final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
     return "$minutes:$seconds";

@@ -96,6 +96,11 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - built signed AAB
 - bumped app version to `1.0.0+3`
 
+### S018 - Editor Time Display Fix (Speed)
+
+- updated the displayed elapsed and total playback strings in `EditorScreen` and `TrimCard` to accurately reflect the _effective_ edited duration based on the active `speed` state
+- isolated the scaling exclusively to the Presentation layer via the `_formatDuration` utility, ensuring zero regression impact to global trim bounds, underlying export logic, or scrubber integrity
+
 ## Known External Platform State
 
 ### Play Console

@@ -1271,7 +1271,10 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
-  String _formatDuration(Duration duration) {
+  String _formatDuration(Duration duration, {double speed = 1.0}) {
+    if (speed != 1.0 && speed > 0.0) {
+      duration = Duration(milliseconds: (duration.inMilliseconds / speed).round());
+    }
     final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
@@ -1611,7 +1614,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                                               width: 8,
                                                             ),
                                                             Text(
-                                                              '${_formatDuration(ctrl.value.position)} / ${_formatDuration(_videoDuration)}',
+                                                              '${_formatDuration(ctrl.value.position, speed: _appliedSpeed)} / ${_formatDuration(_videoDuration, speed: _appliedSpeed)}',
                                                               style: const TextStyle(
                                                                 color: Colors
                                                                     .white,
@@ -2012,6 +2015,7 @@ class _EditorScreenState extends State<EditorScreen> {
               maxDuration: _videoDuration,
               currentStart: _trimStart,
               currentEnd: _trimEnd,
+              speed: _appliedSpeed,
               onStartChanged: _isTimelineInvalid
                   ? null
                   : (start) {

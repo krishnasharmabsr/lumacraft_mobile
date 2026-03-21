@@ -83,6 +83,12 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - signed AAB built
 - version bumped to `1.0.0+3`
 
+### S018
+
+- fixed editor time display UX after speed multiplier is applied
+- introduced display-only `speed` parameter to `_formatDuration` to mathematically scale the duration before string interpolation
+- preserved native timestamp integrity for all trim bounds, timeline scrubber logic, and FFmpeg export configurations
+
 ## Build / Config Memory
 
 Public app-side config:
