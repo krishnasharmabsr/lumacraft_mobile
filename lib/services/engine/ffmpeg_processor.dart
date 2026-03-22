@@ -177,11 +177,11 @@ class FFmpegProcessor implements IVideoProcessor {
     final inputPath = request.inputPath;
     final outputPath = request.outputPath;
     final settings = request.settings;
-    final trimStart = request.edits.trimStart;
-    final trimEnd = request.edits.trimEnd;
-    final playbackSpeed = request.edits.speed;
-    final videoFilter = request.edits.filter;
-    final aspectRatio = request.edits.canvas;
+    final trimStart = request.trimStart;
+    final trimEnd = request.trimEnd;
+    final playbackSpeed = request.speed;
+    final videoFilter = request.filter;
+    final aspectRatio = request.canvas;
 
     final effectiveAudio = hasAudio && includeAudio;
     final effectiveWatermark =

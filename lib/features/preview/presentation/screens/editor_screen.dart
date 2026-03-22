@@ -1165,7 +1165,11 @@ class _EditorScreenState extends State<EditorScreen> {
         inputPath: _workingVideoPath,
         outputPath: outputPath,
         settings: settings,
-        edits: _edits,
+        trimStart: _edits.trimStart,
+        trimEnd: _edits.trimEnd,
+        speed: _edits.speed,
+        filter: _edits.filter,
+        canvas: _edits.canvas,
       );
 
       final exportResult = await _processor.processExport(

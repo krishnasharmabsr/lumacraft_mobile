@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lumacraft_mobile/core/models/export_settings.dart';
 import 'package:lumacraft_mobile/core/models/video_filter.dart';
 import 'package:lumacraft_mobile/core/models/video_export_request.dart';
-import 'package:lumacraft_mobile/features/preview/domain/editor_edits.dart';
 import 'package:lumacraft_mobile/services/engine/ffmpeg_processor.dart';
 import 'package:lumacraft_mobile/services/engine/export_result.dart';
 
@@ -151,14 +150,12 @@ void main() {
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -179,14 +176,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 4.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -205,14 +200,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.warm,
-          canvas: ExportAspectRatio.vertical,
-        ),
-      );
+          canvas: ExportAspectRatio.vertical,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -241,14 +234,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -269,14 +260,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -296,14 +285,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -323,14 +310,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -349,14 +334,12 @@ hasAudio: false,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -376,14 +359,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -404,14 +385,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -446,14 +425,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mkv',
         settings: mkvSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -473,14 +450,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -502,14 +477,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,
@@ -530,14 +503,12 @@ hasAudio: true,
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        edits: EditorEdits(
+        
           trimStart: Duration.zero,
           trimEnd: const Duration(seconds: 10),
           speed: 1.0,
           filter: VideoFilter.original,
-          canvas: ExportAspectRatio.source,
-        ),
-      );
+          canvas: ExportAspectRatio.source,);
 
       final result = FFmpegProcessor.buildExportCommand(
         request: request,

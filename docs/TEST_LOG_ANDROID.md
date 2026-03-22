@@ -551,43 +551,10 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
 
 - **Date:** 2026-03-22
 - **Changes:**
-  1. Extracted FFmpeg command generation inputs into a structured  model.
-  2. Migrated  and  to accept  instead of raw primitives.
+  1. Extracted FFmpeg command generation inputs into a structured `VideoExportRequest` model using native primitives to decouple `core` from `features`.
+  2. Migrated `IVideoProcessor` and `FFmpegProcessor` to accept `VideoExportRequest` and updated `EditorScreen` to bundle primitive fields.
   3. No changes to FFmpeg command mechanics, export behavior, or product state definitions.
 - **Validation:**
-  - Analyzing lumacraft_mobile...                                   
-No issues found! (ran in 7.2s): No issues found
-  - 00:00 +0: loading C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/admob_service_test.dart
-00:00 +0: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/admob_service_test.dart: AdMobService bypasses ads for pro users even when config exists
-00:00 +1: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/admob_service_test.dart: AdMobService bypasses ads when config is missing
-00:00 +2: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/admob_service_test.dart: AdMobService export interstitial is attempted only for free successful flow
-00:00 +3: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.defaults produces zero trimStart
-00:00 +4: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.defaults produces trimEnd equal to totalDuration
-00:00 +5: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.defaults produces 1.0 speed
-00:00 +6: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.defaults produces original filter
-00:00 +7: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.defaults produces source canvas
-00:00 +8: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns false for defaults
-00:00 +9: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns false when trimStart is within 100ms threshold
-00:00 +10: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns true when trimStart exceeds 100ms threshold
-00:00 +11: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns false when trimEnd is within 100ms of totalDuration
-00:00 +12: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns true when trimEnd is more than 100ms before totalDuration
-00:00 +13: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns true when speed is not 1.0
-00:00 +14: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns true when filter is not original
-00:00 +15: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.hasEdits returns true when canvas is not source
-00:00 +16: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.copyWith returns equal value when no fields changed
-00:00 +17: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.copyWith updates trimStart only
-00:00 +18: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.copyWith updates trimEnd only
-00:00 +19: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.copyWith updates speed only — no cross-field contamination
-00:00 +20: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.copyWith updates filter only — no cross-field contamination
-00:00 +21: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.copyWith updates canvas only — no cross-field contamination
-00:00 +22: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.copyWith equality is value-based
-00:00 +23: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.clampTrimTo clamps trimEnd to newDuration when it exceeds
-00:00 +24: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.clampTrimTo clamps trimStart to zero when it exceeds newDuration
-00:00 +25: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/domain/editor_edits_test.dart: EditorEdits.clampTrimTo preserves speed, filter, canvas unchanged after clamp
-00:00 +26: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveSpeed returns override speed when set
-00:00 +27: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveSpeed falls back to edits.speed when null
-00:00 +28: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveSpeed falls back to non-default edits.speed when null
-00:00 +29: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveFilter returns override filter when set
 00:00 +30: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveFilter falls back to edits.filter when null
 00:00 +31: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveFilter falls back to non-default edits.filter when null
 00:00 +32: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveCanvas returns override canvas when set
