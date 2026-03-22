@@ -13,7 +13,7 @@
 The app is no longer in early pipeline stabilization. Current `main` includes:
 
 - editor playback with overlay auto-hide
-- trim / speed / canvas / filters
+- trim / speed / canvas / filters / crop (V1)
 - export studio with locked pro options
 - stable watermark logic anchored to visible content
 - landscape editor split layout
@@ -123,7 +123,41 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - VideoExportRequest encapsulation: strictly consolidated editor config bundles replacing granular args payload
 - safely migrated `FFmpegProcessor` building flows without FFmpeg command generation or business behavior change
 
-### Post-S022 Stability Fixes
+### S023 - Stabilized Interactive Crop V1
+- implemented `CropSelection` normalized coordinate model with stable centered aspect-ratio logic
+- integrated professional `CropOverlay` with refined 36px hit-test corners and accurate `EditorPreviewSurface` content-box mapping
+- suppressed playback overlay interaction while in Crop mode to prevent handle blocking
+- redesigned `CropToolPanel` with standard teal selection chips and real `Free` default state
+- perfected visual preview parity by rendering cropped regions directly in `EditorPreviewSurface` post-apply
+- verified `crop` filter in the export pipeline with coordinate clamping and even-integer rounding matches preview result exactly
+
+### S024 - Crop V1 Stabilization (Corrective)
+- fixed playback control usability in Crop mode using non-interactive overlay background (`IgnorePointer`)
+- enforced tool persistence: Crop tool remains open after `Apply Crop` for better UX
+- corrected `Free` preset logic by allowing explicit clearing of aspect ratios in `CropSelection`
+- implemented robust least-squares diagonal resizing for ratio-locked corner handles
+- revalidated export-path parity (`VideoExportRequest.crop` -> `FFmpegProcessor`)
+- verified all 88 regression tests pass on `feat/crop-v1`
+
+### S024B - Crop V1 Corrective Stabilization (Pass 3)
+- replaced the blocking crop-mode overlay with compact play/pause controls so crop gestures remain usable while playback stays controllable
+- decoupled Crop tool visibility from live overlay visibility so `Apply Crop` keeps the panel open while the committed cropped preview becomes visible immediately
+- fixed `CropSelection.withAspectRatio(null)` by making aspect-ratio clearing explicit and value-safe
+- replaced the corner resize behavior with anchor-based two-axis resizing for ratio-locked corner drags
+- restored committed crop preview rendering in `EditorPreviewSurface` using clipped aligned content instead of the previous unstable transform
+- ensured global editor reset also clears committed/preview crop state
+- verified all 92 regression tests pass locally on `feat/crop-v1`
+- follow-up tweak: crop-mode play/pause control returned to the centered overlay position expected by QA
+- follow-up tweak: crop move gestures are now inset away from edges/corners so free-mode corner drags are not stolen by the center move detector
+- follow-up tweak: all 8 crop handles now expose an explicit active visual state so the selected resize point is visible during interaction
+- follow-up tweak: crop handles now render as circular targets with larger hit areas, and drag sensitivity was increased slightly to reduce sticky-feeling movement
+- follow-up tweak: handle hit targets are now centered on the visible dots instead of stretching across the full edge, reducing corner/edge overlap during selection
+- follow-up tweak: drag sensitivity increased again to better match finger travel, and full-area crop displacement was restored even for smaller crop regions
+- follow-up tweak: committed crop preview now uses clipped translated source pixels so very small free-crop selections preview the exact chosen region after apply
+- follow-up tweak: crop resize interaction now comes from border and corner zones, with markers acting as visual indicators only, which makes tiny-crop resizing reliable
+- follow-up tweak: crop markers were converted into line-aligned border indicators that sit directly on the crop border for both normal and small crop boxes
+
+### Post-S023 Stability Fixes
 
 - **Playback Speed Persistence**: Added speed re-sync to `_initializePlayer` to prevent speed loss during controller re-initialization.
 - **Trim Baseline normalization**: Implemented explicit trim reset to `[0, duration]` in `_processTrim` success path to correctly baseline the new trimmed source.

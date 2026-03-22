@@ -23,6 +23,7 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - speed controls (`0.25x` to `3.0x`)
 - canvas presets
 - filters
+- interactive video cropping (Crop V1)
 - export studio with discrete quality presets
 - watermark logic for free tier
 - content-anchored watermark placement
@@ -131,7 +132,39 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - refactored `FFmpegProcessor` internal commands and `IVideoProcessor` contracts unconditionally preserving existing product contracts
 - successfully modernized automated FFmpeg regression tests to use structurally sound configuration bundles
 
-### Post-S022 Stability Fixes
+### S023 - Crop V1 Engine + UI
+- implemented `CropSelection` normalized coordinate model with stable centered aspect-ratio logic
+- integrated professional `CropOverlay` with refined 36px hit-test corners and accurate `EditorPreviewSurface` content-box mapping
+- suppressed playback overlay interaction while in Crop mode to prevent handle blocking
+- redesigned `CropToolPanel` with standard teal selection chips and real `Free` default state
+- perfected visual preview parity by rendering cropped regions directly in `EditorPreviewSurface` post-apply
+- enforced integer rounding (even-numbered) and source-clamping in `FFmpegProcessor` export pipeline
+
+### S024 - Crop V1 Stabilization (Corrective)
+- restored playback usability in Crop mode by making overlay background non-interactive (`IgnorePointer`) while keeping controls functional
+- modified `EditorScreen` to keep the Crop tool open after `Apply Crop`, aligning with standard tool workflow
+- enabled explicit clearing of aspect ratios in `CropSelection` to fix the `Free` preset selection bug
+- implemented robust least-squares diagonal resizing for corner handles to provide true two-axis behavior with ratio locks
+- revalidated export-path parity (`VideoExportRequest.crop` -> `FFmpegProcessor`)
+
+### S024B - Crop V1 Corrective Stabilization (Pass 3)
+- replaced the crop-mode full overlay with compact play/pause controls so playback remains usable without stealing crop gestures
+- decoupled Crop panel visibility from live overlay visibility so `Apply Crop` keeps the tool open while showing the committed cropped preview immediately
+- fixed `Free` re-selection by making aspect-ratio clearing explicit in `CropSelection.copyWith`
+- replaced the locked-corner resize behavior with anchor-based two-axis resizing from the dragged corner
+- rebuilt committed crop preview rendering in `EditorPreviewSurface` using clipped aligned content for more reliable post-apply parity
+- ensured global editor reset clears crop along with trim, speed, filter, and canvas state
+- follow-up adjustment: crop-mode play/pause control now renders back at the centered overlay position expected by users
+- follow-up adjustment: crop move hit area is inset so free-mode corner drags are not swallowed by the central move gesture
+- follow-up adjustment: crop handles now show an explicit active visual state to make the selected resize point visible
+- follow-up adjustment: crop handles now render as circular targets with larger hit boxes, and drag sensitivity was increased for faster crop movement
+- follow-up adjustment: handle hit targets are centered on the visible dots rather than spanning full edges, improving corner selection reliability
+- follow-up adjustment: crop displacement can again be started from anywhere inside the crop region, including small crop boxes, and drag sensitivity was increased again
+- follow-up adjustment: committed crop preview rendering now uses clipped translated source pixels so tiny free crops preview the exact selected area after apply
+- follow-up adjustment: crop resize interaction now uses border and corner zones while the markers remain visual-only, making very small crop selections reliable
+- follow-up adjustment: teal crop markers were refined into line-aligned border indicators that sit directly on the crop border instead of floating inside or outside it
+
+### Post-S023 Stability Fixes
 
 - **Playback Speed Persistence**: fixed regression where `VideoPlayerController` re-initialization (after trim/source change) lost the active playback speed; re-sync added to `_initializePlayer`.
 - **Trim Baseline Normalization**: fixed bug where `_edits` trim state remained relative to the old source after `processTrim`; explicit reset to `[0, new_duration]` added to the `_processTrim` success path.
@@ -250,7 +283,7 @@ Priority should stay on release productization, not random feature expansion:
 2. finish AdMob review / production linkage
 3. legal-page publishing and store listing / compliance readiness
 4. production rollout readiness after closed testing sign-off
-5. closed-testing `1.0.0+5` approved and promoted from `develop` to `main`
+5. decide the next post-crop editor feature only after `develop` integration remains stable
 
 ## Related References
 

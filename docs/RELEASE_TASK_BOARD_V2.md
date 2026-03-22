@@ -73,6 +73,9 @@
 
 ## Phase 4 - Nice-to-Have Product Expansion
 
+- [x] S023 - Crop V1 engine + initial editor UI
+- [x] S024 - Crop V1 corrective stabilization (interaction and parity)
+- [x] S024B - Crop V1 final corrective stabilization completed and approved on `feat/crop-v1`
 - [ ] AI / ML features
 - [ ] More advanced effects
 - [ ] Additional monetization experiments beyond current baseline

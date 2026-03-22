@@ -27,6 +27,9 @@ import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
 import '../models/filter_panel_state.dart';
 import '../widgets/editor_preview_surface.dart';
+import '../../../crop/presentation/widgets/crop_overlay.dart';
+import '../../../crop/presentation/widgets/crop_tool_panel.dart';
+import '../../../../core/models/crop_selection.dart';
 
 
 
@@ -65,6 +68,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   // --- Tool Panel state ---
   EditorTool _activeTool = EditorTool.none;
+  bool _showCropOverlay = false;
 
   // --- Audio state ---
   double _volume = 1.0;
@@ -917,6 +921,9 @@ class _EditorScreenState extends State<EditorScreen> {
       _edits = _edits.copyWith(speed: 1.0);
       _preview = _preview.withCanvas(ExportAspectRatio.source);
       _edits = _edits.copyWith(canvas: ExportAspectRatio.source);
+      _preview = _preview.withCrop(CropSelection.full);
+      _edits = _edits.copyWith(crop: CropSelection.full);
+      _showCropOverlay = _activeTool == EditorTool.crop;
     });
     _controller?.setPlaybackSpeed(1.0);
     unawaited(
@@ -1181,6 +1188,9 @@ class _EditorScreenState extends State<EditorScreen> {
         speed: _edits.speed,
         filter: _edits.filter,
         canvas: _edits.canvas,
+        crop: _edits.crop,
+        sourceWidth: _controller?.value.size.width.toInt() ?? 0,
+        sourceHeight: _controller?.value.size.height.toInt() ?? 0,
       );
 
       final exportResult = await _processor.processExport(
@@ -1300,6 +1310,27 @@ class _EditorScreenState extends State<EditorScreen> {
       );
     }
   }
+
+  // ────────────────────────────────────────────────────────────
+  //  CROP
+  // ────────────────────────────────────────────────────────────
+  void _applyCrop() {
+    setState(() {
+      final appliedCrop = _preview.effectiveCrop(_edits);
+      _edits = _edits.copyWith(crop: appliedCrop);
+      _preview = _preview.withCrop(appliedCrop);
+      _showCropOverlay = false;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Crop applied.'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
 
   Widget _buildFilterOption(VideoFilter filter) {
     final isSelected = _preview.effectiveFilter(_edits) == filter;
@@ -1505,6 +1536,19 @@ class _EditorScreenState extends State<EditorScreen> {
                             _resumePlaybackAfterScrub = false;
                             _resetOverlayTimer();
                           },
+                          cropOverlayBuilder:
+                              _activeTool == EditorTool.crop && _showCropOverlay
+                              ? (contentBox) => CropOverlay(
+                                    crop: _preview.effectiveCrop(_edits),
+                                    contentBox: contentBox,
+                                    onCropChanged: (c) {
+                                      setState(() {
+                                        _preview = _preview.withCrop(c);
+                                        _showCropOverlay = true;
+                                      });
+                                    },
+                                  )
+                              : null,
                         ),
                       )
                     else if (!_isProcessing)
@@ -2215,7 +2259,7 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
           _ToolIconButton(
-            icon: Icons.crop,
+            icon: Icons.crop_free_rounded,
             label: 'Canvas',
             isActive: _activeTool == EditorTool.canvas,
             onPressed: () => setState(
@@ -2223,6 +2267,16 @@ class _EditorScreenState extends State<EditorScreen> {
                   ? EditorTool.none
                   : EditorTool.canvas,
             ),
+          ),
+          _ToolIconButton(
+            icon: Icons.crop_rounded,
+            label: 'Crop',
+            isActive: _activeTool == EditorTool.crop,
+            onPressed: () => setState(() {
+              final enablingCrop = _activeTool != EditorTool.crop;
+              _activeTool = enablingCrop ? EditorTool.crop : EditorTool.none;
+              _showCropOverlay = enablingCrop;
+            }),
           ),
         ],
       ),
@@ -2242,6 +2296,22 @@ class _EditorScreenState extends State<EditorScreen> {
         return _buildSpeedCard(ctrl);
       case EditorTool.canvas:
         return _buildCanvasCard();
+      case EditorTool.crop:
+        return CropToolPanel(
+          currentCrop: _preview.effectiveCrop(_edits),
+          onCropChanged: (c) => setState(() {
+            _preview = _preview.withCrop(c);
+            _showCropOverlay = true;
+          }),
+          onApply: _applyCrop,
+          onReset: () {
+            setState(() {
+              _preview = _preview.withCrop(CropSelection.full);
+              _showCropOverlay = true;
+            });
+          },
+          isProcessing: _isProcessing,
+        );
       case EditorTool.none:
         return const SizedBox.shrink();
     }

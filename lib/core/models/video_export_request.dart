@@ -1,5 +1,6 @@
 import 'export_settings.dart';
 import 'video_filter.dart';
+import 'crop_selection.dart';
 
 /// An immutable bundle representing the exact parameters needed to
 /// execute a video export operation. This isolates the engine layer
@@ -13,6 +14,9 @@ class VideoExportRequest {
   final double speed;
   final VideoFilter filter;
   final ExportAspectRatio canvas;
+  final CropSelection crop;
+  final int sourceWidth;
+  final int sourceHeight;
 
   const VideoExportRequest({
     required this.inputPath,
@@ -23,5 +27,8 @@ class VideoExportRequest {
     required this.speed,
     required this.filter,
     required this.canvas,
+    required this.crop,
+    required this.sourceWidth,
+    required this.sourceHeight,
   });
 }
