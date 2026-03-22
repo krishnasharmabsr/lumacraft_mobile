@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumacraft_mobile/core/models/export_settings.dart';
 import 'package:lumacraft_mobile/core/models/video_filter.dart';
+import 'package:lumacraft_mobile/core/models/crop_selection.dart';
 import 'package:lumacraft_mobile/features/preview/domain/editor_edits.dart';
 
 void main() {
@@ -166,6 +167,7 @@ void main() {
         speed: 2.0,
         filter: VideoFilter.warm,
         canvas: ExportAspectRatio.square,
+        crop: CropSelection.full,
       );
       final clamped = d.clampTrimTo(const Duration(seconds: 3));
       expect(clamped.speed, 2.0);

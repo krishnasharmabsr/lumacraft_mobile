@@ -258,6 +258,30 @@ class FFmpegProcessor implements IVideoProcessor {
     // Graph Start — passthrough to start naming
     filterSegments.add('[0:v:0]null$currentVideoMap');
 
+    // ── CROP ──
+    if (!request.crop.isFull) {
+      final W = request.sourceWidth;
+      final H = request.sourceHeight;
+
+      if (W > 0 && H > 0) {
+        int even(double v) => (v / 2).floor() * 2;
+        final w = even(W * request.crop.width);
+        final h = even(H * request.crop.height);
+        final x = (W * request.crop.left).round();
+        final y = (H * request.crop.top).round();
+
+        final safeW = w.clamp(2, W);
+        final safeH = h.clamp(2, H);
+        final safeX = x.clamp(0, W - safeW);
+        final safeY = y.clamp(0, H - safeH);
+
+        const String nextMapCrop = '[v_cropped]';
+        filterSegments.add('${currentVideoMap}crop=$safeW:$safeH:$safeX:$safeY$nextMapCrop');
+        currentVideoMap = nextMapCrop;
+        diagnostics += 'crop=${safeW}x$safeH@$safeX,$safeY\n';
+      }
+    }
+
     // Track whether audio goes through a filter graph
     bool audioFiltered = false;
     const String audioLabel = '[a_speed]';

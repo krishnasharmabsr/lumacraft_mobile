@@ -39,6 +39,9 @@ class EditorPreviewSurface extends StatelessWidget {
   final ValueChanged<Duration> onScrubUpdate;
   final VoidCallback onScrubEnd;
 
+  // Crop Support
+  final Widget Function(Rect contentBox)? cropOverlayBuilder;
+
   const EditorPreviewSurface({
     super.key,
     required this.controller,
@@ -62,6 +65,7 @@ class EditorPreviewSurface extends StatelessWidget {
     required this.onScrubStart,
     required this.onScrubUpdate,
     required this.onScrubEnd,
+    this.cropOverlayBuilder,
   });
 
   String _formatDuration(Duration duration, {double speed = 1.0}) {
@@ -82,9 +86,12 @@ class EditorPreviewSurface extends StatelessWidget {
   }
 
   Widget _buildVideoContent() {
+    final sourceWidth = controller.value.size.width;
+    final sourceHeight = controller.value.size.height;
+
     Widget video = SizedBox(
-      width: controller.value.size.width,
-      height: controller.value.size.height,
+      width: sourceWidth,
+      height: sourceHeight,
       child: VideoPlayer(controller),
     );
 
@@ -93,7 +100,262 @@ class EditorPreviewSurface extends StatelessWidget {
       video = ColorFiltered(colorFilter: colorFilter, child: video);
     }
 
+    // Apply Crop visually when the interactive overlay is not active.
+    final currentCrop = preview.effectiveCrop(edits);
+    if (cropOverlayBuilder == null && !currentCrop.isFull) {
+      final cropWidth = sourceWidth * currentCrop.width;
+      final cropHeight = sourceHeight * currentCrop.height;
+
+      video = ClipRect(
+        child: SizedBox(
+          width: cropWidth,
+          height: cropHeight,
+          child: OverflowBox(
+            alignment: Alignment.topLeft,
+            minWidth: sourceWidth,
+            maxWidth: sourceWidth,
+            minHeight: sourceHeight,
+            maxHeight: sourceHeight,
+            child: Transform.translate(
+              offset: Offset(
+                -(sourceWidth * currentCrop.left),
+                -(sourceHeight * currentCrop.top),
+              ),
+              child: video,
+            ),
+          ),
+        ),
+      );
+    }
+
     return video;
+  }
+
+  Widget _buildCropModeControls() {
+    return Positioned.fill(
+      child: Center(
+        child: IconButton(
+          iconSize: 56,
+          color: Colors.white,
+          icon: Icon(
+            controller.value.isPlaying
+                ? Icons.pause_circle_filled
+                : Icons.play_circle_filled,
+          ),
+          onPressed: onTogglePlayPause,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStandardOverlay() {
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          IgnorePointer(
+            child: Container(color: Colors.black26),
+          ),
+          Stack(
+            children: [
+              Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.replay_10),
+                        iconSize: 36,
+                        color: Colors.white,
+                        onPressed: onSeekBack,
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton(
+                        iconSize: 56,
+                        color: Colors.white,
+                        icon: Icon(
+                          controller.value.isPlaying
+                              ? Icons.pause_circle_filled
+                              : Icons.play_circle_filled,
+                        ),
+                        onPressed: onTogglePlayPause,
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton(
+                        icon: const Icon(Icons.forward_10),
+                        iconSize: 36,
+                        color: Colors.white,
+                        onPressed: onSeekForward,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: () {}, // Blocks overlay toggle
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMd,
+                      vertical: AppTheme.spacingSm,
+                    ),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black87],
+                      ),
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.bottomLeft,
+                      children: [
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: onToggleMute,
+                                  onLongPress: onToggleVolumeSlider,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Icon(
+                                      isMuted || volume == 0
+                                          ? Icons.volume_off
+                                          : Icons.volume_up,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${_formatDuration(controller.value.position, speed: edits.speed)} / ${_formatDuration(videoDuration, speed: edits.speed)}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontFeatures: [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
+                                const Spacer(),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            PlaybackTimeline(
+                              currentPosition: controller.value.position,
+                              duration: videoDuration,
+                              trimStart: edits.trimStart,
+                              trimEnd: edits.trimEnd,
+                              onScrubStart: onScrubStart,
+                              onScrubUpdate: onScrubUpdate,
+                              onScrubEnd: onScrubEnd,
+                            ),
+                          ],
+                        ),
+                        if (showVolumeSlider)
+                          Positioned(
+                            left: 8,
+                            bottom: 64,
+                            child: Container(
+                              height: 140,
+                              width: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.black87,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final trackHeight = constraints.maxHeight - 20;
+                                  final knobBottom = (volume * trackHeight)
+                                      .clamp(0.0, trackHeight)
+                                      .toDouble();
+                                  return GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapDown: (details) {
+                                      onCancelOverlayTimer();
+                                      onSetVolumeFromVerticalDrag(
+                                        details.localPosition.dy,
+                                        constraints.maxHeight,
+                                      );
+                                      onResetOverlayTimer();
+                                    },
+                                    onVerticalDragStart: (_) =>
+                                        onCancelOverlayTimer(),
+                                    onVerticalDragUpdate: (details) {
+                                      onSetVolumeFromVerticalDrag(
+                                        details.localPosition.dy,
+                                        constraints.maxHeight,
+                                      );
+                                    },
+                                    onVerticalDragEnd: (_) =>
+                                        onResetOverlayTimer(),
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Positioned(
+                                          top: 10,
+                                          bottom: 10,
+                                          child: Container(
+                                            width: 4,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white30,
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          left: 18,
+                                          right: 18,
+                                          bottom: 10,
+                                          height: trackHeight * volume,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: AppColors.accent,
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          bottom: 2 + knobBottom,
+                                          child: Container(
+                                            width: 14,
+                                            height: 14,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                              border: Border.all(
+                                                color: AppColors.accent,
+                                                width: 2,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -115,226 +377,57 @@ class EditorPreviewSurface extends StatelessWidget {
               child: Container(
                 color: Colors.black,
                 alignment: Alignment.center,
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  clipBehavior: Clip.hardEdge,
-                  child: _buildVideoContent(),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.contain,
+                          clipBehavior: Clip.hardEdge,
+                          child: _buildVideoContent(),
+                        ),
+                        // Builder for crop overlay ensures accurate content box mapping
+                        if (cropOverlayBuilder != null)
+                          LayoutBuilder(
+                            builder: (context, boxConstraints) {
+                              final videoSize = controller.value.size;
+                              final renderedBox = applyBoxFit(
+                                BoxFit.contain,
+                                videoSize,
+                                Size(
+                                  boxConstraints.maxWidth,
+                                  boxConstraints.maxHeight,
+                                ),
+                              );
+
+                              // Center the box within the constraints
+                              final dx = (boxConstraints.maxWidth -
+                                      renderedBox.destination.width) /
+                                  2;
+                              final dy = (boxConstraints.maxHeight -
+                                      renderedBox.destination.height) /
+                                  2;
+                              final contentBox = Rect.fromLTWH(
+                                dx,
+                                dy,
+                                renderedBox.destination.width,
+                                renderedBox.destination.height,
+                              );
+
+                              return cropOverlayBuilder!(contentBox);
+                            },
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
             if (showOverlay && !isProcessing)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black26,
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.replay_10),
-                                iconSize: 36,
-                                color: Colors.white,
-                                onPressed: onSeekBack,
-                              ),
-                              const SizedBox(width: 16),
-                              IconButton(
-                                iconSize: 56,
-                                color: Colors.white,
-                                icon: Icon(
-                                  controller.value.isPlaying
-                                      ? Icons.pause_circle_filled
-                                      : Icons.play_circle_filled,
-                                ),
-                                onPressed: onTogglePlayPause,
-                              ),
-                              const SizedBox(width: 16),
-                              IconButton(
-                                icon: const Icon(Icons.forward_10),
-                                iconSize: 36,
-                                color: Colors.white,
-                                onPressed: onSeekForward,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () {}, // Blocks overlay toggle
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppTheme.spacingMd,
-                              vertical: AppTheme.spacingSm,
-                            ),
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [Colors.transparent, Colors.black87],
-                              ),
-                            ),
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              alignment: Alignment.bottomLeft,
-                              children: [
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: onToggleMute,
-                                          onLongPress: onToggleVolumeSlider,
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Icon(
-                                              isMuted || volume == 0
-                                                  ? Icons.volume_off
-                                                  : Icons.volume_up,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '${_formatDuration(controller.value.position, speed: edits.speed)} / ${_formatDuration(videoDuration, speed: edits.speed)}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 13,
-                                            fontFeatures: [
-                                              FontFeature.tabularFigures(),
-                                            ],
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    PlaybackTimeline(
-                                      currentPosition:
-                                          controller.value.position,
-                                      duration: videoDuration,
-                                      trimStart: edits.trimStart,
-                                      trimEnd: edits.trimEnd,
-                                      onScrubStart: onScrubStart,
-                                      onScrubUpdate: onScrubUpdate,
-                                      onScrubEnd: onScrubEnd,
-                                    ),
-                                  ],
-                                ),
-                                if (showVolumeSlider)
-                                  Positioned(
-                                    left: 8,
-                                    bottom: 64,
-                                    child: Container(
-                                      height: 140,
-                                      width: 40,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black87,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final trackHeight =
-                                              constraints.maxHeight - 20;
-                                          final knobBottom =
-                                              (volume * trackHeight)
-                                                  .clamp(0.0, trackHeight)
-                                                  .toDouble();
-                                          return GestureDetector(
-                                            behavior: HitTestBehavior.opaque,
-                                            onTapDown: (details) {
-                                              onCancelOverlayTimer();
-                                              onSetVolumeFromVerticalDrag(
-                                                details.localPosition.dy,
-                                                constraints.maxHeight,
-                                              );
-                                              onResetOverlayTimer();
-                                            },
-                                            onVerticalDragStart: (_) =>
-                                                onCancelOverlayTimer(),
-                                            onVerticalDragUpdate: (details) {
-                                              onSetVolumeFromVerticalDrag(
-                                                details.localPosition.dy,
-                                                constraints.maxHeight,
-                                              );
-                                            },
-                                            onVerticalDragEnd: (_) =>
-                                                onResetOverlayTimer(),
-                                            child: Stack(
-                                              alignment: Alignment.center,
-                                              children: [
-                                                Positioned(
-                                                  top: 10,
-                                                  bottom: 10,
-                                                  child: Container(
-                                                    width: 4,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white30,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            999,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  left: 18,
-                                                  right: 18,
-                                                  bottom: 10,
-                                                  height: trackHeight * volume,
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      color: AppColors.accent,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            999,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  bottom: 2 + knobBottom,
-                                                  child: Container(
-                                                    width: 14,
-                                                    height: 14,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            999,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: AppColors.accent,
-                                                        width: 2,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              cropOverlayBuilder != null
+                  ? _buildCropModeControls()
+                  : _buildStandardOverlay(),
           ],
         ),
       ),

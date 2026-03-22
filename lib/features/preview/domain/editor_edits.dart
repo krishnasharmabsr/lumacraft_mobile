@@ -1,5 +1,6 @@
 import '../../../../core/models/export_settings.dart';
 import '../../../../core/models/video_filter.dart';
+import '../../../../core/models/crop_selection.dart';
 
 /// Immutable value object representing the **committed, export-authoritative**
 /// edit state for the editor. This is the single source of truth for what will
@@ -19,12 +20,16 @@ class EditorEdits {
   /// Applied canvas / aspect ratio (ExportAspectRatio.source = no change).
   final ExportAspectRatio canvas;
 
+  /// Applied crop selection (CropSelection.full = no crop).
+  final CropSelection crop;
+
   const EditorEdits({
     required this.trimStart,
     required this.trimEnd,
     required this.speed,
     required this.filter,
     required this.canvas,
+    required this.crop,
   });
 
   /// Default (no-edit) state for a given total video duration.
@@ -34,6 +39,7 @@ class EditorEdits {
     speed: 1.0,
     filter: VideoFilter.original,
     canvas: ExportAspectRatio.source,
+    crop: CropSelection.full,
   );
 
   /// Returns true if any edit is materially different from the unedited state.
@@ -47,7 +53,8 @@ class EditorEdits {
     return isTrimmed ||
         filter != VideoFilter.original ||
         speed != 1.0 ||
-        canvas != ExportAspectRatio.source;
+        canvas != ExportAspectRatio.source ||
+        !crop.isFull;
   }
 
   /// Clamps trim bounds to fit within [newDuration].
@@ -68,6 +75,7 @@ class EditorEdits {
     double? speed,
     VideoFilter? filter,
     ExportAspectRatio? canvas,
+    CropSelection? crop,
   }) {
     return EditorEdits(
       trimStart: trimStart ?? this.trimStart,
@@ -75,6 +83,7 @@ class EditorEdits {
       speed: speed ?? this.speed,
       filter: filter ?? this.filter,
       canvas: canvas ?? this.canvas,
+      crop: crop ?? this.crop,
     );
   }
 
@@ -86,13 +95,14 @@ class EditorEdits {
           trimEnd == other.trimEnd &&
           speed == other.speed &&
           filter == other.filter &&
-          canvas == other.canvas;
+          canvas == other.canvas &&
+          crop == other.crop;
 
   @override
-  int get hashCode => Object.hash(trimStart, trimEnd, speed, filter, canvas);
+  int get hashCode => Object.hash(trimStart, trimEnd, speed, filter, canvas, crop);
 
   @override
   String toString() =>
       'EditorEdits(trimStart: $trimStart, trimEnd: $trimEnd, speed: $speed, '
-      'filter: ${filter.label}, canvas: ${canvas.label})';
+      'filter: ${filter.label}, canvas: ${canvas.label}, crop: $crop)';
 }

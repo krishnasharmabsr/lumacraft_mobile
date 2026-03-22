@@ -598,3 +598,90 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - User tested the release bundle and approved promotion from `develop` to `main`.
 - **Status:** OK
 
+
+## Execution 39 - Task S023 (Crop V1 Engine + UI)
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Implemented `CropSelection` normalized coordinate model with movement and aspect ratio constraints.
+  2. Integrated interactive `CropOverlay` with content-grid and handle-based resizing.
+  3. Implemented `CropToolPanel` selector with Free and fixed (1:1, 9:16, 16:9, 4:5) aspect ratio presets.
+  4. Integrated `crop` filter in the `FFmpegProcessor` export pipeline with coordinate clamping and even-integer rounding.
+  5. Updated `EditorScreen` toolbar and focus logic to support the new Crop tool independently of Canvas.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed (88 total)
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (114.3MB)
+- **Manual QA:**
+  - Verified crop interaction on preview matches normalized export dimensions.
+  - Verified aspect ratio presets correctly constrain the selection.
+  - Verified FFmpeg export successfully honors the crop bounds alongside trim, speed, and filter edits.
+- **Status:** OK
+## Execution 40 - Crop V1 Stabilization
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Content Box Mapping: Switched from `MediaQuery` to `applyBoxFit` in `EditorPreviewSurface` for accurate video pixel mapping.
+  2. 8-Handle Interaction: Implemented corner and edge handles with `AppColors.accent` styling.
+  3. Stable Presets: Refactored `CropSelection` to use centered, non-compounding aspect ratio logic.
+  4. UX Consistency: Aligned `CropToolPanel` with established "Apply/Reset" pattern.
+  5. Export Parity: Verified `FFmpegProcessor` crop filter with even-integer safety and clamping.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed (+90 tests)
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** OK
+## Execution 41 - Crop V1 Corrective Stabilization
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Playback Overlay Suppression: Hidden when `EditorTool.crop` is active to prevent handle blocking.
+  2. Chip Styling: Updated `CropToolPanel` to use `AppColors.accent` for solid teal selection state.
+  3. 'Free' Mode Logic: Ensured `Free` is selected by default when no ratio is applied.
+  4. Handle Reliability: Increased corner handle hit-test area to 36x36 for better precision.
+  5. Preview Parity: Implemented visual crop transform in `EditorPreviewSurface` so committed crops are visible in the preview.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed (90 total)
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK
+- **Status:** OK
+
+## Execution 42 - Crop V1 Corrective Stabilization (Pass 3)
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Replaced the crop-mode full overlay with compact play/pause controls so crop gestures remain usable while playback is still controllable.
+  2. Kept the Crop tool open after `Apply Crop` while hiding the live overlay so the committed cropped preview is visible immediately.
+  3. Fixed `Free` preset re-selection by making aspect-ratio clearing explicit in `CropSelection`.
+  4. Reworked locked corner resize behavior to resize diagonally from the dragged corner instead of behaving like a single-axis edge drag.
+  5. Restored committed crop preview rendering using clipped aligned content in `EditorPreviewSurface` and ensured global reset clears crop state.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed (92 total)
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (115.0MB)
+- **Manual QA:** PENDING. Need device verification for crop-mode playback usability, `Free` re-selection, diagonal corner resizing, and post-apply preview parity.
+- **Status:** QA_PENDING
+
+- **Follow-up branch-local adjustment:**
+  - Returned crop-mode play/pause control to the centered overlay position after QA rejected the top-right placement.
+  - Inset the crop move gesture area so free-mode corner drags are not consumed by the central move detector.
+  - Added explicit active-state feedback for all 8 crop handles and widened the handle-first hit areas.
+  - Switched all 8 handles to circular targets and increased crop drag sensitivity by roughly 20%.
+  - Centered each handle's hit target on the visible dot instead of letting edge handles span the full side.
+  - Restored full-area crop displacement for smaller crop boxes and increased drag sensitivity again to better match finger movement.
+  - Revalidated:
+    - `flutter analyze`: No issues found
+    - `flutter test`: All tests passed (92 total)
+    - `flutter build apk --debug`: OK
+    - `flutter build apk --release`: OK (115.0MB)
+
+- **Final QA-approved crop refinements:**
+  - Replaced committed crop preview rendering with clipped translated source pixels so tiny free-crop selections preview the exact chosen region after apply.
+  - Switched crop resize interaction from dot-only targeting to border and corner zones while keeping the center area for crop-box displacement.
+  - Replaced the teal dots with line-aligned border markers and aligned those markers directly on the crop border for both normal and small crop boxes.
+  - Final device QA approved Free mode, fixed-ratio mode, tiny-crop interaction, preview/export parity, centered playback control, and crop-marker alignment.
+  - Merge target approved: `feat/crop-v1` -> `develop`.

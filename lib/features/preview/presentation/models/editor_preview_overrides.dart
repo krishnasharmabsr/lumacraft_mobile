@@ -1,5 +1,6 @@
 import '../../../../core/models/export_settings.dart';
 import '../../../../core/models/video_filter.dart';
+import '../../../../core/models/crop_selection.dart';
 import '../../../preview/domain/editor_edits.dart';
 
 /// Transient, UI-only preview overrides for tool drag states.
@@ -34,7 +35,15 @@ class EditorPreviewOverrides {
   /// Pending preview canvas selection, or null if unchanged.
   final ExportAspectRatio? canvas;
 
-  const EditorPreviewOverrides({this.speed, this.filter, this.canvas});
+  /// Pending preview crop selection, or null if unchanged.
+  final CropSelection? crop;
+
+  const EditorPreviewOverrides({
+    this.speed,
+    this.filter,
+    this.canvas,
+    this.crop,
+  });
 
   /// All-null default: no overrides active.
   static const none = EditorPreviewOverrides();
@@ -50,22 +59,29 @@ class EditorPreviewOverrides {
   /// The canvas to show in preview.
   ExportAspectRatio effectiveCanvas(EditorEdits edits) => canvas ?? edits.canvas;
 
+  /// The crop to show in preview.
+  CropSelection effectiveCrop(EditorEdits edits) => crop ?? edits.crop;
+
   // ── Pending-change helpers ──────────────────────────────────────────────
 
   bool get hasSpeedOverride => speed != null;
   bool get hasFilterOverride => filter != null;
   bool get hasCanvasOverride => canvas != null;
+  bool get hasCropOverride => crop != null;
 
   // ── Mutation helpers ────────────────────────────────────────────────────
 
   EditorPreviewOverrides withSpeed(double? value) =>
-      EditorPreviewOverrides(speed: value, filter: filter, canvas: canvas);
+      EditorPreviewOverrides(speed: value, filter: filter, canvas: canvas, crop: crop);
 
   EditorPreviewOverrides withFilter(VideoFilter? value) =>
-      EditorPreviewOverrides(speed: speed, filter: value, canvas: canvas);
+      EditorPreviewOverrides(speed: speed, filter: value, canvas: canvas, crop: crop);
 
   EditorPreviewOverrides withCanvas(ExportAspectRatio? value) =>
-      EditorPreviewOverrides(speed: speed, filter: filter, canvas: value);
+      EditorPreviewOverrides(speed: speed, filter: filter, canvas: value, crop: crop);
+
+  EditorPreviewOverrides withCrop(CropSelection? value) =>
+      EditorPreviewOverrides(speed: speed, filter: filter, canvas: canvas, crop: value);
 
   @override
   bool operator ==(Object other) =>
@@ -73,13 +89,14 @@ class EditorPreviewOverrides {
       other is EditorPreviewOverrides &&
           speed == other.speed &&
           filter == other.filter &&
-          canvas == other.canvas;
+          canvas == other.canvas &&
+          crop == other.crop;
 
   @override
-  int get hashCode => Object.hash(speed, filter, canvas);
+  int get hashCode => Object.hash(speed, filter, canvas, crop);
 
   @override
   String toString() =>
       'EditorPreviewOverrides(speed: $speed, filter: ${filter?.label}, '
-      'canvas: ${canvas?.label})';
+      'canvas: ${canvas?.label}, crop: $crop)';
 }
