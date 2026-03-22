@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumacraft_mobile/core/models/export_settings.dart';
 import 'package:lumacraft_mobile/core/models/video_filter.dart';
+import 'package:lumacraft_mobile/core/models/video_export_request.dart';
+import 'package:lumacraft_mobile/features/preview/domain/editor_edits.dart';
 import 'package:lumacraft_mobile/services/engine/ffmpeg_processor.dart';
 import 'package:lumacraft_mobile/services/engine/export_result.dart';
 
@@ -145,16 +147,22 @@ void main() {
     );
 
     test('audio + no-speed: bare 0:a:0 mapping', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: false,
         watermarkPath: null,
@@ -167,16 +175,22 @@ void main() {
     });
 
     test('audio + speed >2: chained atempo', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 4.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 4.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: false,
         watermarkPath: null,
@@ -187,21 +201,28 @@ void main() {
     });
 
     test('selected filter is inserted before watermark overlay and pad', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.warm,
-        aspectRatio: ExportAspectRatio.vertical,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.warm,
+          canvas: ExportAspectRatio.vertical,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: true,
         watermarkPath: '/cache/watermark_runtime.png',
         watermarkBackend: WatermarkBackend.png,
-      );
+      
+);
 
       final filterIndex = result.command.indexOf(
         VideoFilter.warm.ffmpegFilter!,
@@ -216,16 +237,22 @@ void main() {
     });
 
     test('original filter does not add extra FFmpeg filter segment', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: false,
         watermarkPath: null,
@@ -238,16 +265,22 @@ void main() {
     });
 
     test('explicit fps adds fps filter and output flag', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 60,
         applyWatermark: false,
         watermarkPath: null,
@@ -259,16 +292,22 @@ void main() {
     });
 
     test('source fps mode keeps original timestamps without fps filter', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: null,
         applyWatermark: false,
         watermarkPath: null,
@@ -280,16 +319,22 @@ void main() {
     });
 
     test('no-audio input: no audio map or codec flags', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: false,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: false,
         finalFps: 30,
         applyWatermark: false,
         watermarkPath: null,
@@ -300,16 +345,22 @@ void main() {
     });
 
     test('watermark skipped (null path): no overlay, no drawtext', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: true,
         watermarkPath: null,
@@ -321,16 +372,22 @@ void main() {
     });
 
     test('watermark active (png): looped image input with format=rgba', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: true,
         watermarkPath: '/cache/watermark_runtime.png',
@@ -343,16 +400,22 @@ void main() {
     });
 
     test('watermark active (rawRgba): rawvideo input with width/height', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: true,
         watermarkPath: '/cache/watermark_runtime.rgba',
@@ -379,16 +442,22 @@ void main() {
         format: ExportFormat.mkv,
       );
 
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mkv',
         settings: mkvSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: false,
         watermarkPath: null,
@@ -400,16 +469,22 @@ void main() {
     // ── S005A: FALLBACK TOGGLE TESTS ──
 
     test('watermarkBackend=none: no watermark in command', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: true,
         watermarkPath: '/cache/watermark_runtime.png',
@@ -423,16 +498,22 @@ void main() {
     });
 
     test('includeAudio=false: no audio map or codec', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
-        hasAudio: true,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+hasAudio: true,
         finalFps: 30,
         applyWatermark: false,
         watermarkPath: null,
@@ -445,15 +526,21 @@ void main() {
     });
 
     test('x264 fallback codec profile', () {
-      final result = FFmpegProcessor.buildExportCommand(
+      final request = VideoExportRequest(
         inputPath: '/input.mp4',
         outputPath: '/output.mp4',
         settings: baseSettings,
-        trimStart: Duration.zero,
-        trimEnd: const Duration(seconds: 10),
-        playbackSpeed: 1.0,
-        videoFilter: VideoFilter.original,
-        aspectRatio: ExportAspectRatio.source,
+        edits: EditorEdits(
+          trimStart: Duration.zero,
+          trimEnd: const Duration(seconds: 10),
+          speed: 1.0,
+          filter: VideoFilter.original,
+          canvas: ExportAspectRatio.source,
+        ),
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
         hasAudio: false,
         finalFps: 30,
         applyWatermark: false,

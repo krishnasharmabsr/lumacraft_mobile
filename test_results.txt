@@ -1,0 +1,599 @@
+00:00 +0: loading C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart
+test/ffmpeg_command_builder_test.dart:163:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:191:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:253:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:281:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:308:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:335:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:361:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:388:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:416:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:458:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:485:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:514:56: Error: Can't find ')' to match '('.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+test/ffmpeg_command_builder_test.dart:171:14: Error: Undefined name 'result'.
+      expect(result.command, contains('0:a:0'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:163:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:171:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, contains('0:a:0'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:163:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:172:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('-map "[0:a:0]"')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:173:14: Error: Undefined name 'result'.
+      expect(result.command, contains('-c:a aac'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:174:14: Error: Undefined name 'result'.
+      expect(result.command, contains('-movflags +faststart'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:199:14: Error: Undefined name 'result'.
+      expect(result.command, contains('atempo=2.0,atempo=2.0'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:191:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:199:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, contains('atempo=2.0,atempo=2.0'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:191:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:200:14: Error: Undefined name 'result'.
+      expect(result.command, contains('"[a_speed]"'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:261:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('colorbalance=')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:253:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:261:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, isNot(contains('colorbalance=')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:253:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:262:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('colorchannelmixer=')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:263:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('hue=s=0')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:264:14: Error: Undefined name 'result'.
+      expect(result.diagnostics, contains('video_filter=Original'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:289:14: Error: Undefined name 'result'.
+      expect(result.command, contains('fps=60'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:281:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:289:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, contains('fps=60'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:281:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:290:14: Error: Undefined name 'result'.
+      expect(result.command, contains('-r 60'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:291:14: Error: Undefined name 'result'.
+      expect(result.diagnostics, contains('output_fps=60'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:316:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('fps=')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:308:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:316:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, isNot(contains('fps=')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:308:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:317:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('-r ')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:318:14: Error: Undefined name 'result'.
+      expect(result.diagnostics, contains('output_fps=source'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:343:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('0:a')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:335:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:343:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, isNot(contains('0:a')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:335:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:344:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('-c:a')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:369:14: Error: Undefined name 'result'.
+      expect(result.diagnostics, contains('watermark_skipped=true'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:361:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:369:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.diagnostics, contains('watermark_skipped=true'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:361:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:370:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('overlay=')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:371:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('drawtext')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:397:14: Error: Undefined name 'result'.
+      expect(result.command, contains('-loop 1 -framerate 1'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:388:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:397:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, contains('-loop 1 -framerate 1'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:388:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:398:14: Error: Undefined name 'result'.
+      expect(result.command, contains('format=rgba,scale=120:-1'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:399:14: Error: Undefined name 'result'.
+      expect(result.command, contains('overlay='));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:428:9: Error: Undefined name 'result'.
+        result.command,
+        ^^^^^^
+test/ffmpeg_command_builder_test.dart:416:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:428:9: Error: Local variable 'result' can't be referenced before it is declared.
+        result.command,
+        ^^^^^^
+test/ffmpeg_command_builder_test.dart:416:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:433:14: Error: Undefined name 'result'.
+      expect(result.command, contains('format=rgba,scale=120:-1'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:434:14: Error: Undefined name 'result'.
+      expect(result.command, contains('overlay='));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:466:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('-movflags')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:458:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:466:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, isNot(contains('-movflags')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:458:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:494:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('-loop')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:485:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:494:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, isNot(contains('-loop')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:485:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:495:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('overlay=')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:496:14: Error: Undefined name 'result'.
+      expect(result.diagnostics, contains('watermark_skipped=true'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:497:14: Error: Undefined name 'result'.
+      expect(result.watermarkSkippedMessage, contains('Watermark skipped'));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:523:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('0:a')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:514:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final result = FFmpegProcessor.buildExportCommand(
+                                                       ^
+lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+  static ExportCommandResult buildExportCommand({
+                             ^^^^^^^^^^^^^^^^^^
+test/ffmpeg_command_builder_test.dart:523:14: Error: Local variable 'result' can't be referenced before it is declared.
+      expect(result.command, isNot(contains('0:a')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:514:13: Context: This is the declaration of the variable 'result'.
+      final result = FFmpegProcessor.buildExportCommand(
+            ^^^^^^
+test/ffmpeg_command_builder_test.dart:524:14: Error: Undefined name 'result'.
+      expect(result.command, isNot(contains('-c:a')));
+             ^^^^^^
+test/ffmpeg_command_builder_test.dart:525:14: Error: Undefined name 'result'.
+      expect(result.diagnostics, contains('audio_skipped=true'));
+             ^^^^^^
+00:00 +0 -1: loading C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart [E]
+  Failed to load "C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart":
+  Compilation failed for testPath=C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: test/ffmpeg_command_builder_test.dart:163:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:191:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:253:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:281:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:308:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:335:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:361:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:388:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:416:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:458:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:485:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:514:56: Error: Can't find ')' to match '('.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  test/ffmpeg_command_builder_test.dart:171:14: Error: Undefined name 'result'.
+        expect(result.command, contains('0:a:0'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:163:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:171:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, contains('0:a:0'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:163:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:172:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('-map "[0:a:0]"')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:173:14: Error: Undefined name 'result'.
+        expect(result.command, contains('-c:a aac'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:174:14: Error: Undefined name 'result'.
+        expect(result.command, contains('-movflags +faststart'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:199:14: Error: Undefined name 'result'.
+        expect(result.command, contains('atempo=2.0,atempo=2.0'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:191:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:199:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, contains('atempo=2.0,atempo=2.0'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:191:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:200:14: Error: Undefined name 'result'.
+        expect(result.command, contains('"[a_speed]"'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:261:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('colorbalance=')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:253:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:261:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, isNot(contains('colorbalance=')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:253:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:262:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('colorchannelmixer=')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:263:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('hue=s=0')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:264:14: Error: Undefined name 'result'.
+        expect(result.diagnostics, contains('video_filter=Original'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:289:14: Error: Undefined name 'result'.
+        expect(result.command, contains('fps=60'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:281:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:289:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, contains('fps=60'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:281:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:290:14: Error: Undefined name 'result'.
+        expect(result.command, contains('-r 60'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:291:14: Error: Undefined name 'result'.
+        expect(result.diagnostics, contains('output_fps=60'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:316:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('fps=')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:308:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:316:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, isNot(contains('fps=')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:308:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:317:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('-r ')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:318:14: Error: Undefined name 'result'.
+        expect(result.diagnostics, contains('output_fps=source'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:343:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('0:a')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:335:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:343:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, isNot(contains('0:a')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:335:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:344:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('-c:a')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:369:14: Error: Undefined name 'result'.
+        expect(result.diagnostics, contains('watermark_skipped=true'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:361:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:369:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.diagnostics, contains('watermark_skipped=true'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:361:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:370:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('overlay=')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:371:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('drawtext')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:397:14: Error: Undefined name 'result'.
+        expect(result.command, contains('-loop 1 -framerate 1'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:388:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:397:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, contains('-loop 1 -framerate 1'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:388:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:398:14: Error: Undefined name 'result'.
+        expect(result.command, contains('format=rgba,scale=120:-1'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:399:14: Error: Undefined name 'result'.
+        expect(result.command, contains('overlay='));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:428:9: Error: Undefined name 'result'.
+          result.command,
+          ^^^^^^
+  test/ffmpeg_command_builder_test.dart:416:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:428:9: Error: Local variable 'result' can't be referenced before it is declared.
+          result.command,
+          ^^^^^^
+  test/ffmpeg_command_builder_test.dart:416:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:433:14: Error: Undefined name 'result'.
+        expect(result.command, contains('format=rgba,scale=120:-1'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:434:14: Error: Undefined name 'result'.
+        expect(result.command, contains('overlay='));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:466:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('-movflags')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:458:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:466:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, isNot(contains('-movflags')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:458:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:494:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('-loop')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:485:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:494:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, isNot(contains('-loop')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:485:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:495:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('overlay=')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:496:14: Error: Undefined name 'result'.
+        expect(result.diagnostics, contains('watermark_skipped=true'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:497:14: Error: Undefined name 'result'.
+        expect(result.watermarkSkippedMessage, contains('Watermark skipped'));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:523:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('0:a')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:514:56: Error: Too many positional arguments: 0 allowed, but 1 found.
+  Try removing the extra positional arguments.
+        final result = FFmpegProcessor.buildExportCommand(
+                                                         ^
+  lib/services/engine/ffmpeg_processor.dart:165:30: Context: Found this candidate, but the arguments don't match.
+    static ExportCommandResult buildExportCommand({
+                               ^^^^^^^^^^^^^^^^^^
+  test/ffmpeg_command_builder_test.dart:523:14: Error: Local variable 'result' can't be referenced before it is declared.
+        expect(result.command, isNot(contains('0:a')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:514:13: Context: This is the declaration of the variable 'result'.
+        final result = FFmpegProcessor.buildExportCommand(
+              ^^^^^^
+  test/ffmpeg_command_builder_test.dart:524:14: Error: Undefined name 'result'.
+        expect(result.command, isNot(contains('-c:a')));
+               ^^^^^^
+  test/ffmpeg_command_builder_test.dart:525:14: Error: Undefined name 'result'.
+        expect(result.diagnostics, contains('audio_skipped=true'));
+               ^^^^^^
+  .
+00:00 +0 -1: Some tests failed.

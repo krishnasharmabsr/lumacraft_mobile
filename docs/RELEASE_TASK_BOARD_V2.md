@@ -26,6 +26,7 @@
 - [x] S018 - Editor speed effective duration display
 - [x] S020 - Architecture stabilization pass 1 (Editor State Model)
 - [x] S021 - Architecture stabilization pass 2 (EditorPreviewSurface)
+- [x] S022 - Architecture stabilization pass 3 (VideoExportRequest)
 
 ## Phase 2 - Monetization Foundation
 

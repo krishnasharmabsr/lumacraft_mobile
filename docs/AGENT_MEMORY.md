@@ -105,6 +105,11 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - Layout Extraction: preview UI cleanly separated into `EditorPreviewSurface` and `PlaybackTimeline` while keeping `EditorScreen` as the orchestration root
 - preview rendering/layout responsibilities moved out of `EditorScreen` without changing playback, filter, canvas, or export behavior
 
+### S022
+
+- VideoExportRequest encapsulation: strictly consolidated editor config bundles replacing granular args payload
+- safely migrated `FFmpegProcessor` building flows without FFmpeg command generation or business behavior change
+
 ## Build / Config Memory
 
 Public app-side config:

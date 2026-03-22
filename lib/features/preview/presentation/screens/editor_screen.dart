@@ -10,6 +10,7 @@ import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 
 import '../../../../core/models/export_settings.dart';
+import '../../../../core/models/video_export_request.dart';
 import '../../../../core/models/video_filter.dart';
 import '../../../../core/services/admob_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -1160,15 +1161,15 @@ class _EditorScreenState extends State<EditorScreen> {
       final outputPath =
           '$cachePath/export_${const Uuid().v4()}.${settings.extension}';
 
-      final exportResult = await _processor.processExport(
+      final request = VideoExportRequest(
         inputPath: _workingVideoPath,
         outputPath: outputPath,
         settings: settings,
-        trimStart: _edits.trimStart,
-        trimEnd: _edits.trimEnd,
-        playbackSpeed: _edits.speed,
-        videoFilter: _edits.filter,
-        aspectRatio: _edits.canvas,
+        edits: _edits,
+      );
+
+      final exportResult = await _processor.processExport(
+        request: request,
         onProgress: (p) {
           if (mounted) setState(() => _processingProgress = p);
         },

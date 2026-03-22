@@ -121,6 +121,12 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - orchestrated presentation callbacks up to `EditorScreen` while enforcing state decoupling guarantees
 - simplified the visual mapping logic away from the orchestration boundaries and maintained exact pixel matching to existing UI contracts
 
+### S022 - Architecture Stabilization V1 (Pass 3)
+
+- stabilized export configuration flow by encapsulating inputs into immutably typed `VideoExportRequest`
+- refactored `FFmpegProcessor` internal commands and `IVideoProcessor` contracts unconditionally preserving existing product contracts
+- successfully modernized automated FFmpeg regression tests to use structurally sound configuration bundles
+
 ## Known External Platform State
 
 ### Play Console

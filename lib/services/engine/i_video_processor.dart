@@ -1,5 +1,4 @@
-import '../../core/models/export_settings.dart';
-import '../../core/models/video_filter.dart';
+import '../../core/models/video_export_request.dart';
 import 'export_result.dart';
 
 /// Interface for video processing operations.
@@ -15,14 +14,7 @@ abstract class IVideoProcessor {
 
   /// Master combined export pass.
   Future<ExportResult> processExport({
-    required String inputPath,
-    required String outputPath,
-    required ExportSettings settings,
-    required Duration trimStart,
-    required Duration trimEnd,
-    required double playbackSpeed,
-    required VideoFilter videoFilter,
-    required ExportAspectRatio aspectRatio,
+    required VideoExportRequest request,
     void Function(double)? onProgress,
   });
 }

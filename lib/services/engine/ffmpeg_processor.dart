@@ -8,10 +8,10 @@ import 'package:ffmpeg_kit_flutter_new_min/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:ffmpeg_kit_flutter_new_min/statistics.dart';
 import '../../core/services/pro_gate.dart';
-import '../../core/models/video_filter.dart';
 import '../io/native_video_picker.dart';
 
 import '../../core/models/export_settings.dart';
+import '../../core/models/video_export_request.dart';
 import 'i_video_processor.dart';
 import 'export_result.dart';
 import 'ffmpeg_exception.dart';
@@ -163,14 +163,7 @@ class FFmpegProcessor implements IVideoProcessor {
   //  EXPORT COMMAND BUILDER (pure/testable)
   // ────────────────────────────────────────────────────────────
   static ExportCommandResult buildExportCommand({
-    required String inputPath,
-    required String outputPath,
-    required ExportSettings settings,
-    required Duration trimStart,
-    required Duration trimEnd,
-    required double playbackSpeed,
-    required VideoFilter videoFilter,
-    required ExportAspectRatio aspectRatio,
+    required VideoExportRequest request,
     required bool hasAudio,
     required int? finalFps,
     required bool applyWatermark,
@@ -181,6 +174,15 @@ class FFmpegProcessor implements IVideoProcessor {
     bool includeAudio = true,
     VideoCodecProfile videoCodecProfile = VideoCodecProfile.mpeg4Default,
   }) {
+    final inputPath = request.inputPath;
+    final outputPath = request.outputPath;
+    final settings = request.settings;
+    final trimStart = request.edits.trimStart;
+    final trimEnd = request.edits.trimEnd;
+    final playbackSpeed = request.edits.speed;
+    final videoFilter = request.edits.filter;
+    final aspectRatio = request.edits.canvas;
+
     final effectiveAudio = hasAudio && includeAudio;
     final effectiveWatermark =
         applyWatermark &&
@@ -456,16 +458,13 @@ class FFmpegProcessor implements IVideoProcessor {
 
   @override
   Future<ExportResult> processExport({
-    required String inputPath,
-    required String outputPath,
-    required ExportSettings settings,
-    required Duration trimStart,
-    required Duration trimEnd,
-    required double playbackSpeed,
-    required VideoFilter videoFilter,
-    required ExportAspectRatio aspectRatio,
+    required VideoExportRequest request,
     ProgressCallback? onProgress,
   }) async {
+    final inputPath = request.inputPath;
+    final outputPath = request.outputPath;
+    final settings = request.settings;
+
     final outFile = File(outputPath);
     if (await outFile.exists()) {
       await outFile.delete();
@@ -572,14 +571,7 @@ class FFmpegProcessor implements IVideoProcessor {
           : null;
 
       final result = buildExportCommand(
-        inputPath: inputPath,
-        outputPath: outputPath,
-        settings: settings,
-        trimStart: trimStart,
-        trimEnd: trimEnd,
-        playbackSpeed: playbackSpeed,
-        videoFilter: videoFilter,
-        aspectRatio: aspectRatio,
+        request: request, // Changed to pass VideoExportRequest
         hasAudio: hasAudio,
         finalFps: finalFps,
         applyWatermark: applyWatermark,
