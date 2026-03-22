@@ -24,7 +24,7 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - paywall polish with live package cards
 - restore purchase feedback dialogs
 - signed release AAB prep
-- `version: 1.0.0+4`
+- `version: 1.0.0+5`
 
 ## Branch / Release Policy
 
@@ -34,7 +34,8 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - approved work merges into `develop` first
 - `main` is reserved for release-ready promotions only
 - do not merge `develop` into `main` unless the user explicitly instructs it
-- app version bumps happen on `main` only
+- default rule: app version bumps happen on `main`
+- explicit exception: `develop` may carry a closed-testing candidate version bump when the user requests pre-release build preparation before final promotion
 - every version bump on `main` must include updated `docs/RELEASE_NOTES.md`
 
 ## Hard Product Contracts
@@ -220,7 +221,7 @@ What is ready:
 - closed-testing config decision:
   - real RevenueCat Android public key
   - AdMob Google test App ID + interstitial ID
-  - release build stays `1.0.0+4`
+  - current closed-testing build: `1.0.0+5`
 
 What is still external/platform-dependent:
 

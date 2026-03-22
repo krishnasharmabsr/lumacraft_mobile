@@ -5,7 +5,8 @@
 - Current integration branch: `develop`
 - Current release branch: `main`
 - Remote default branch: `develop`
-- Current app version: `1.0.0+4`
+- Current integration version (`develop`): `1.0.0+5`
+- Current release version (`main`): `1.0.0+5`
 - Signed Android App Bundle: prepared
 - Monetization baseline: integrated
 
@@ -15,7 +16,8 @@
 - Approved work merges into `develop` first
 - `main` receives only release-ready promotions from `develop`
 - `develop` -> `main` happens only on explicit user instruction
-- Version bumps and `docs/RELEASE_NOTES.md` updates happen on `main`
+- Default rule: version bumps and `docs/RELEASE_NOTES.md` updates happen on `main`
+- Explicit exception: `develop` may carry a closed-testing candidate version bump when requested before final `main` promotion
 
 ## Phase 1 - Core Editing Foundation
 
@@ -58,6 +60,7 @@
 - [x] Payment profile fully complete
 - [x] Play internal testing track active
 - [x] Play closed testing started on `1.0.0+4`
+- [x] Closed-testing `1.0.0+5` artifacts prepared, QA-approved, and promoted from `develop` to `main`
 - [x] Real Play subscription products/base plans created
 - [x] RevenueCat linked to real Play products
 - [x] Closed-testing release AAB rebuilt with real RevenueCat key + AdMob test IDs

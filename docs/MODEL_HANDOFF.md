@@ -9,7 +9,7 @@
 - Integration branch: `develop`
 - Release branch: `main`
 - Remote default branch: `develop`
-- Current app version: `1.0.0+4`
+- Current app version: `1.0.0+5`
 - Release signing: configured through `android/app/build.gradle.kts` with `key.properties`
 - Latest signed artifact milestone: signed Android App Bundle prepared for Play Console upload
 
@@ -229,7 +229,8 @@ This preserves real Play-backed RevenueCat purchase testing while keeping AdMob 
 - Merge approved feature/fix branches into `develop` first
 - Keep `main` reserved for release-ready promotions only
 - Do not merge `develop` into `main` unless the user explicitly instructs it
-- Bump app version only when promoting approved `develop` state into `main`
+- Default rule: bump app version when promoting approved `develop` state into `main`
+- Explicit exception: `develop` may carry a closed-testing candidate version bump when the user requests pre-release build preparation before the final promotion
 - Update `docs/RELEASE_NOTES.md` as part of every versioned `main` promotion
 
 - If config is missing, the app must fall back safely:
@@ -249,6 +250,7 @@ Priority should stay on release productization, not random feature expansion:
 2. finish AdMob review / production linkage
 3. legal-page publishing and store listing / compliance readiness
 4. production rollout readiness after closed testing sign-off
+5. closed-testing `1.0.0+5` approved and promoted from `develop` to `main`
 
 ## Related References
 

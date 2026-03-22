@@ -22,6 +22,7 @@ This is the shared reference for:
 - Play Console app entry: created
 - Play internal testing: active with 12 testers
 - Play closed testing: active on `1.0.0+4`
+- Current approved closed-testing build: `1.0.0+5`
 - RevenueCat project: created
 - RevenueCat entitlement / offering: created and linked to real Play subscriptions
 - AdMob app setup: created
@@ -35,7 +36,7 @@ This is the shared reference for:
 - Closed-testing build decision:
   - RevenueCat: use real Android public SDK key
   - AdMob: use Google test App ID + interstitial ID
-  - target app version: `1.0.0+4`
+  - active approved version: `1.0.0+5`
 - Play Console compliance answers fixed for the next submission pass:
   - Advertising ID: `Yes`
   - reasons:
@@ -237,7 +238,8 @@ Do not call the Android build production-ready until all are true:
 - `develop` is the intended default branch locally and on remote
 - release-ready code is promoted from `develop` to `main`
 - promote `develop` to `main` only on explicit user instruction
-- app version bumps are performed on `main` only
+- default rule: app version bumps are performed on `main` only
+- explicit exception: `develop` may carry a closed-testing candidate version bump when the user requests pre-release build preparation before final promotion
 - every version bump on `main` must ship with updated `docs/RELEASE_NOTES.md`
 
 ## 7. Owner Progress Log
@@ -262,6 +264,7 @@ Update this section as platform work progresses.
 - [ ] Advertising ID declaration entered in Play Console
 - [ ] Data safety form entered in Play Console
 - [x] Closed-testing `1.0.0+4` AAB rebuilt with final closed-testing config
+- [x] Closed-testing `1.0.0+5` artifacts built with real RevenueCat key + AdMob test IDs and approved for rollout
 
 ## 8. Notes for Future Agent Work
 

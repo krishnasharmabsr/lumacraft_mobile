@@ -582,3 +582,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - Verified filter remains applied in preview and export after trim.
 - **Status:** OK
 
+## Execution 38 - Closed Testing Refresh (`1.0.0+5`)
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Bumped app version to `1.0.0+5` on the approved release line.
+  2. Updated branch-policy docs and release notes to reflect the `develop` -> `main` promotion workflow.
+  3. Prepared closed-testing release artifacts using the real RevenueCat Android public key and AdMob Google test IDs.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --release`: OK (owner-built locally with closed-testing dart defines)
+  - `flutter build appbundle --release`: OK (owner-built locally with closed-testing dart defines)
+- **Manual QA:**
+  - User tested the release bundle and approved promotion from `develop` to `main`.
+- **Status:** OK
+
