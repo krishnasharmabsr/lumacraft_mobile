@@ -234,7 +234,9 @@ Do not call the Android build production-ready until all are true:
 ### Branch promotion workflow
 
 - `develop` is the integration branch for all new `feat/...` and `fix/...` work
+- `develop` is the intended default branch locally and on remote
 - release-ready code is promoted from `develop` to `main`
+- promote `develop` to `main` only on explicit user instruction
 - app version bumps are performed on `main` only
 - every version bump on `main` must ship with updated `docs/RELEASE_NOTES.md`
 

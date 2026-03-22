@@ -8,6 +8,7 @@
 - Expected branch when resuming release-only work: clean `main`
 - Integration branch: `develop`
 - Release branch: `main`
+- Remote default branch: `develop`
 - Current app version: `1.0.0+4`
 - Release signing: configured through `android/app/build.gradle.kts` with `key.properties`
 - Latest signed artifact milestone: signed Android App Bundle prepared for Play Console upload
@@ -227,6 +228,7 @@ This preserves real Play-backed RevenueCat purchase testing while keeping AdMob 
 - Create all new `feat/...` and `fix/...` branches from clean `develop`
 - Merge approved feature/fix branches into `develop` first
 - Keep `main` reserved for release-ready promotions only
+- Do not merge `develop` into `main` unless the user explicitly instructs it
 - Bump app version only when promoting approved `develop` state into `main`
 - Update `docs/RELEASE_NOTES.md` as part of every versioned `main` promotion
 

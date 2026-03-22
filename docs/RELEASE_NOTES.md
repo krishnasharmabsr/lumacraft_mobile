@@ -6,6 +6,7 @@ This file is the canonical release-notes log for version promotions to `main`.
 
 - Working integration baseline lives on `develop`.
 - Promote approved changes from `develop` to `main` only when release-ready.
+- Do not merge `develop` to `main` unless explicitly requested.
 
 ## 1.0.0+4
 

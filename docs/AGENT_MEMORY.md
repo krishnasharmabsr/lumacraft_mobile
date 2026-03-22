@@ -29,9 +29,11 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 ## Branch / Release Policy
 
 - `develop` is the integration branch for all new `feat/...` and `fix/...` work
+- `develop` is also the intended default branch locally and on remote
 - new feature/fix branches must be created from clean `develop`
 - approved work merges into `develop` first
 - `main` is reserved for release-ready promotions only
+- do not merge `develop` into `main` unless the user explicitly instructs it
 - app version bumps happen on `main` only
 - every version bump on `main` must include updated `docs/RELEASE_NOTES.md`
 
