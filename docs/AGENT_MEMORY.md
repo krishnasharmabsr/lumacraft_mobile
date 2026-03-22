@@ -23,7 +23,7 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - paywall polish with live package cards
 - restore purchase feedback dialogs
 - signed release AAB prep
-- `version: 1.0.0+3`
+- `version: 1.0.0+4`
 
 ## Hard Product Contracts
 
@@ -81,7 +81,7 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - snackbars replaced with explicit dialogs for purchase/restore results
 - Android release signing configured
 - signed AAB built
-- version bumped to `1.0.0+3`
+- version bumped to `1.0.0+4` for closed testing
 
 ### S018
 
@@ -141,8 +141,22 @@ Never bundle:
 - developer verification complete
 - payment profile complete
 - internal testing track active with `12` testers
+- closed testing is now active on `1.0.0+4`
 - real Play subscription products / base plans created
 - release signing and signed bundle prep already exist locally
+- closed-testing compliance answers fixed for the next console pass:
+  - Advertising ID: `Yes`
+  - reasons:
+    - `Advertising or marketing`
+    - `Analytics`
+    - `Fraud prevention, security, and compliance`
+  - Data safety top-level: `Yes`
+  - selected data types:
+    - `Approximate location`
+    - `Purchase history`
+    - `App interactions`
+    - `Diagnostics`
+    - `Device or other IDs`
 
 ### Public legal site
 
@@ -169,13 +183,18 @@ What is ready:
 - real store-backed restore flow in internal testing
 - Pro suppression of ads
 - Pro watermark removal
-- Play internal testing in progress
+- Play internal testing completed and closed testing started
+- closed-testing config decision:
+  - real RevenueCat Android public key
+  - AdMob Google test App ID + interstitial ID
+  - release build stays `1.0.0+4`
 
 What is still external/platform-dependent:
 
 - AdMob full review / live serving
 - public legal-page hosting / privacy policy URL activation
 - privacy / store listing completion
+- Play Console submission of Advertising ID and Data safety forms
 
 ## Reference Files
 

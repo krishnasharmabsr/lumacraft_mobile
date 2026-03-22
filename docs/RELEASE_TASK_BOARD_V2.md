@@ -3,7 +3,7 @@
 ## Baseline Status
 
 - Current baseline branch: `main`
-- Current app version: `1.0.0+3`
+- Current app version: `1.0.0+4`
 - Signed Android App Bundle: prepared
 - Monetization baseline: integrated
 
@@ -39,12 +39,16 @@
 
 - [x] Android release signing configured
 - [x] Signed AAB generated
-- [x] Version bumped to `1.0.0+3`
+- [x] Version bumped to `1.0.0+4` for closed testing
 - [x] Play Console verification fully complete
 - [x] Payment profile fully complete
 - [x] Play internal testing track active
+- [x] Play closed testing started on `1.0.0+4`
 - [x] Real Play subscription products/base plans created
 - [x] RevenueCat linked to real Play products
+- [x] Closed-testing release AAB rebuilt with real RevenueCat key + AdMob test IDs
+- [ ] Advertising ID declaration entered in Play Console
+- [ ] Data safety form entered in Play Console
 - [ ] AdMob app fully reviewed / linked to Play listing
 - [ ] Privacy policy + store disclosures finalized
 - [ ] Public legal pages live and linked
@@ -58,7 +62,10 @@
 
 ## Immediate Next Priorities
 
-1. Publish legal pages and finalize store listing / compliance materials
-2. Finish AdMob review / Play listing linkage for live serving readiness
-3. Validate production-path monetization again once the production listing state allows it
-4. Prepare production rollout checklist after internal testing sign-off
+1. Finish Play Console compliance/app content submission flow:
+   - Advertising ID declaration
+   - Data safety form
+2. Publish legal pages and finalize store listing / compliance materials
+3. Finish AdMob review / Play listing linkage for live serving readiness
+4. Validate production-path monetization again once the production listing state allows it
+5. Prepare production rollout checklist after closed testing sign-off

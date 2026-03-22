@@ -5,7 +5,7 @@
 - Repo: `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
 - Remote: `https://github.com/krishnasharmabsr/lumacraft_mobile`
 - Expected branch when resuming: clean `main`
-- Current app version: `1.0.0+3`
+- Current app version: `1.0.0+4`
 - Release signing: configured through `android/app/build.gradle.kts` with `key.properties`
 - Latest signed artifact milestone: signed Android App Bundle prepared for Play Console upload
 
@@ -94,7 +94,7 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
   - purchase success
 - configured Android release signing
 - built signed AAB
-- bumped app version to `1.0.0+3`
+- bumped app version to `1.0.0+4` for closed testing
 
 ### S018 - Editor Time Display Fix (Speed)
 
@@ -115,8 +115,22 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - developer verification complete
 - payment profile complete
 - internal testing active with `12` testers
+- closed testing active on `1.0.0+4`
 - real Play subscription products/base plans created
 - release signing artifacts are ready locally
+- closed-testing compliance answers decided for the next Play Console pass:
+  - Advertising ID: `Yes`
+  - reasons:
+    - `Advertising or marketing`
+    - `Analytics`
+    - `Fraud prevention, security, and compliance`
+  - Data safety top-level: `Yes`
+  - declared data types:
+    - `Approximate location`
+    - `Purchase history`
+    - `App interactions`
+    - `Diagnostics`
+    - `Device or other IDs`
 
 ### RevenueCat
 
@@ -167,6 +181,17 @@ Never place these in the app bundle:
 - keystore secrets
 - admin credentials
 
+## Closed Testing Build Config
+
+Use these values for the active Android closed-testing bundle:
+
+- `RC_ANDROID_KEY=goog_ofdcUQJjlZWEkVnQlaEPiUviKkR`
+- `ADMOB_ANDROID_APP_ID=ca-app-pub-3940256099942544~3347511713`
+- `ADMOB_INTERSTITIAL_EXPORT_ID=ca-app-pub-3940256099942544/1033173712`
+- keep `DEV_FORCE_PRO` unset for release / closed-testing builds
+
+This preserves real Play-backed RevenueCat purchase testing while keeping AdMob on Google test IDs until AdMob review/live readiness is complete.
+
 ## Operational Notes
 
 - If config is missing, the app must fall back safely:
@@ -180,10 +205,12 @@ Never place these in the app bundle:
 
 Priority should stay on release productization, not random feature expansion:
 
-1. Play Console completion and internal testing
+1. finish Play Console compliance/app content entry:
+  - Advertising ID declaration
+  - Data safety form
 2. finish AdMob review / production linkage
 3. legal-page publishing and store listing / compliance readiness
-4. production rollout readiness after internal test sign-off
+4. production rollout readiness after closed testing sign-off
 
 ## Related References
 

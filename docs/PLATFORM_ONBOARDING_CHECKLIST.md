@@ -21,6 +21,7 @@ This is the shared reference for:
 - Play Console developer account: fully verified
 - Play Console app entry: created
 - Play internal testing: active with 12 testers
+- Play closed testing: active on `1.0.0+4`
 - RevenueCat project: created
 - RevenueCat entitlement / offering: created and linked to real Play subscriptions
 - AdMob app setup: created
@@ -31,6 +32,23 @@ This is the shared reference for:
 - Public legal-page owner/contact:
   - developer name: `Krishna Kant`
   - support email: `lumacraftstudio.support@gmail.com`
+- Closed-testing build decision:
+  - RevenueCat: use real Android public SDK key
+  - AdMob: use Google test App ID + interstitial ID
+  - target app version: `1.0.0+4`
+- Play Console compliance answers fixed for the next submission pass:
+  - Advertising ID: `Yes`
+  - reasons:
+    - `Advertising or marketing`
+    - `Analytics`
+    - `Fraud prevention, security, and compliance`
+  - Data safety top-level: `Yes`
+  - selected data types:
+    - `Approximate location`
+    - `Purchase history`
+    - `App interactions`
+    - `Diagnostics`
+    - `Device or other IDs`
 
 ## 1. Google Play Console
 
@@ -165,6 +183,15 @@ Use build-time configuration, not checked-in secrets.
 - Gradle manifest placeholders where required for Android manifest values
 - CI or local release command should inject production values
 
+### Closed-testing Android values
+
+Use these values for the next Play closed-testing build:
+
+- `RC_ANDROID_KEY=goog_ofdcUQJjlZWEkVnQlaEPiUviKkR`
+- `ADMOB_ANDROID_APP_ID=ca-app-pub-3940256099942544~3347511713`
+- `ADMOB_INTERSTITIAL_EXPORT_ID=ca-app-pub-3940256099942544/1033173712`
+- `DEV_FORCE_PRO` must remain unset in release builds
+
 ## 5. Debug and QA Strategy
 
 ### Premium feature QA
@@ -222,7 +249,10 @@ Update this section as platform work progresses.
 - [ ] Privacy policy published
 - [ ] Terms page published
 - [ ] GitHub Pages enabled and legal URLs live
-- [ ] Release config values ready for injection
+- [x] Release config values ready for injection
+- [ ] Advertising ID declaration entered in Play Console
+- [ ] Data safety form entered in Play Console
+- [x] Closed-testing `1.0.0+4` AAB rebuilt with final closed-testing config
 
 ## 8. Notes for Future Agent Work
 
