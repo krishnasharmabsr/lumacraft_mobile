@@ -110,6 +110,12 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - VideoExportRequest encapsulation: strictly consolidated editor config bundles replacing granular args payload
 - safely migrated `FFmpegProcessor` building flows without FFmpeg command generation or business behavior change
 
+### Post-S022 Stability Fixes
+
+- **Playback Speed Persistence**: Added speed re-sync to `_initializePlayer` to prevent speed loss during controller re-initialization.
+- **Trim Baseline normalization**: Implemented explicit trim reset to `[0, duration]` in `_processTrim` success path to correctly baseline the new trimmed source.
+- **Export/Filter Verification**: Confirmed filter survival and command injection; added non-zero trim export test coverage.
+
 ## Build / Config Memory
 
 Public app-side config:

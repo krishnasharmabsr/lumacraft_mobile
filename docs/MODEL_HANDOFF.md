@@ -127,6 +127,12 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - refactored `FFmpegProcessor` internal commands and `IVideoProcessor` contracts unconditionally preserving existing product contracts
 - successfully modernized automated FFmpeg regression tests to use structurally sound configuration bundles
 
+### Post-S022 Stability Fixes
+
+- **Playback Speed Persistence**: fixed regression where `VideoPlayerController` re-initialization (after trim/source change) lost the active playback speed; re-sync added to `_initializePlayer`.
+- **Trim Baseline Normalization**: fixed bug where `_edits` trim state remained relative to the old source after `processTrim`; explicit reset to `[0, new_duration]` added to the `_processTrim` success path.
+- **Export/Filter Sync**: verified filter survival and FFmpeg command generation; added regression test coverage for non-zero trim + filter combinations.
+
 ## Known External Platform State
 
 ### Play Console

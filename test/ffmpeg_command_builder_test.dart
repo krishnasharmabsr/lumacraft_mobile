@@ -527,6 +527,31 @@ hasAudio: true,
       expect(result.command, isNot(contains('mpeg4')));
       expect(result.diagnostics, contains('codec_profile=x264_fallback'));
     });
+
+    test('non-zero trim + filter: both are present in command', () {
+      final request = VideoExportRequest(
+        inputPath: '/input.mp4',
+        outputPath: '/output.mp4',
+        settings: baseSettings,
+        trimStart: const Duration(seconds: 2),
+        trimEnd: const Duration(seconds: 5),
+        speed: 1.0,
+        filter: VideoFilter.warm,
+        canvas: ExportAspectRatio.source,
+      );
+
+      final result = FFmpegProcessor.buildExportCommand(
+        request: request,
+        hasAudio: true,
+        finalFps: 30,
+        applyWatermark: false,
+        watermarkPath: null,
+      );
+
+      expect(result.command, contains('-ss 2.0 -t 3.0'));
+      expect(result.command, contains(VideoFilter.warm.ffmpegFilter!));
+      expect(result.diagnostics, contains('video_filter=Warm'));
+    });
   });
 
   // ── S005B: WATERMARK CONTRACT / EXPORT RESULT POLICY ──

@@ -27,6 +27,7 @@
 - [x] S020 - Architecture stabilization pass 1 (Editor State Model)
 - [x] S021 - Architecture stabilization pass 2 (EditorPreviewSurface)
 - [x] S022 - Architecture stabilization pass 3 (VideoExportRequest)
+- [x] Post-S022 - Playback speed re-sync + trim baseline normalization fix
 
 ## Phase 2 - Monetization Foundation
 

@@ -265,6 +265,7 @@ class _EditorScreenState extends State<EditorScreen> {
     _detachControllerListener(oldController);
     _attachControllerListener(activeCtrl);
     await activeCtrl.setVolume(_isMuted ? 0.0 : _volume);
+    await activeCtrl.setPlaybackSpeed(_preview.effectiveSpeed(_edits));
 
     if (!timelineInvalid) {
       activeCtrl.play();
@@ -1037,6 +1038,16 @@ class _EditorScreenState extends State<EditorScreen> {
       // Reload player with trimmed video, keep applied speed/canvas
       _workingVideoPath = outputPath;
       await _initializePlayer(outputPath, keepEdits: true);
+
+      // Reset trim baseline for the new source
+      if (mounted) {
+        setState(() {
+          _edits = _edits.copyWith(
+            trimStart: Duration.zero,
+            trimEnd: _videoDuration,
+          );
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

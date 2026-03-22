@@ -563,3 +563,22 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
 - **Manual QA:** PENDING. Export success/failure paths, watermark application, audio inclusion, and final qualities should be verified unchanged.
 - **Status:** PENDING_QA
 
+## Execution 37 - Post-S022 Stability Fixes
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Implemented playback speed re-sync in `EditorScreen._initializePlayer`.
+  2. Implemented explicit trim baseline reset in `EditorScreen._processTrim`.
+  3. Verified filter survival and FFmpeg command generation for non-zero trim.
+  4. Added regression test case for non-zero trim + filter export.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed (+89 tests including new coverage)
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (114.3MB)
+- **Manual QA:**
+  - Verified 2.0x speed persists after "Process Trim".
+  - Verified trim handles reset to `[0, new_duration]` after "Process Trim".
+  - Verified filter remains applied in preview and export after trim.
+- **Status:** OK
+
