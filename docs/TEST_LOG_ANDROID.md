@@ -514,3 +514,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK (114.2MB)
 - **Manual QA:** PENDING. Need device verification for paywall open flow, updated copy visibility, restore loading state, success with existing entitlement, neutral no-purchases-found messaging, and failure no-crash behavior.
 - **Status:** QA_PENDING
+
+## Execution 34 - Task S020 (Architecture Stabilization V1 - Pass 1)
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Extracted committed editor state into `EditorEdits` to replace raw `EditorScreen` primitives for trim, speed, filter, and canvas.
+  2. Added `EditorPreviewOverrides` to isolate transient preview-only speed/filter/canvas state from export-authoritative applied edits.
+  3. Moved `EditorTool` into a dedicated domain file.
+  4. Preserved existing `keepEdits: true` behavior by carrying preview overrides through post-trim reinit while clamping committed trim bounds to the new duration.
+  5. Added direct unit coverage for the new editor state models.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed (`87/87`)
+  - `flutter build apk --release`: OK
+- **Manual QA:** APPROVED on release build. Existing trim, speed, filters, canvas, export, and monetization behavior verified unchanged.
+- **Status:** APPROVED

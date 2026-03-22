@@ -5,8 +5,11 @@ import '../../../preview/domain/editor_edits.dart';
 /// Transient, UI-only preview overrides for tool drag states.
 ///
 /// When a field is null, the corresponding [EditorEdits] value is authoritative.
-/// This object is discarded (reset) when a tool is closed without applying, or
-/// replaced with a new default when a tool panel opens.
+/// This object is preserved while the editor session remains active so preview
+/// state continues to match the previous screen-local behavior.
+///
+/// It is reset only when the editor resets all edits or a fresh player
+/// initialization discards the current editing session.
 ///
 /// **Trim is not here.** Trim bounds are committed directly into [EditorEdits]
 /// on every slider change — there is no deferred "Apply Trim" action.
