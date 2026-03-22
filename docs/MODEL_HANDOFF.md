@@ -4,7 +4,10 @@
 
 - Repo: `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
 - Remote: `https://github.com/krishnasharmabsr/lumacraft_mobile`
-- Expected branch when resuming: clean `main`
+- Expected branch when resuming feature/fix work: clean `develop`
+- Expected branch when resuming release-only work: clean `main`
+- Integration branch: `develop`
+- Release branch: `main`
 - Current app version: `1.0.0+4`
 - Release signing: configured through `android/app/build.gradle.kts` with `key.properties`
 - Latest signed artifact milestone: signed Android App Bundle prepared for Play Console upload
@@ -218,6 +221,14 @@ Use these values for the active Android closed-testing bundle:
 This preserves real Play-backed RevenueCat purchase testing while keeping AdMob on Google test IDs until AdMob review/live readiness is complete.
 
 ## Operational Notes
+
+## Branch / Release Workflow
+
+- Create all new `feat/...` and `fix/...` branches from clean `develop`
+- Merge approved feature/fix branches into `develop` first
+- Keep `main` reserved for release-ready promotions only
+- Bump app version only when promoting approved `develop` state into `main`
+- Update `docs/RELEASE_NOTES.md` as part of every versioned `main` promotion
 
 - If config is missing, the app must fall back safely:
   - freemium defaults to free tier

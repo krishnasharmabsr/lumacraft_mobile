@@ -231,6 +231,13 @@ Do not call the Android build production-ready until all are true:
 - Pro gating validated in debug and internal testing
 - release AAB tested successfully
 
+### Branch promotion workflow
+
+- `develop` is the integration branch for all new `feat/...` and `fix/...` work
+- release-ready code is promoted from `develop` to `main`
+- app version bumps are performed on `main` only
+- every version bump on `main` must ship with updated `docs/RELEASE_NOTES.md`
+
 ## 7. Owner Progress Log
 
 Update this section as platform work progresses.

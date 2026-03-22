@@ -2,10 +2,18 @@
 
 ## Baseline Status
 
-- Current baseline branch: `main`
+- Current integration branch: `develop`
+- Current release branch: `main`
 - Current app version: `1.0.0+4`
 - Signed Android App Bundle: prepared
 - Monetization baseline: integrated
+
+## Release Flow
+
+- New `feat/...` and `fix/...` branches start from `develop`
+- Approved work merges into `develop` first
+- `main` receives only release-ready promotions from `develop`
+- Version bumps and `docs/RELEASE_NOTES.md` updates happen on `main`
 
 ## Phase 1 - Core Editing Foundation
 

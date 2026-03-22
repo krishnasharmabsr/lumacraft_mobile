@@ -5,7 +5,8 @@
 - Project: `lumacraft_mobile`
 - Local path: `C:\Users\pc\Documents\GitHub\VideoEditor\lumacraft_mobile`
 - Remote: `https://github.com/krishnasharmabsr/lumacraft_mobile`
-- Expected resume point: clean `main`
+- Expected resume point for feature/fix work: clean `develop`
+- Expected resume point for release-only work: clean `main`
 
 ## Current Stable Baseline
 
@@ -24,6 +25,15 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - restore purchase feedback dialogs
 - signed release AAB prep
 - `version: 1.0.0+4`
+
+## Branch / Release Policy
+
+- `develop` is the integration branch for all new `feat/...` and `fix/...` work
+- new feature/fix branches must be created from clean `develop`
+- approved work merges into `develop` first
+- `main` is reserved for release-ready promotions only
+- app version bumps happen on `main` only
+- every version bump on `main` must include updated `docs/RELEASE_NOTES.md`
 
 ## Hard Product Contracts
 
