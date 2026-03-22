@@ -1,4 +1,4 @@
-# LumaCraft Model Handoff
+﻿# LumaCraft Model Handoff
 
 ## Current Baseline
 
@@ -107,6 +107,13 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - removed legacy transient snackbars from the editor export flow
 - wrapped the AdMob interstitial presentation inside a `Completer<void>` that resolutely blocks until the ad is fully dismissed by the user
 - explicitly sequenced the presentation layer securely so the `PremiumResultDialog` appears immediately and only after the ad sequence completes
+
+### S020 - Architecture Stabilization V1 (Pass 1)
+
+- extracted all 8 raw, primitive state tracking fields out of EditorScreen entirely
+- introduced the EditorEdits domain model to immutably represent mathematically verifiable export timelines
+- introduced the EditorPreviewOverrides presentation model to manage transient dragging behavior completely isolated from commit actions
+- established secure boundary for keepEdits: true behavior mapping during post-trim duration clamping
 
 ## Known External Platform State
 

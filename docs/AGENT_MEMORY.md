@@ -1,4 +1,4 @@
-# Agent Memory Context
+﻿# Agent Memory Context
 
 ## Repo Identity
 
@@ -94,6 +94,12 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 - extracted the premium dialog into a reusable `PremiumResultDialog` component
 - enforced structural async execution sequencing using a `Completer` for `AdMobService`
 - permanently deleted legacy snackbars from export completion output in favor of blocking dialogs
+
+### S020
+
+- Architecture Stabilization V1 (Pass 1)
+- consolidated raw EditorScreen attributes into immutable EditorEdits domain and EditorPreviewOverrides UI presentation models
+- explicitly eliminated mixed local state mutation paths during player keepEdits lifecycles
 
 ## Build / Config Memory
 

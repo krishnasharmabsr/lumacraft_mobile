@@ -19,11 +19,13 @@ import '../../../../services/engine/ffmpeg_processor.dart';
 import '../../../../services/io/media_io_service.dart';
 import '../../../../services/io/native_video_picker.dart';
 import '../../../export/presentation/widgets/export_settings_sheet.dart';
+import '../../domain/editor_edits.dart';
+import '../../domain/editor_tool.dart';
+import '../models/editor_preview_overrides.dart';
 import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
 import '../models/filter_panel_state.dart';
 
-enum EditorTool { none, trim, filters, speed, canvas }
 
 class EditorScreen extends StatefulWidget {
   final String videoPath;
@@ -49,24 +51,17 @@ class _EditorScreenState extends State<EditorScreen> {
   // --- Playback ---
   String _playbackSourceKind = 'working';
 
-  // --- Trim state ---
-  Duration _trimStart = Duration.zero;
-  Duration _trimEnd = Duration.zero;
+  // --- Editor domain state ---
+  // _edits: committed, export-authoritative applied state.
+  // Initialised to EditorEdits.defaults once the video duration is resolved.
+  late EditorEdits _edits;
+
+  // _preview: transient, UI-only tool-drag overrides.
+  // Null fields fall back to _edits values. Preserved on keepEdits: true reinit.
+  EditorPreviewOverrides _preview = EditorPreviewOverrides.none;
 
   // --- Tool Panel state ---
   EditorTool _activeTool = EditorTool.none;
-
-  // --- Speed state (preview vs applied) ---
-  double _previewSpeed = 1.0;
-  double _appliedSpeed = 1.0;
-
-  // --- Filter state (preview vs applied) ---
-  VideoFilter _previewFilter = VideoFilter.original;
-  VideoFilter _appliedFilter = VideoFilter.original;
-
-  // --- Canvas state (preview vs applied) ---
-  ExportAspectRatio _previewCanvas = ExportAspectRatio.source;
-  ExportAspectRatio _appliedCanvas = ExportAspectRatio.source;
 
   // --- Audio state ---
   double _volume = 1.0;
@@ -94,17 +89,6 @@ class _EditorScreenState extends State<EditorScreen> {
 
   VoidCallback? _previewListener;
   VoidCallback? _controllerListener;
-
-  bool get _hasEdits {
-    if (!_isUsableDuration(_videoDuration)) return false;
-    final isTrimmed =
-        _trimStart.inMilliseconds > 100 ||
-        _trimEnd < _videoDuration - const Duration(milliseconds: 100);
-    return isTrimmed ||
-        _appliedFilter != VideoFilter.original ||
-        _appliedSpeed != 1.0 ||
-        _appliedCanvas != ExportAspectRatio.source;
-  }
 
   bool _isUsableDuration(Duration d) => d.inMilliseconds >= 1000;
 
@@ -259,19 +243,18 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         _controller = activeCtrl;
         _isTimelineInvalid = timelineInvalid;
-        _trimStart = Duration.zero;
-        _trimEnd = _videoDuration;
         _isPreviewingTrim = false;
         if (!keepEdits) {
-          _previewFilter = VideoFilter.original;
-          _appliedFilter = VideoFilter.original;
-          _previewSpeed = 1.0;
-          _appliedSpeed = 1.0;
-          _previewCanvas = ExportAspectRatio.source;
-          _appliedCanvas = ExportAspectRatio.source;
+          // Fresh init: reset all edits and discard any pending preview overrides.
+          _edits = EditorEdits.defaults(_videoDuration);
+          _preview = EditorPreviewOverrides.none;
         } else {
-          if (_trimStart > _videoDuration) _trimStart = Duration.zero;
-          if (_trimEnd > _videoDuration) _trimEnd = _videoDuration;
+          // keepEdits: true (called only from _processTrim). Preserve applied
+          // speed/filter/canvas and any pending preview overrides; only clamp
+          // trim bounds to the new (shorter) duration.
+          _edits = _edits.clampTrimTo(_videoDuration);
+          // _preview is intentionally preserved — the user may have an
+          // uncommitted speed/filter/canvas drag in progress.
         }
       });
     }
@@ -667,8 +650,8 @@ class _EditorScreenState extends State<EditorScreen> {
           name: '[DurationProbe]',
         );
         _videoDuration = reportedDuration;
-        if (_trimEnd > _videoDuration) {
-          _trimEnd = _videoDuration;
+        if (_edits.trimEnd > _videoDuration) {
+          _edits = _edits.copyWith(trimEnd: _videoDuration);
         }
         _isTimelineInvalid = false;
       }
@@ -772,7 +755,7 @@ class _EditorScreenState extends State<EditorScreen> {
       );
       await newController.initialize();
       await newController.setVolume(_isMuted ? 0.0 : _volume);
-      await newController.setPlaybackSpeed(_previewSpeed);
+      await newController.setPlaybackSpeed(_preview.effectiveSpeed(_edits));
       await newController.seekTo(target);
 
       final verified = await _waitForSeekVerification(newController, target);
@@ -920,16 +903,16 @@ class _EditorScreenState extends State<EditorScreen> {
   //  RESET
   // ────────────────────────────────────────────────────────────
   void _resetEdits() {
-    if (!_hasEdits) return;
+    if (!_edits.hasEdits(_videoDuration)) return;
     setState(() {
-      _trimStart = Duration.zero;
-      _trimEnd = _videoDuration;
-      _previewFilter = VideoFilter.original;
-      _appliedFilter = VideoFilter.original;
-      _previewSpeed = 1.0;
-      _appliedSpeed = 1.0;
-      _previewCanvas = ExportAspectRatio.source;
-      _appliedCanvas = ExportAspectRatio.source;
+      _edits = _edits.copyWith(trimStart: Duration.zero);
+      _edits = _edits.copyWith(trimEnd: _videoDuration);
+      _preview = _preview.withFilter(VideoFilter.original);
+      _edits = _edits.copyWith(filter: VideoFilter.original);
+      _preview = _preview.withSpeed(1.0);
+      _edits = _edits.copyWith(speed: 1.0);
+      _preview = _preview.withCanvas(ExportAspectRatio.source);
+      _edits = _edits.copyWith(canvas: ExportAspectRatio.source);
     });
     _controller?.setPlaybackSpeed(1.0);
     unawaited(
@@ -985,19 +968,19 @@ class _EditorScreenState extends State<EditorScreen> {
     _removePreviewListener();
     unawaited(
       _seekTo(
-        _trimStart,
+        _edits.trimStart,
         source: 'trim_preview_start',
         resumePlayback: false,
       ).then((_) {
         final activeCtrl = _controller;
         if (!mounted || activeCtrl == null || _isTimelineInvalid) return;
-        activeCtrl.setPlaybackSpeed(_previewSpeed);
+        activeCtrl.setPlaybackSpeed(_preview.effectiveSpeed(_edits));
         activeCtrl.play();
         _isPreviewingTrim = true;
 
         _previewListener = () {
           if (!mounted || !_isPreviewingTrim) return;
-          if (activeCtrl.value.position >= _trimEnd) {
+          if (activeCtrl.value.position >= _edits.trimEnd) {
             activeCtrl.pause();
             _removePreviewListener();
             if (mounted) setState(() {});
@@ -1014,7 +997,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (ctrl == null || _isTimelineInvalid) return;
 
     // Validate range
-    final delta = _trimEnd - _trimStart;
+    final delta = _edits.trimEnd - _edits.trimStart;
     if (delta.inMilliseconds <= 200) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1041,8 +1024,8 @@ class _EditorScreenState extends State<EditorScreen> {
       await _processor.processTrim(
         inputPath: _workingVideoPath,
         outputPath: outputPath,
-        startTime: _trimStart,
-        endTime: _trimEnd,
+        startTime: _edits.trimStart,
+        endTime: _edits.trimEnd,
         onProgress: (p) {
           if (mounted) setState(() => _processingProgress = p);
         },
@@ -1073,11 +1056,11 @@ class _EditorScreenState extends State<EditorScreen> {
   //  SPEED
   // ────────────────────────────────────────────────────────────
   void _applySpeed() {
-    setState(() => _appliedSpeed = _previewSpeed);
+    setState(() => _edits = _edits.copyWith(speed: _preview.effectiveSpeed(_edits)));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Speed ${_appliedSpeed.toStringAsFixed(2)}x applied.'),
+          content: Text('Speed ${_edits.speed.toStringAsFixed(2)}x applied.'),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -1088,11 +1071,11 @@ class _EditorScreenState extends State<EditorScreen> {
   //  CANVAS
   // ────────────────────────────────────────────────────────────
   void _applyCanvas() {
-    setState(() => _appliedCanvas = _previewCanvas);
+    setState(() => _edits = _edits.copyWith(canvas: _preview.effectiveCanvas(_edits)));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Canvas ${_appliedCanvas.label} applied.'),
+          content: Text('Canvas ${_edits.canvas.label} applied.'),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -1179,11 +1162,11 @@ class _EditorScreenState extends State<EditorScreen> {
         inputPath: _workingVideoPath,
         outputPath: outputPath,
         settings: settings,
-        trimStart: _trimStart,
-        trimEnd: _trimEnd,
-        playbackSpeed: _appliedSpeed,
-        videoFilter: _appliedFilter,
-        aspectRatio: _appliedCanvas,
+        trimStart: _edits.trimStart,
+        trimEnd: _edits.trimEnd,
+        playbackSpeed: _edits.speed,
+        videoFilter: _edits.filter,
+        aspectRatio: _edits.canvas,
         onProgress: (p) {
           if (mounted) setState(() => _processingProgress = p);
         },
@@ -1296,7 +1279,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   ColorFilter? _buildPreviewColorFilter() {
-    final matrix = _previewFilter.matrix;
+    final matrix = _preview.effectiveFilter(_edits).matrix;
     if (matrix == null) return null;
     return ColorFilter.matrix(matrix);
   }
@@ -1317,12 +1300,12 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _applyFilter() {
-    if (_previewFilter == _appliedFilter) return;
-    setState(() => _appliedFilter = _previewFilter);
+    if (_preview.effectiveFilter(_edits) == _edits.filter) return;
+    setState(() => _edits = _edits.copyWith(filter: _preview.effectiveFilter(_edits)));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Filter ${_appliedFilter.label} applied.'),
+          content: Text('Filter ${_edits.filter.label} applied.'),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -1330,8 +1313,8 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Widget _buildFilterOption(VideoFilter filter) {
-    final isSelected = _previewFilter == filter;
-    final isApplied = _appliedFilter == filter;
+    final isSelected = _preview.effectiveFilter(_edits) == filter;
+    final isApplied = _edits.filter == filter;
 
     return Padding(
       padding: const EdgeInsets.only(right: 10),
@@ -1340,7 +1323,7 @@ class _EditorScreenState extends State<EditorScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            setState(() => _previewFilter = filter);
+            setState(() => _preview = _preview.withFilter(filter));
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
@@ -1428,7 +1411,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               actions: [
-                if (_hasEdits)
+                if (_edits.hasEdits(_videoDuration))
                   TextButton.icon(
                     onPressed: _resetEdits,
                     icon: const Icon(Icons.refresh, size: 16),
@@ -1462,11 +1445,11 @@ class _EditorScreenState extends State<EditorScreen> {
                               children: [
                                 AspectRatio(
                                   aspectRatio:
-                                      _previewCanvas ==
+                                      _preview.effectiveCanvas(_edits) ==
                                               ExportAspectRatio.source ||
-                                          _previewCanvas.ratio == null
+                                          _preview.effectiveCanvas(_edits).ratio == null
                                       ? ctrl.value.aspectRatio
-                                      : _previewCanvas.ratio!,
+                                      : _preview.effectiveCanvas(_edits).ratio!,
                                   child: Container(
                                     color: Colors.black,
                                     alignment: Alignment.center,
@@ -1629,7 +1612,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                                               width: 8,
                                                             ),
                                                             Text(
-                                                              '${_formatDuration(ctrl.value.position, speed: _appliedSpeed)} / ${_formatDuration(_videoDuration, speed: _appliedSpeed)}',
+                                                              '${_formatDuration(ctrl.value.position, speed: _edits.speed)} / ${_formatDuration(_videoDuration, speed: _edits.speed)}',
                                                               style: const TextStyle(
                                                                 color: Colors
                                                                     .white,
@@ -1651,8 +1634,8 @@ class _EditorScreenState extends State<EditorScreen> {
                                                               .position,
                                                           duration:
                                                               _videoDuration,
-                                                          trimStart: _trimStart,
-                                                          trimEnd: _trimEnd,
+                                                          trimStart: _edits.trimStart,
+                                                          trimEnd: _edits.trimEnd,
                                                           onScrubStart: () {
                                                             _resumePlaybackAfterScrub =
                                                                 ctrl
@@ -1986,12 +1969,12 @@ class _EditorScreenState extends State<EditorScreen> {
                 ),
                 const Spacer(),
                 if (!_isTimelineInvalid &&
-                    (_trimStart != Duration.zero || _trimEnd != _videoDuration))
+                    (_edits.trimStart != Duration.zero || _edits.trimEnd != _videoDuration))
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _trimStart = Duration.zero;
-                        _trimEnd = _videoDuration;
+                        _edits = _edits.copyWith(trimStart: Duration.zero);
+                        _edits = _edits.copyWith(trimEnd: _videoDuration);
                       });
                       _previewTrim();
                     },
@@ -2028,23 +2011,22 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
             TrimControls(
               maxDuration: _videoDuration,
-              currentStart: _trimStart,
-              currentEnd: _trimEnd,
-              speed: _appliedSpeed,
+              currentStart: _edits.trimStart,
+              currentEnd: _edits.trimEnd,
+              speed: _edits.speed,
               onStartChanged: _isTimelineInvalid
                   ? null
                   : (start) {
-                      setState(() => _trimStart = start);
+                      setState(() => _edits = _edits.copyWith(trimStart: start));
                     },
               onEndChanged: _isTimelineInvalid
                   ? null
-                  : (end) => setState(() => _trimEnd = end),
+                  : (end) => setState(() => _edits = _edits.copyWith(trimEnd: end)),
               onChangeEnd: _isTimelineInvalid
                   ? null
                   : (start, end) {
                       setState(() {
-                        _trimStart = start;
-                        _trimEnd = end;
+                        _edits = _edits.copyWith(trimStart: start, trimEnd: end);
                       });
                       _previewTrim(); // Auto-preview when user releases drag
                     },
@@ -2073,8 +2055,8 @@ class _EditorScreenState extends State<EditorScreen> {
   // ── SPEED CARD ──
   Widget _buildFiltersCard() {
     final filterPanelState = FilterPanelState(
-      previewedFilter: _previewFilter,
-      appliedFilter: _appliedFilter,
+      previewedFilter: _preview.effectiveFilter(_edits),
+      appliedFilter: _edits.filter,
     );
     final hasPendingFilter = filterPanelState.hasPendingChanges;
 
@@ -2101,13 +2083,13 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (_appliedFilter != VideoFilter.original ||
-                    _previewFilter != VideoFilter.original)
+                if (_edits.filter != VideoFilter.original ||
+                    _preview.effectiveFilter(_edits) != VideoFilter.original)
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _previewFilter = VideoFilter.original;
-                        _appliedFilter = VideoFilter.original;
+                        _preview = _preview.withFilter(VideoFilter.original);
+                        _edits = _edits.copyWith(filter: VideoFilter.original);
                       });
                     },
                     style: TextButton.styleFrom(
@@ -2131,7 +2113,7 @@ class _EditorScreenState extends State<EditorScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _appliedFilter != VideoFilter.original
+                    color: _edits.filter != VideoFilter.original
                         ? AppColors.accent.withValues(alpha: 0.15)
                         : AppColors.cardDarkAlt,
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
@@ -2139,7 +2121,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   child: Text(
                     filterPanelState.appliedBadgeLabel,
                     style: TextStyle(
-                      color: _appliedFilter != VideoFilter.original
+                      color: _edits.filter != VideoFilter.original
                           ? AppColors.accent
                           : AppColors.textSecondary,
                       fontWeight: FontWeight.bold,
@@ -2231,12 +2213,12 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (_appliedSpeed != 1.0 || _previewSpeed != 1.0)
+                if (_edits.speed != 1.0 || _preview.effectiveSpeed(_edits) != 1.0)
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _previewSpeed = 1.0;
-                        _appliedSpeed = 1.0;
+                        _preview = _preview.withSpeed(1.0);
+                        _edits = _edits.copyWith(speed: 1.0);
                       });
                       _controller?.setPlaybackSpeed(1.0);
                     },
@@ -2261,15 +2243,15 @@ class _EditorScreenState extends State<EditorScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _appliedSpeed != 1.0
+                    color: _edits.speed != 1.0
                         ? AppColors.accent.withValues(alpha: 0.15)
                         : AppColors.cardDarkAlt,
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: Text(
-                    '${_previewSpeed.toStringAsFixed(2)}x',
+                    '${_preview.effectiveSpeed(_edits).toStringAsFixed(2)}x',
                     style: TextStyle(
-                      color: _appliedSpeed != 1.0
+                      color: _edits.speed != 1.0
                           ? AppColors.accent
                           : AppColors.textSecondary,
                       fontWeight: FontWeight.bold,
@@ -2295,7 +2277,7 @@ class _EditorScreenState extends State<EditorScreen> {
               ],
             ),
             Slider(
-              value: _previewSpeed,
+              value: _preview.effectiveSpeed(_edits),
               min: 0.25,
               max: 3.0,
               divisions: 11, // 0.25 increments
@@ -2303,16 +2285,16 @@ class _EditorScreenState extends State<EditorScreen> {
               inactiveColor: AppColors.divider,
               onChanged: (val) {
                 setState(
-                  () => _previewSpeed = (val * 4).roundToDouble() / 4,
-                ); // snap to 0.25
-                _controller?.setPlaybackSpeed(_previewSpeed);
+                  () => _preview = _preview.withSpeed((val * 4).roundToDouble() / 4,
+                )); // snap to 0.25
+                _controller?.setPlaybackSpeed(_preview.effectiveSpeed(_edits));
               },
             ),
-            if (_appliedSpeed != 1.0)
+            if (_edits.speed != 1.0)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
                 child: Text(
-                  'Applied: ${_appliedSpeed.toStringAsFixed(2)}x',
+                  'Applied: ${_edits.speed.toStringAsFixed(2)}x',
                   style: const TextStyle(color: AppColors.accent, fontSize: 11),
                 ),
               ),
@@ -2323,10 +2305,10 @@ class _EditorScreenState extends State<EditorScreen> {
                 icon: const Icon(Icons.check_circle_outline, size: 18),
                 label: const Text('Apply Speed'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: _previewSpeed != _appliedSpeed
+                  backgroundColor: _preview.effectiveSpeed(_edits) != _edits.speed
                       ? AppColors.accent
                       : AppColors.cardDarkAlt,
-                  foregroundColor: _previewSpeed != _appliedSpeed
+                  foregroundColor: _preview.effectiveSpeed(_edits) != _edits.speed
                       ? AppColors.scaffoldDark
                       : AppColors.textPrimary,
                 ),
@@ -2363,13 +2345,13 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
                 const Spacer(),
-                if (_appliedCanvas != ExportAspectRatio.source ||
-                    _previewCanvas != ExportAspectRatio.source)
+                if (_edits.canvas != ExportAspectRatio.source ||
+                    _preview.effectiveCanvas(_edits) != ExportAspectRatio.source)
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _previewCanvas = ExportAspectRatio.source;
-                        _appliedCanvas = ExportAspectRatio.source;
+                        _preview = _preview.withCanvas(ExportAspectRatio.source);
+                        _edits = _edits.copyWith(canvas: ExportAspectRatio.source);
                       });
                     },
                     style: TextButton.styleFrom(
@@ -2387,7 +2369,7 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                     child: const Text('Reset Canvas'),
                   ),
-                if (_appliedCanvas != ExportAspectRatio.source)
+                if (_edits.canvas != ExportAspectRatio.source)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -2398,7 +2380,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     ),
                     child: Text(
-                      _appliedCanvas.label,
+                      _edits.canvas.label,
                       style: const TextStyle(
                         color: AppColors.accent,
                         fontWeight: FontWeight.bold,
@@ -2413,10 +2395,10 @@ class _EditorScreenState extends State<EditorScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: ExportAspectRatio.values.map((ratio) {
-                  final isSelected = _previewCanvas == ratio;
+                  final isSelected = _preview.effectiveCanvas(_edits) == ratio;
                   return GestureDetector(
                     onTap: () {
-                      setState(() => _previewCanvas = ratio);
+                      setState(() => _preview = _preview.withCanvas(ratio));
                       // Instant visual preview in viewport
                     },
                     child: Container(
@@ -2462,10 +2444,10 @@ class _EditorScreenState extends State<EditorScreen> {
                 icon: const Icon(Icons.check_circle_outline, size: 18),
                 label: const Text('Apply Canvas'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: _previewCanvas != _appliedCanvas
+                  backgroundColor: _preview.effectiveCanvas(_edits) != _edits.canvas
                       ? AppColors.accent
                       : AppColors.cardDarkAlt,
-                  foregroundColor: _previewCanvas != _appliedCanvas
+                  foregroundColor: _preview.effectiveCanvas(_edits) != _edits.canvas
                       ? AppColors.scaffoldDark
                       : AppColors.textPrimary,
                 ),
@@ -2489,17 +2471,17 @@ class _EditorScreenState extends State<EditorScreen> {
             icon: const Icon(Icons.save_alt_rounded, size: 18),
             label: const Text('Export Studio'),
             style: FilledButton.styleFrom(
-              backgroundColor: _hasEdits
+              backgroundColor: _edits.hasEdits(_videoDuration)
                   ? AppColors.accent
                   : AppColors.cardDarkAlt,
-              foregroundColor: _hasEdits
+              foregroundColor: _edits.hasEdits(_videoDuration)
                   ? AppColors.scaffoldDark
                   : AppColors.textPrimary,
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
         ),
-        if (_hasEdits)
+        if (_edits.hasEdits(_videoDuration))
           const Padding(
             padding: EdgeInsets.only(top: AppTheme.spacingXs),
             child: Text(
