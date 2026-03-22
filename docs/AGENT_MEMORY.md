@@ -1,4 +1,4 @@
-﻿# Agent Memory Context
+# Agent Memory Context
 
 ## Repo Identity
 
@@ -97,9 +97,13 @@ The app is no longer in early pipeline stabilization. Current `main` includes:
 
 ### S020
 
-- Architecture Stabilization V1 (Pass 1)
-- consolidated raw EditorScreen attributes into immutable EditorEdits domain and EditorPreviewOverrides UI presentation models
+- State Model Extraction: editor state strictly isolated into committed `EditorEdits` and transient `EditorPreviewOverrides` with behavior-preserving `keepEdits: true` semantics
 - explicitly eliminated mixed local state mutation paths during player keepEdits lifecycles
+
+### S021
+
+- Layout Extraction: preview UI cleanly separated into `EditorPreviewSurface` and `PlaybackTimeline` while keeping `EditorScreen` as the orchestration root
+- preview rendering/layout responsibilities moved out of `EditorScreen` without changing playback, filter, canvas, or export behavior
 
 ## Build / Config Memory
 

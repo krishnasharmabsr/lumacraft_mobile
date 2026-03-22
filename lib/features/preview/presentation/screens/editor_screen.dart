@@ -25,6 +25,8 @@ import '../models/editor_preview_overrides.dart';
 import '../widgets/processing_overlay.dart';
 import '../widgets/trim_controls.dart';
 import '../models/filter_panel_state.dart';
+import '../widgets/editor_preview_surface.dart';
+
 
 
 class EditorScreen extends StatefulWidget {
@@ -1269,35 +1271,6 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
-  String _formatDuration(Duration duration, {double speed = 1.0}) {
-    if (speed != 1.0 && speed > 0.0) {
-      duration = Duration(milliseconds: (duration.inMilliseconds / speed).round());
-    }
-    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-
-  ColorFilter? _buildPreviewColorFilter() {
-    final matrix = _preview.effectiveFilter(_edits).matrix;
-    if (matrix == null) return null;
-    return ColorFilter.matrix(matrix);
-  }
-
-  Widget _buildPreviewVideoContent(VideoPlayerController ctrl) {
-    Widget video = SizedBox(
-      width: ctrl.value.size.width,
-      height: ctrl.value.size.height,
-      child: VideoPlayer(ctrl),
-    );
-
-    final colorFilter = _buildPreviewColorFilter();
-    if (colorFilter != null) {
-      video = ColorFiltered(colorFilter: colorFilter, child: video);
-    }
-
-    return video;
-  }
 
   void _applyFilter() {
     if (_preview.effectiveFilter(_edits) == _edits.filter) return;
@@ -1435,405 +1408,87 @@ class _EditorScreenState extends State<EditorScreen> {
                     if (isReady)
                       Flexible(
                         flex: isLandscape ? 5 : 3,
-                        child: GestureDetector(
-                          onTap: _toggleOverlay,
-                          child: Container(
-                            color: AppColors.playerBg,
-                            alignment: Alignment.center,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                AspectRatio(
-                                  aspectRatio:
-                                      _preview.effectiveCanvas(_edits) ==
-                                              ExportAspectRatio.source ||
-                                          _preview.effectiveCanvas(_edits).ratio == null
-                                      ? ctrl.value.aspectRatio
-                                      : _preview.effectiveCanvas(_edits).ratio!,
-                                  child: Container(
-                                    color: Colors.black,
-                                    alignment: Alignment.center,
-                                    child: FittedBox(
-                                      fit: BoxFit.contain,
-                                      clipBehavior: Clip.hardEdge,
-                                      child: _buildPreviewVideoContent(ctrl),
-                                    ),
-                                  ),
-                                ),
-                                if (_showOverlay && !_isProcessing)
-                                  Positioned.fill(
-                                    child: Container(
-                                      color: Colors.black26,
-                                      child: Stack(
-                                        children: [
-                                          Center(
-                                            child: FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  IconButton(
-                                                    icon: const Icon(
-                                                      Icons.replay_10,
-                                                    ),
-                                                    iconSize: 36,
-                                                    color: Colors.white,
-                                                    onPressed: () async {
-                                                      _removePreviewListener();
-                                                      await _seekTo(
-                                                        ctrl.value.position -
-                                                            const Duration(
-                                                              seconds: 10,
-                                                            ),
-                                                        source: 'btn_seek_back',
-                                                      );
-                                                      _resetOverlayTimer();
-                                                    },
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                  IconButton(
-                                                    iconSize: 56,
-                                                    color: Colors.white,
-                                                    icon: Icon(
-                                                      ctrl.value.isPlaying
-                                                          ? Icons
-                                                                .pause_circle_filled
-                                                          : Icons
-                                                                .play_circle_filled,
-                                                    ),
-                                                    onPressed: () {
-                                                      _removePreviewListener();
-                                                      setState(() {
-                                                        if (ctrl
-                                                            .value
-                                                            .isPlaying) {
-                                                          ctrl.pause();
-                                                          _overlayTimer
-                                                              ?.cancel();
-                                                        } else {
-                                                          ctrl.play();
-                                                          _resetOverlayTimer();
-                                                        }
-                                                      });
-                                                    },
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                  IconButton(
-                                                    icon: const Icon(
-                                                      Icons.forward_10,
-                                                    ),
-                                                    iconSize: 36,
-                                                    color: Colors.white,
-                                                    onPressed: () async {
-                                                      _removePreviewListener();
-                                                      await _seekTo(
-                                                        ctrl.value.position +
-                                                            const Duration(
-                                                              seconds: 10,
-                                                            ),
-                                                        source:
-                                                            'btn_seek_forward',
-                                                      );
-                                                      _resetOverlayTimer();
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            bottom: 0,
-                                            left: 0,
-                                            right: 0,
-                                            child: GestureDetector(
-                                              onTap:
-                                                  () {}, // Blocks overlay toggle
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal:
-                                                          AppTheme.spacingMd,
-                                                      vertical:
-                                                          AppTheme.spacingSm,
-                                                    ),
-                                                decoration: const BoxDecoration(
-                                                  gradient: LinearGradient(
-                                                    begin: Alignment.topCenter,
-                                                    end: Alignment.bottomCenter,
-                                                    colors: [
-                                                      Colors.transparent,
-                                                      Colors.black87,
-                                                    ],
-                                                  ),
-                                                ),
-                                                child: Stack(
-                                                  clipBehavior: Clip.none,
-                                                  alignment:
-                                                      Alignment.bottomLeft,
-                                                  children: [
-                                                    Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Row(
-                                                          children: [
-                                                            GestureDetector(
-                                                              onTap: () {
-                                                                _toggleMute();
-                                                                _resetOverlayTimer();
-                                                              },
-                                                              onLongPress: () {
-                                                                setState(() {
-                                                                  _showVolumeSlider =
-                                                                      !_showVolumeSlider;
-                                                                });
-                                                                _resetOverlayTimer();
-                                                              },
-                                                              child: Padding(
-                                                                padding:
-                                                                    const EdgeInsets.all(
-                                                                      8.0,
-                                                                    ),
-                                                                child: Icon(
-                                                                  _isMuted ||
-                                                                          _volume ==
-                                                                              0
-                                                                      ? Icons
-                                                                            .volume_off
-                                                                      : Icons
-                                                                            .volume_up,
-                                                                  color: Colors
-                                                                      .white,
-                                                                  size: 20,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                              width: 8,
-                                                            ),
-                                                            Text(
-                                                              '${_formatDuration(ctrl.value.position, speed: _edits.speed)} / ${_formatDuration(_videoDuration, speed: _edits.speed)}',
-                                                              style: const TextStyle(
-                                                                color: Colors
-                                                                    .white,
-                                                                fontSize: 13,
-                                                                fontFeatures: [
-                                                                  FontFeature.tabularFigures(),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            const Spacer(),
-                                                          ],
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 8,
-                                                        ),
-                                                        PlaybackTimeline(
-                                                          currentPosition: ctrl
-                                                              .value
-                                                              .position,
-                                                          duration:
-                                                              _videoDuration,
-                                                          trimStart: _edits.trimStart,
-                                                          trimEnd: _edits.trimEnd,
-                                                          onScrubStart: () {
-                                                            _resumePlaybackAfterScrub =
-                                                                ctrl
-                                                                    .value
-                                                                    .isPlaying;
-                                                            ctrl.pause();
-                                                            setState(
-                                                              () =>
-                                                                  _isScrubbing =
-                                                                      true,
-                                                            );
-                                                            _pendingScrubTarget =
-                                                                null;
-                                                            _overlayTimer
-                                                                ?.cancel();
-                                                          },
-                                                          onScrubUpdate: (target) {
-                                                            _pendingScrubTarget =
-                                                                target;
-                                                            _seekTo(
-                                                              target,
-                                                              source:
-                                                                  'slider_scrub',
-                                                              resumePlayback:
-                                                                  false,
-                                                            );
-                                                          },
-                                                          onScrubEnd: () {
-                                                            final target =
-                                                                _pendingScrubTarget;
-                                                            setState(
-                                                              () =>
-                                                                  _isScrubbing =
-                                                                      false,
-                                                            );
-                                                            if (target !=
-                                                                null) {
-                                                              _seekTo(
-                                                                target,
-                                                                source:
-                                                                    'slider_scrub_commit',
-                                                                resumePlayback:
-                                                                    _resumePlaybackAfterScrub,
-                                                              );
-                                                            }
-                                                            _resumePlaybackAfterScrub =
-                                                                false;
-                                                            _resetOverlayTimer();
-                                                          },
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    if (_showVolumeSlider)
-                                                      Positioned(
-                                                        left: 8,
-                                                        bottom: 64,
-                                                        child: Container(
-                                                          height: 140,
-                                                          width: 40,
-                                                          decoration: BoxDecoration(
-                                                            color:
-                                                                Colors.black87,
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  20,
-                                                                ),
-                                                          ),
-                                                          child: LayoutBuilder(
-                                                            builder:
-                                                                (
-                                                                  context,
-                                                                  constraints,
-                                                                ) {
-                                                                  final trackHeight =
-                                                                      constraints
-                                                                          .maxHeight -
-                                                                      20;
-                                                                  final knobBottom =
-                                                                      (_volume *
-                                                                              trackHeight)
-                                                                          .clamp(
-                                                                            0.0,
-                                                                            trackHeight,
-                                                                          )
-                                                                          .toDouble();
-                                                                  return GestureDetector(
-                                                                    behavior:
-                                                                        HitTestBehavior
-                                                                            .opaque,
-                                                                    onTapDown: (details) {
-                                                                      _overlayTimer
-                                                                          ?.cancel();
-                                                                      _setVolumeFromVerticalDrag(
-                                                                        localDy: details
-                                                                            .localPosition
-                                                                            .dy,
-                                                                        trackHeight:
-                                                                            constraints.maxHeight,
-                                                                      );
-                                                                      _resetOverlayTimer();
-                                                                    },
-                                                                    onVerticalDragStart:
-                                                                        (
-                                                                          _,
-                                                                        ) => _overlayTimer
-                                                                            ?.cancel(),
-                                                                    onVerticalDragUpdate: (details) {
-                                                                      _setVolumeFromVerticalDrag(
-                                                                        localDy: details
-                                                                            .localPosition
-                                                                            .dy,
-                                                                        trackHeight:
-                                                                            constraints.maxHeight,
-                                                                      );
-                                                                    },
-                                                                    onVerticalDragEnd:
-                                                                        (_) =>
-                                                                            _resetOverlayTimer(),
-                                                                    child: Stack(
-                                                                      alignment:
-                                                                          Alignment
-                                                                              .center,
-                                                                      children: [
-                                                                        Positioned(
-                                                                          top:
-                                                                              10,
-                                                                          bottom:
-                                                                              10,
-                                                                          child: Container(
-                                                                            width:
-                                                                                4,
-                                                                            decoration: BoxDecoration(
-                                                                              color: Colors.white30,
-                                                                              borderRadius: BorderRadius.circular(
-                                                                                999,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                        Positioned(
-                                                                          left:
-                                                                              18,
-                                                                          right:
-                                                                              18,
-                                                                          bottom:
-                                                                              10,
-                                                                          height:
-                                                                              trackHeight *
-                                                                              _volume,
-                                                                          child: Container(
-                                                                            decoration: BoxDecoration(
-                                                                              color: AppColors.accent,
-                                                                              borderRadius: BorderRadius.circular(
-                                                                                999,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                        Positioned(
-                                                                          bottom:
-                                                                              2 +
-                                                                              knobBottom,
-                                                                          child: Container(
-                                                                            width:
-                                                                                14,
-                                                                            height:
-                                                                                14,
-                                                                            decoration: BoxDecoration(
-                                                                              color: Colors.white,
-                                                                              borderRadius: BorderRadius.circular(
-                                                                                999,
-                                                                              ),
-                                                                              border: Border.all(
-                                                                                color: AppColors.accent,
-                                                                                width: 2,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  );
-                                                                },
-                                                          ),
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                        child: EditorPreviewSurface(
+                          controller: ctrl,
+                          videoDuration: _videoDuration,
+                          edits: _edits,
+                          preview: _preview,
+                          isProcessing: _isProcessing,
+                          showOverlay: _showOverlay,
+                          showVolumeSlider: _showVolumeSlider,
+                          isMuted: _isMuted,
+                          volume: _volume,
+                          onToggleOverlay: _toggleOverlay,
+                          onTogglePlayPause: () {
+                            _removePreviewListener();
+                            setState(() {
+                              if (ctrl.value.isPlaying) {
+                                ctrl.pause();
+                                _overlayTimer?.cancel();
+                              } else {
+                                ctrl.play();
+                                _resetOverlayTimer();
+                              }
+                            });
+                          },
+                          onSeekBack: () async {
+                            _removePreviewListener();
+                            await _seekTo(
+                              ctrl.value.position - const Duration(seconds: 10),
+                              source: 'btn_seek_back',
+                            );
+                            _resetOverlayTimer();
+                          },
+                          onSeekForward: () async {
+                            _removePreviewListener();
+                            await _seekTo(
+                              ctrl.value.position + const Duration(seconds: 10),
+                              source: 'btn_seek_forward',
+                            );
+                            _resetOverlayTimer();
+                          },
+                          onToggleMute: () {
+                            _toggleMute();
+                            _resetOverlayTimer();
+                          },
+                          onToggleVolumeSlider: () {
+                            setState(() {
+                              _showVolumeSlider = !_showVolumeSlider;
+                            });
+                            _resetOverlayTimer();
+                          },
+                          onSetVolumeFromVerticalDrag: (localDy, trackHeight) {
+                            _setVolumeFromVerticalDrag(
+                              localDy: localDy,
+                              trackHeight: trackHeight,
+                            );
+                          },
+                          onResetOverlayTimer: _resetOverlayTimer,
+                          onCancelOverlayTimer: () => _overlayTimer?.cancel(),
+                          onScrubStart: () {
+                            _resumePlaybackAfterScrub = ctrl.value.isPlaying;
+                            ctrl.pause();
+                            setState(() => _isScrubbing = true);
+                            _pendingScrubTarget = null;
+                            _overlayTimer?.cancel();
+                          },
+                          onScrubUpdate: (target) {
+                            _pendingScrubTarget = target;
+                            _seekTo(target, source: 'slider_scrub', resumePlayback: false);
+                          },
+                          onScrubEnd: () {
+                            final target = _pendingScrubTarget;
+                            setState(() => _isScrubbing = false);
+                            if (target != null) {
+                              _seekTo(
+                                target,
+                                source: 'slider_scrub_commit',
+                                resumePlayback: _resumePlaybackAfterScrub,
+                              );
+                            }
+                            _resumePlaybackAfterScrub = false;
+                            _resetOverlayTimer();
+                          },
                         ),
                       )
                     else if (!_isProcessing)
@@ -2623,120 +2278,3 @@ class _ToolIconButton extends StatelessWidget {
 
 // ────────────────────────────────────────────────────────────
 //  UI COMPONENT: PLAYBACK TIMELINE WITH TRIM HIGHLIGHT
-// ────────────────────────────────────────────────────────────
-class PlaybackTimeline extends StatelessWidget {
-  final Duration currentPosition;
-  final Duration duration;
-  final Duration trimStart;
-  final Duration trimEnd;
-  final VoidCallback? onScrubStart;
-  final ValueChanged<Duration>? onScrubUpdate;
-  final VoidCallback? onScrubEnd;
-
-  const PlaybackTimeline({
-    super.key,
-    required this.currentPosition,
-    required this.duration,
-    required this.trimStart,
-    required this.trimEnd,
-    this.onScrubStart,
-    this.onScrubUpdate,
-    this.onScrubEnd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (duration.inMilliseconds < 1000) return const SizedBox(height: 16);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalMillis = duration.inMilliseconds.toDouble();
-        final startRatio = totalMillis > 0
-            ? trimStart.inMilliseconds / totalMillis
-            : 0.0;
-        final endRatio = totalMillis > 0
-            ? trimEnd.inMilliseconds / totalMillis
-            : 1.0;
-        final positionRatio = totalMillis > 0
-            ? currentPosition.inMilliseconds / totalMillis
-            : 0.0;
-
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            height: 24,
-            width: double.infinity,
-            alignment: Alignment.center,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Base track
-                Center(
-                  child: Container(
-                    height: 4,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.divider,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                // Trim region highlight
-                Positioned(
-                  left: startRatio * constraints.maxWidth,
-                  top: 10,
-                  width:
-                      (endRatio - startRatio).clamp(0.0, 1.0) *
-                      constraints.maxWidth,
-                  child: Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                // Native Slider overlay for scrubbing
-                Positioned(
-                  left: -24,
-                  right: -24,
-                  top: -12,
-                  bottom: -12,
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 24,
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 6,
-                      ),
-                      overlayShape: const RoundSliderOverlayShape(
-                        overlayRadius: 16,
-                      ),
-                      activeTrackColor: Colors.transparent,
-                      inactiveTrackColor: Colors.transparent,
-                      thumbColor: AppColors.accent,
-                    ),
-                    child: Slider(
-                      value: (positionRatio * totalMillis).clamp(
-                        0.0,
-                        totalMillis,
-                      ),
-                      min: 0,
-                      max: totalMillis,
-                      onChangeStart: (_) => onScrubStart?.call(),
-                      onChanged: (val) {
-                        onScrubUpdate?.call(
-                          Duration(milliseconds: val.round()),
-                        );
-                      },
-                      onChangeEnd: (_) => onScrubEnd?.call(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}

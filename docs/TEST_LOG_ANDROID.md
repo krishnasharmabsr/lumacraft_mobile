@@ -530,3 +530,19 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
   - `flutter build apk --release`: OK
 - **Manual QA:** APPROVED on release build. Existing trim, speed, filters, canvas, export, and monetization behavior verified unchanged.
 - **Status:** APPROVED
+
+## Execution 35 - Task S021 (Architecture Stabilization V1 - Pass 2)
+
+- **Date:** 2026-03-22
+- **Changes:**
+  1. Extracted rendering logic from `EditorScreen.build` into a dedicated stateless `EditorPreviewSurface` widget.
+  2. Isolated `AspectRatio` evaluation, filter `ColorFiltered` previewing, video sizing, and all playback timeline/volume/seek layout properties within the new widget boundary.
+  3. Extracted `PlaybackTimeline` into its own file (`playback_timeline.dart`).
+  4. Preserved `EditorScreen` as the orchestration layer for managing timers, seek limits, duration resolution, and export integrity by passing explicitly required models (`EditorEdits`, `EditorPreviewOverrides`) and structured callbacks down to the surface widget.
+- **Validation:**
+  - `flutter analyze`: No issues found
+  - `flutter test`: OK (87 tests passed)
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (114.3MB)
+- **Manual QA:** PENDING. Surface interaction (seek, volume, filter swaps, timeline scrub) requires manual verification.
+- **Status:** PENDING_QA

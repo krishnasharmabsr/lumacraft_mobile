@@ -1,4 +1,4 @@
-﻿# Release Task Board V2
+# Release Task Board V2
 
 ## Baseline Status
 
@@ -25,6 +25,7 @@
 - [x] Filter follow-up fixes and reset contract
 - [x] S018 - Editor speed effective duration display
 - [x] S020 - Architecture stabilization pass 1 (Editor State Model)
+- [x] S021 - Architecture stabilization pass 2 (EditorPreviewSurface)
 
 ## Phase 2 - Monetization Foundation
 

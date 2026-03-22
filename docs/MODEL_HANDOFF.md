@@ -1,4 +1,4 @@
-﻿# LumaCraft Model Handoff
+# LumaCraft Model Handoff
 
 ## Current Baseline
 
@@ -114,6 +114,12 @@ LumaCraft is now past basic editor prototyping. The Android app currently includ
 - introduced the EditorEdits domain model to immutably represent mathematically verifiable export timelines
 - introduced the EditorPreviewOverrides presentation model to manage transient dragging behavior completely isolated from commit actions
 - established secure boundary for keepEdits: true behavior mapping during post-trim duration clamping
+
+### S021 - Architecture Stabilization V1 (Pass 2)
+
+- completely extracted preview rendering layer out of `EditorScreen` down into `EditorPreviewSurface` and `PlaybackTimeline`
+- orchestrated presentation callbacks up to `EditorScreen` while enforcing state decoupling guarantees
+- simplified the visual mapping logic away from the orchestration boundaries and maintained exact pixel matching to existing UI contracts
 
 ## Known External Platform State
 
