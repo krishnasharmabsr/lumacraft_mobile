@@ -551,73 +551,15 @@ Awaiting manual QA to execute the checklist in `ANDROID_MANUAL_QA.md`.
 
 - **Date:** 2026-03-22
 - **Changes:**
-  1. Extracted FFmpeg command generation inputs into a structured `VideoExportRequest` model using native primitives to decouple `core` from `features`.
-  2. Migrated `IVideoProcessor` and `FFmpegProcessor` to accept `VideoExportRequest` and updated `EditorScreen` to bundle primitive fields.
-  3. No changes to FFmpeg command mechanics, export behavior, or product state definitions.
+  1. Extracted FFmpeg command generation inputs into a structured `VideoExportRequest` model using native primitives.
+  2. Migrated `IVideoProcessor` and `FFmpegProcessor` to accept `VideoExportRequest`.
+  3. Updated `EditorScreen` to bundle primitive fields at the call-site, decoupling `core` from `features`.
+  4. Preserved all existing FFmpeg command mechanics and watermark application logic.
 - **Validation:**
-00:00 +30: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveFilter falls back to edits.filter when null
-00:00 +31: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveFilter falls back to non-default edits.filter when null
-00:00 +32: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveCanvas returns override canvas when set
-00:00 +33: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveCanvas falls back to edits.canvas when null
-00:00 +34: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — effectiveCanvas falls back to non-default edits.canvas when null
-00:00 +35: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — none constant none has all null fields
-00:00 +36: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — mutation helpers withSpeed updates speed only
-00:00 +37: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — mutation helpers withFilter updates filter only
-00:00 +38: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/features/preview/presentation/models/editor_preview_overrides_test.dart: EditorPreviewOverrides — mutation helpers withCanvas updates canvas only
-00:01 +39: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildAtempoChain speed 1.0 returns single atempo
-00:01 +40: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildAtempoChain speed 1.5 returns single atempo
-00:01 +41: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildAtempoChain speed 4.0 chains two atempo=2.0
-00:01 +42: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildAtempoChain speed 8.0 chains three atempo=2.0
-00:01 +43: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildAtempoChain speed 0.25 chains two atempo=0.5
-00:01 +44: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildAtempoChain speed 3.0 chains atempo=2.0 then atempo=1.5
-00:01 +45: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: classifyFailure detects watermark failure from image2 log
-00:01 +46: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: classifyFailure detects watermark failure from overlay log
-00:01 +47: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: classifyFailure detects audio failure from stream map
-00:01 +48: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: classifyFailure detects encoder failure
-00:01 +49: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: classifyFailure returns unknown for unrecognized log
-00:01 +50: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: nextAttempt A → B: switches to rawRgba watermark
-00:01 +51: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: nextAttempt B → C: disables audio
-00:01 +52: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: nextAttempt C → D: x264 fallback
-00:01 +53: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: nextAttempt D → null: all exhausted
-00:01 +54: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand audio + no-speed: bare 0:a:0 mapping
-00:01 +55: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand audio + speed >2: chained atempo
-00:01 +56: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand selected filter is inserted before watermark overlay and pad
-00:01 +57: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand original filter does not add extra FFmpeg filter segment
-00:01 +58: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand explicit fps adds fps filter and output flag
-00:01 +59: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand source fps mode keeps original timestamps without fps filter
-00:01 +60: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand no-audio input: no audio map or codec flags
-00:01 +61: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand watermark skipped (null path): no overlay, no drawtext
-00:01 +62: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand watermark active (png): looped image input with format=rgba
-00:01 +63: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand watermark active (rawRgba): rawvideo input with width/height
-00:01 +64: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand MKV format: no faststart flag
-00:01 +65: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand watermarkBackend=none: no watermark in command
-00:01 +66: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand includeAudio=false: no audio map or codec
-00:01 +67: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: buildExportCommand x264 fallback codec profile
-00:01 +68: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: ExportResult policy watermark applied: success result
-00:01 +69: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: ExportResult policy free-tier + watermark fail: policy rejection state
-00:01 +70: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: ExportResult policy QA bypass + watermark fail: warning state (file kept)
-00:01 +71: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: ExportResult policy pro user: no watermark requested
-00:01 +72: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: allowWatermarkBypassForQa default is false (production mode)
-00:01 +73: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/ffmpeg_command_builder_test.dart: allowWatermarkBypassForQa can be toggled for QA testing
-00:01 +74: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/filter_panel_state_test.dart: FilterPanelState uses explicit preview and export messaging when preview differs
-00:01 +75: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/filter_panel_state_test.dart: FilterPanelState reports matched non-original preview/export state clearly
-00:01 +76: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/filter_panel_state_test.dart: FilterPanelState reports original state clearly
-00:01 +77: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_package_option_test.dart: PaywallPackageCatalog prefers yearly first and highlights it when monthly exists
-00:01 +78: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_package_option_test.dart: PaywallPackageCatalog keeps real package fallback when monthly and yearly are absent
-00:01 +79: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_package_option_test.dart: PaywallPackageCatalog falls back to unavailable CTA when no package is selected
-00:02 +80: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_sheet_test.dart: PaywallSheet shows cleaned pricing copy for available plans
-00:02 +81: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_sheet_test.dart: PaywallSheet shows cleaned pricing copy for available plans
-00:02 +82: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_sheet_test.dart: PaywallSheet shows cleaned pricing copy for available plans
-00:02 +83: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_sheet_test.dart: PaywallSheet shows cleaned pricing copy for available plans
-00:03 +84: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/widget_test.dart: App load smoke test — splash screen renders
-00:03 +85: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/widget_test.dart: App load smoke test — splash screen renders
-00:03 +86: C:/Users/pc/Documents/GitHub/VideoEditor/lumacraft_mobile/test/paywall_sheet_test.dart: PaywallSheet shows restore failure feedback
-00:03 +87: All tests passed!: OK
-  - Running Gradle task 'assembleDebug'...                             14.4s
-√ Built buildpp\outputslutter-apkpp-debug.apk: OK
-  - Running Gradle task 'assembleRelease'...                        
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 6364 bytes (99.6% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
-Running Gradle task 'assembleRelease'...                           23.3s
-√ Built buildpp\outputslutter-apkpp-release.apk (114.3MB): OK (114.3MB)
+  - `flutter analyze`: No issues found
+  - `flutter test`: All tests passed
+  - `flutter build apk --debug`: OK
+  - `flutter build apk --release`: OK (114.3MB)
 - **Manual QA:** PENDING. Export success/failure paths, watermark application, audio inclusion, and final qualities should be verified unchanged.
 - **Status:** PENDING_QA
+
